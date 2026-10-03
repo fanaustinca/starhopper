@@ -1,15 +1,18 @@
-// Cutscenes, built from three shots:
-//   depart  – the robot runs to its ship on the finished planet and lifts off
-//   cruise  – warp-streaked flight through space (or the approach to the Sun)
-//   arrive  – the ship descends onto a landing pad in the next world's real
-//             backdrop, the canopy swings open and the robot hops out
-// Kinds: 'intro' (approach + land at the Sun), 'transfer' (depart → cruise →
+// Cutscenes with the mothership, built from three shots:
+//   depart – in the finished world's real scenery: the robot runs up the
+//            hangar ramp, the ramp closes, VTOL thrusters lift the ship and
+//            the main engines carry it away nose-first
+//   cruise – flight through space along a smooth curve; the ship always faces
+//            its direction of travel and banks into turns
+//   arrive – in the next world's scenery: the ship glides in, hovers, settles
+//            on its legs, lowers the ramp, and the robot walks out and waves
+// Kinds: 'intro' (cruise to the Sun + arrive), 'transfer' (depart → cruise →
 // arrive), 'finale' (depart → cruise to a galaxy).
 import * as THREE from 'three';
 import { WORLDS, LEVELS_PER_WORLD } from '../core/config.js';
-import { generateLevel } from '../core/levelgen.js';
+import { getLevel } from '../levels/index.js';
 import { Robot } from './robot.js';
-import { makeShip, mat } from './vehicles.js';
+import { makeMothership, SHIP_LEG_DROP, mat } from './vehicles.js';
 import { planetTexture, ringTexture, glowTexture } from './textures.js';
 import { buildBackdrop } from './decor.js';
 import { tickShaders, plasmaMaterial, starMaterial } from './shaders.js';
@@ -17,27 +20,35 @@ import { makeRng } from '../core/rng.js';
 
 const ease = (x) => (x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x));
 const seg = (t, a, b) => ease((t - a) / (b - a));
-const DEPART = 3.4, CRUISE = 3.4, APPROACH = 4.2, ARRIVE = 5.8;
+const DEPART = 4.4, CRUISE = 4.0, ARRIVE = 6.2;
+const UP = new THREE.Vector3(0, 1, 0);
+const RAMP_OPEN = 2.03;   // radians: the ramp tip rests on the pad
 
 function planet(world, radius, seed) {
   const g = new THREE.Group();
-  const tex = planetTexture(world, seed);
-  const m = world.planet.emissive ? starMaterial() : new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
-  const s = new THREE.Mesh(new THREE.SphereGeometry(radius, 64, 40), m);
+  const m = world.planet.emissive ? starMaterial() : new THREE.MeshStandardMaterial({ map: planetTexture(world, seed), roughness: 0.85 });
+  const s = new THREE.Mesh(new THREE.SphereGeometry(radius, 96, 64), m);
   g.add(s);
   g.userData.sphere = s;
   if (world.planet.rings) {
-    const geo = new THREE.RingGeometry(radius * 1.35, radius * 2.3, 128, 1);
+    const geo = new THREE.RingGeometry(radius * 1.35, radius * 2.3, 160, 1);
     const pos = geo.attributes.position, uv = geo.attributes.uv;
     for (let i = 0; i < pos.count; i++) uv.setXY(i, (Math.hypot(pos.getX(i), pos.getY(i)) - radius * 1.35) / (radius * 0.95), 0.5);
     const ring = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: ringTexture(world.planet.color), side: THREE.DoubleSide, transparent: true, depthWrite: false }));
     ring.rotation.x = Math.PI / 2 - 0.3;
     g.add(ring);
   }
-  const atm = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(world.planet.emissive ? 0xffa030 : world.sky[1]), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: world.planet.emissive ? 1 : 0.55 }));
-  atm.scale.setScalar(radius * (world.planet.emissive ? 4.5 : 2.6));
+  const atm = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(world.planet.emissive ? 0xffa030 : world.sky[1]), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: world.planet.emissive ? 1 : 0.5 }));
+  atm.scale.setScalar(radius * (world.planet.emissive ? 4.2 : 2.5));
   g.add(atm);
   return g;
+}
+
+// Aim the ship's nose along `dir`, rolled by `bank` radians.
+function orient(ship, dir, bank = 0) {
+  ship.up.copy(UP);
+  ship.lookAt(ship.position.clone().add(dir));
+  ship.rotateZ(bank);
 }
 
 export class Cutscene {
@@ -50,300 +61,318 @@ export class Cutscene {
     this.toIdx = toIdx;
     this.done = false;
     this.robot = new Robot(opts.skin || 'classic');
-    this.fake = { x: -7, y: 0, vx: 0, vy: 0, facing: 1, state: 'idle' };
-    if (this.kind === 'intro') { this.tSpace = APPROACH; this.duration = APPROACH + ARRIVE; }
-    else if (this.kind === 'transfer') { this.tSpace = DEPART + CRUISE; this.duration = DEPART + CRUISE + ARRIVE; }
-    else { this.tSpace = 9.5; this.duration = 9.5; }
+    this.fake = { x: 0, y: 0, vx: 0, vy: 0, facing: 1, state: 'idle' };
+    this.ship = makeMothership();
+    this.ship.userData.inner.rotation.y = -Math.PI / 2;    // nose → +z so lookAt() aims it
+    if (this.kind === 'intro') this.shots = [['cruise', 0, CRUISE + 0.6], ['arrive', CRUISE + 0.6, CRUISE + 0.6 + ARRIVE]];
+    else if (this.kind === 'transfer') this.shots = [['depart', 0, DEPART], ['cruise', DEPART, DEPART + CRUISE], ['arrive', DEPART + CRUISE, DEPART + CRUISE + ARRIVE]];
+    else this.shots = [['depart', 0, DEPART], ['cruise', DEPART, DEPART + 5.2]];
+    this.duration = this.shots[this.shots.length - 1][2];
+    if (this.from) this.departScene = this.buildGround((fromIdx + 1) * LEVELS_PER_WORLD, this.from);
     this.buildSpace(fromIdx, toIdx);
-    if (this.to) this.buildArrival(toIdx);
+    if (this.to) this.arriveScene = this.buildGround(toIdx * LEVELS_PER_WORLD + 1, this.to);
+    this.camera = new THREE.PerspectiveCamera(42, 16 / 9, 0.3, 40000);
+    this.shotName = null;
+    this.scene = null;
   }
 
-  // ------------------------------------------------------------------ space shot
+  // ------------------------------------------------------------------ ground (depart / arrive)
+  buildGround(levelIndex, W) {
+    let level;
+    try { level = getLevel(levelIndex); } catch { level = null; }
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(W.fog, W.fogDensity * 0.7);
+    scene.environment = this.r.__env || null;
+    scene.environmentIntensity = 0.3;
+    scene.add(new THREE.HemisphereLight(W.light, W.id === 'sun' ? 0xff5a10 : W.ambient, 0.85));
+    const key = new THREE.DirectionalLight(W.light, W.id === 'biolumina' ? 1.1 : 1.8);
+    key.position.set(30, 60, 40);
+    scene.add(key);
+    if (W.id === 'sun') { const under = new THREE.DirectionalLight(0xff8a30, 1.6); under.position.set(0, -1, 0.4); scene.add(under); }
+    const backdrop = level ? buildBackdrop(level) : { group: new THREE.Group(), update() {} };
+    scene.add(backdrop.group);
+    const pad = new THREE.Group();
+    const padTop = new THREE.Mesh(new THREE.CylinderGeometry(19, 20, 0.8, 64), mat(new THREE.Color(W.platTop).multiplyScalar(0.7).getHex(), { metalness: 0.5, roughness: 0.4 }));
+    padTop.position.y = -0.4; pad.add(padTop);
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(15, 4, 10, 48), mat(W.plat, { metalness: 0.4, roughness: 0.5 }));
+    base.position.y = -5.8; pad.add(base);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(17.5, 0.18, 8, 96), new THREE.MeshStandardMaterial({ color: W.accent, emissive: W.accent, emissiveIntensity: 1.6 }));
+    ring.rotation.x = Math.PI / 2; ring.position.y = 0.03; pad.add(ring);
+    const mark = new THREE.Mesh(new THREE.RingGeometry(9, 9.4, 64), new THREE.MeshBasicMaterial({ color: W.accent, transparent: true, opacity: 0.6 }));
+    mark.rotation.x = -Math.PI / 2; mark.position.y = 0.04; pad.add(mark);
+    scene.add(pad);
+    const dust = [];
+    const dustMat = new THREE.SpriteMaterial({ map: glowTexture(0xffffff), transparent: true, opacity: 0, depthWrite: false, color: W.id === 'sun' ? 0xffb060 : 0xd8d0c8 });
+    for (let i = 0; i < 24; i++) { const d = new THREE.Sprite(dustMat.clone()); d.userData.a = (i / 24) * Math.PI * 2; d.visible = false; scene.add(d); dust.push(d); }
+    return { scene, backdrop, ring, dust };
+  }
+
+  // ------------------------------------------------------------------ space
   buildSpace(fromIdx, toIdx) {
     const scene = this.space = new THREE.Scene();
-    scene.background = new THREE.Color(0x02030a);
-    this.spaceCam = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 6000);
-    scene.add(new THREE.HemisphereLight(0xbfd8ff, 0x202030, 0.9));
-    const key = new THREE.DirectionalLight(0xffffff, 2.8);
-    key.position.set(-30, 40, 30);
+    scene.background = new THREE.Color(0x01020a);
+    scene.environment = this.r.__env || null;
+    scene.environmentIntensity = 0.3;
+    scene.add(new THREE.HemisphereLight(0xbfd8ff, 0x202030, 0.7));
+    const key = new THREE.DirectionalLight(0xfff4e0, 2.2);
+    key.position.set(-1, 1, 1);
     scene.add(key);
     const rng = makeRng((fromIdx ?? 99) * 13 + 1);
-    const N = 3000, pos = new Float32Array(N * 3);
-    for (let i = 0; i < N; i++) { pos[i * 3] = rng.range(-800, 1800); pos[i * 3 + 1] = rng.range(-500, 500); pos[i * 3 + 2] = rng.range(-1200, -80); }
-    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false })));
-    const streakN = 300;
-    this.streakSeeds = [];
-    for (let i = 0; i < streakN; i++) this.streakSeeds.push({ x: rng.range(-60, 60), y: rng.range(-30, 30), z: rng.range(-40, 10), l: rng.range(2, 8) });
-    const stg = new THREE.BufferGeometry(); stg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(streakN * 6), 3));
-    this.streaks = new THREE.LineSegments(stg, new THREE.LineBasicMaterial({ color: 0x9ad0ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending }));
-    this.streaks.frustumCulled = false;
-    scene.add(this.streaks);
-
-    this.ship = makeShip();
-    scene.add(this.ship);
-
-    if (this.kind === 'intro') {
-      // the Sun fills the view as we approach, prominences licking off the limb
-      this.sunBall = planet(WORLDS[0], 260, 1);
-      this.sunBall.position.set(700, -120, -900);
-      scene.add(this.sunBall);
-      for (let i = 0; i < 6; i++) {
-        const a = rng.range(-1.2, 1.2), r = 262, span = rng.range(60, 140);
-        const pts = [];
-        for (let k = 0; k <= 12; k++) {
-          const u = k / 12, ang = a + (u - 0.5) * span / r;
-          const lift = Math.sin(u * Math.PI) * span * 0.6;
-          pts.push(new THREE.Vector3(Math.sin(ang) * (r + lift), Math.cos(ang) * (r + lift), rng.range(-10, 10)));
-        }
-        const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, rng.range(5, 12), 10), plasmaMaterial());
-        this.sunBall.add(tube);
-      }
-      this.ship.position.set(-40, 10, 0);
-      this.robot.root.scale.setScalar(0.55);
-      scene.add(this.robot.root);
-      return;
+    const N = 5000, pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      const u = rng.next() * 2 - 1, a = rng.next() * Math.PI * 2, r = Math.sqrt(1 - u * u);
+      pos[i * 3] = Math.cos(a) * r * 18000; pos[i * 3 + 1] = u * 18000; pos[i * 3 + 2] = Math.sin(a) * r * 18000;
     }
-    // depart: origin planet + launch pad
-    this.pA = planet(this.from, 70, fromIdx + 1);
-    this.pA.position.set(0, -71.5, -10);
-    scene.add(this.pA);
-    const pad = new THREE.Group();
-    const padTop = new THREE.Mesh(new THREE.CylinderGeometry(5, 5.5, 0.6, 40), mat(0xd8dde6, { metalness: 0.6, roughness: 0.25 }));
-    padTop.position.y = -0.3; pad.add(padTop);
-    const padRing = new THREE.Mesh(new THREE.TorusGeometry(4.4, 0.08, 8, 64), mat(0x5ad8ff, { emissive: 0x5ad8ff, emissiveIntensity: 2 }));
-    padRing.rotation.x = Math.PI / 2; padRing.position.y = 0.02; pad.add(padRing);
-    scene.add(pad);
-    if (this.to) {
-      this.pB = planet(this.to, 60, toIdx + 1);
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    scene.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.7, sizeAttenuation: false })));
+    const pts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(1200, 260, -500), new THREE.Vector3(2600, 120, -1600), new THREE.Vector3(3700, -260, -2700), new THREE.Vector3(4400, -520, -3500)];
+    this.path = new THREE.CatmullRomCurve3(pts);
+    if (this.from) {
+      this.pA = planet(this.from, 900, fromIdx + 1);
+      this.pA.position.set(-500, -1300, 900);
+      scene.add(this.pA);
+    }
+    if (this.kind === 'intro') {
+      this.pB = planet(WORLDS[0], 1500, 1);
+      this.pB.position.set(6200, -1100, -5400);
+      for (let i = 0; i < 8; i++) {
+        const a = rng.range(-1.4, 1.4), r = 1505, span = rng.range(250, 600);
+        const loop = [];
+        for (let k = 0; k <= 12; k++) {
+          const u = k / 12, ang = a + (u - 0.5) * span / r, lift = Math.sin(u * Math.PI) * span * 0.55;
+          loop.push(new THREE.Vector3(Math.sin(ang) * (r + lift), Math.cos(ang) * (r + lift), rng.range(-30, 30)));
+        }
+        this.pB.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(loop), 60, rng.range(20, 45), 10), plasmaMaterial()));
+      }
+    } else if (this.to) {
+      this.pB = planet(this.to, 1000, toIdx + 1);
+      this.pB.position.set(6000, -1000, -5200);
     } else {
-      const gN = 6000, gp = new Float32Array(gN * 3), gc = new Float32Array(gN * 3);
+      const gN = 9000, gp = new Float32Array(gN * 3), gc = new Float32Array(gN * 3);
       for (let i = 0; i < gN; i++) {
-        const arm = i % 3, r = Math.pow(rng.next(), 0.6) * 160, a = r * 0.045 + (arm * Math.PI * 2) / 3 + rng.range(-0.3, 0.3);
-        gp[i * 3] = Math.cos(a) * r; gp[i * 3 + 1] = rng.range(-4, 4) * (1 - r / 180); gp[i * 3 + 2] = Math.sin(a) * r;
-        const c = new THREE.Color().setHSL(0.6 - r / 400, 0.8, 0.6 + (1 - r / 160) * 0.3);
+        const arm = i % 3, r = Math.pow(rng.next(), 0.6) * 2400, a = r * 0.003 + (arm * Math.PI * 2) / 3 + rng.range(-0.3, 0.3);
+        gp[i * 3] = Math.cos(a) * r; gp[i * 3 + 1] = rng.range(-60, 60) * (1 - r / 2700); gp[i * 3 + 2] = Math.sin(a) * r;
+        const c = new THREE.Color().setHSL(0.6 - r / 6000, 0.8, 0.6 + (1 - r / 2400) * 0.3);
         gc[i * 3] = c.r; gc[i * 3 + 1] = c.g; gc[i * 3 + 2] = c.b;
       }
       const gg = new THREE.BufferGeometry();
       gg.setAttribute('position', new THREE.BufferAttribute(gp, 3));
       gg.setAttribute('color', new THREE.BufferAttribute(gc, 3));
-      this.pB = new THREE.Points(gg, new THREE.PointsMaterial({ size: 2, sizeAttenuation: false, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true }));
+      this.pB = new THREE.Points(gg, new THREE.PointsMaterial({ size: 2.2, sizeAttenuation: false, vertexColors: true, blending: THREE.AdditiveBlending, transparent: true }));
+      this.pB.position.set(7000, -800, -6000);
       this.pB.rotation.x = 0.5;
     }
-    this.pB.position.set(900, -20, -400);
     scene.add(this.pB);
-    this.ship.position.set(1.5, 1.46, 0);
-    this.robot.root.position.set(-7, 0, 0);
-    scene.add(this.robot.root);
-  }
-
-  // ------------------------------------------------------------------ arrival shot
-  buildArrival(toIdx) {
-    const W = this.to;
-    const level = generateLevel(toIdx * LEVELS_PER_WORLD + 1);
-    const scene = this.land = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(W.fog, W.fogDensity * 0.8);
-    scene.environment = this.r.__env || null;
-    this.landCam = new THREE.PerspectiveCamera(40, 16 / 9, 0.3, 4000);
-    const hemi = new THREE.HemisphereLight(W.light, W.id === 'sun' ? 0xff5a10 : W.ambient, W.id === 'sun' ? 1.3 : 1.1);
-    scene.add(hemi);
-    const key = new THREE.DirectionalLight(W.light, W.id === 'biolumina' ? 1.4 : 2.4);
-    key.position.set(12, 30, 18);
-    scene.add(key);
-    if (W.id === 'sun') { const under = new THREE.DirectionalLight(0xff8a30, 2.4); under.position.set(0, -1, 0.4); scene.add(under); }
-    this.landBackdrop = buildBackdrop(level);
-    scene.add(this.landBackdrop.group);
-    // landing pad: a sleek platform with a lit ring
-    const pad = new THREE.Group();
-    const top = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.8, 0.5, 48), mat(W.platTop, { metalness: 0.5, roughness: 0.25 }));
-    top.position.y = -0.25; pad.add(top);
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 1.2, 4, 32), mat(W.plat, { metalness: 0.4, roughness: 0.5 }));
-    base.position.y = -2.5; pad.add(base);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(4.0, 0.07, 8, 64), mat(W.accent, { emissive: W.accent, emissiveIntensity: 2.4 }));
-    ring.rotation.x = Math.PI / 2; ring.position.y = 0.02; pad.add(ring);
-    this.landRing = ring;
-    scene.add(pad);
-    this.landShip = makeShip();
-    scene.add(this.landShip);
-    this.landDust = [];
-    const dustMat = new THREE.SpriteMaterial({ map: glowTexture(0xffffff), transparent: true, opacity: 0, depthWrite: false, color: W.id === 'sun' ? 0xffb060 : 0xd8d0c8 });
-    for (let i = 0; i < 18; i++) {
-      const d = new THREE.Sprite(dustMat.clone());
-      d.userData.a = (i / 18) * Math.PI * 2;
-      scene.add(d);
-      this.landDust.push(d);
-    }
+    this.streakSeeds = [];
+    for (let i = 0; i < 400; i++) this.streakSeeds.push({ x: rng.range(-140, 140), y: rng.range(-70, 70), z: rng.range(-140, 140), l: rng.range(20, 70) });
+    const stg = new THREE.BufferGeometry(); stg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(400 * 6), 3));
+    this.streaks = new THREE.LineSegments(stg, new THREE.LineBasicMaterial({ color: 0x9ad0ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending }));
+    this.streaks.frustumCulled = false;
+    scene.add(this.streaks);
   }
 
   skip() { this.t = this.duration; this.done = true; }
 
+  currentShot() {
+    for (const s of this.shots) if (this.t < s[2]) return s;
+    return this.shots[this.shots.length - 1];
+  }
+
   caption() {
-    const t = this.t;
-    if (this.kind === 'intro') {
-      if (t < 2.6) return { big: 'STARHOPPER', small: 'NOW APPROACHING · THE SUN' };
-      if (t > APPROACH + 2.6) return { big: 'THE SUN', small: 'WORLD 1' };
-      return null;
-    }
-    if (t < 1.5) return { big: this.from.name.toUpperCase(), small: 'WORLD COMPLETE' };
-    if (this.to && t > DEPART + 0.6 && t < this.tSpace - 0.4) return { big: this.to.name.toUpperCase(), small: 'NEXT STOP' };
-    if (this.to && t > this.tSpace + 2.6) return { big: this.to.name.toUpperCase(), small: `WORLD ${this.toIdx + 1}` };
-    if (!this.to && t > 6.2) return { big: 'THE END', small: 'ALL 420 LEVELS CLEARED' };
+    const [shot, a] = this.currentShot();
+    const k = this.t - a;
+    if (this.kind === 'intro' && shot === 'cruise' && k < 2.8) return { big: 'STARHOPPER', small: 'NOW APPROACHING · THE SUN' };
+    if (shot === 'depart' && k < 1.8) return { big: this.from.name.toUpperCase(), small: 'WORLD COMPLETE' };
+    if (shot === 'cruise' && this.to && this.kind !== 'intro' && k > 0.6) return { big: this.to.name.toUpperCase(), small: 'NEXT STOP' };
+    if (shot === 'cruise' && !this.to && k > 2.2) return { big: 'THE END', small: 'ALL 420 LEVELS CLEARED' };
+    if (shot === 'arrive' && k > 3.8) return { big: this.to.name.toUpperCase(), small: `WORLD ${this.toIdx + 1}` };
     return null;
   }
 
   update(dt) {
     this.t = Math.min(this.duration, this.t + dt);
     tickShaders(this.t + 50);
-    if (this.t < this.tSpace) this.updateSpace(dt); else this.updateArrival(dt);
+    const [shot, a] = this.currentShot();
+    if (shot !== this.shotName) this.enterShot(shot);
+    const k = this.t - a;
+    if (shot === 'depart') this.updateDepart(k, dt);
+    else if (shot === 'cruise') this.updateCruise(k, dt);
+    else this.updateArrive(k, dt);
+    const blink = Math.sin(this.t * 6) > 0.6;
+    for (const n of this.ship.userData.navLights) n.visible = blink;
     if (this.t >= this.duration) this.done = true;
     return this.done;
   }
 
-  updateSpace(dt) {
-    const t = this.t, R = this.robot, f = this.fake, ship = this.ship;
-    if (this.space.children.indexOf(R.root) < 0) this.space.add(R.root);
-    let cruise;
-    if (this.kind === 'intro') {
-      // fly toward the Sun, banking as it grows
-      const k = seg(t, 0, APPROACH);
-      ship.position.set(-40 + k * 120, 10 - k * 14 + Math.sin(t * 1.5) * 0.4, -k * 30);
-      ship.rotation.set(0, -0.25 + k * 0.1, Math.sin(t) * 0.05 - 0.05);
-      this.sunBall.position.set(700 - k * 280, -120 + k * 40, -900 + k * 380);
-      this.sunBall.rotation.z = t * 0.02;
-      cruise = seg(t, 0.2, 1.0) * (1 - seg(t, APPROACH - 1.2, APPROACH - 0.2));
-      ship.userData.flame.visible = true;
-      ship.userData.flame.scale.set(1, 1.4 * (0.85 + Math.random() * 0.3), 1);
-      R.update(f, dt, t, {});
-      R.root.position.copy(ship.localToWorld(new THREE.Vector3(0.6, 0.15, 0)));
-      R.root.rotation.y = Math.PI / 2;
-      const cam = this.spaceCam;
-      cam.position.set(ship.position.x - 12 + k * 2, ship.position.y + 3, ship.position.z + 14);
-      cam.lookAt(ship.position.x + 10, ship.position.y - 2 - k * 4, ship.position.z - 20);
-    } else {
-      if (t < 1.2) { f.x = -7 + seg(t, 0.1, 1.2) * 5.0; f.y = 0; f.vx = 8; f.state = t > 0.1 ? 'run' : 'idle'; }
-      else if (t < 1.9) {
-        const k = (t - 1.2) / 0.7;
-        f.x = -2 + k * 4.2; f.y = Math.sin(k * Math.PI) * 3.0 + k * 1.3; f.vx = 6; f.state = k < 0.5 ? 'jump' : 'fall';
-        if (k > 0.05 && !this._flipped) { R.trigger('doublejump'); this._flipped = true; }
-      } else { f.state = 'idle'; f.vx = 0; }
-      R.update(f, dt, t, {});
-      if (t < 1.9) { R.root.position.set(f.x, f.y, 0); R.root.scale.setScalar(1); }
-      else { R.root.scale.setScalar(0.55); R.root.position.copy(ship.localToWorld(new THREE.Vector3(0.6, 0.15, 0))); R.root.rotation.y = Math.PI / 2; }
-      const end = this.kind === 'transfer' ? this.tSpace : 8.6;
-      const lift = seg(t, 2.0, DEPART);
-      const travel = seg(t, DEPART - 0.4, end);
-      ship.position.x = 1.5 + travel * 880;
-      ship.position.y = 1.46 + lift * 18 + Math.sin(t * 2) * 0.2 * lift - seg(t, end - 1, end) * 10;
-      ship.position.z = -travel * 380;
-      ship.rotation.z = lift * 0.35 * (1 - travel) + Math.sin(t * 1.5) * 0.04;
-      ship.rotation.y = -travel * 0.35;
-      ship.userData.flame.visible = t > 1.95;
-      ship.userData.flame.scale.set(1, (t > 3 ? 1.6 : 0.6 + lift) * (0.85 + Math.random() * 0.3), 1);
-      ship.userData.hinge.rotation.z = t < 1.9 ? 0.9 * (1 - seg(t, 1.7, 1.95)) : 0;
-      cruise = seg(t, DEPART, DEPART + 0.8) * (1 - seg(t, end - 1.4, end - 0.4));
-      if (this.pA.userData.sphere) this.pA.userData.sphere.rotation.y = t * 0.03;
-      if (this.pB.userData && this.pB.userData.sphere) this.pB.userData.sphere.rotation.y = t * 0.05; else this.pB.rotation.y = t * 0.1;
-      const cam = this.spaceCam;
-      if (t < 2.6) {
-        cam.position.set(-1 + t * 0.6, 3 + lift * 6, 17 - t * 0.5);
-        cam.lookAt(-1 + t * 0.8, 1.5 + lift * 10, 0);
-      } else if (this.kind === 'finale' && t > 6.6) {
-        const k = seg(t, 6.6, 9.5);
-        cam.position.set(ship.position.x - 20 + k * 6, ship.position.y + 6 + k * 4, ship.position.z + 24 - k * 4);
-        cam.lookAt(this.pB.position.x * (0.4 + k * 0.6) + ship.position.x * (0.6 - k * 0.6), ship.position.y - k * 10, this.pB.position.z * k + ship.position.z * (1 - k));
-      } else {
-        const k = seg(t, 2.6, 3.6);
-        cam.position.copy(ship.position).add(new THREE.Vector3(-14 + k * 2, 4, 12 - k * 2));
-        cam.lookAt(ship.position.x + 6, ship.position.y, ship.position.z);
-      }
-    }
-    this.streaks.material.opacity = cruise * 0.8;
-    const a = this.streaks.geometry.attributes.position;
-    this.streakSeeds.forEach((s, i) => {
-      s.x -= dt * 160 * cruise;
-      if (s.x < -60) s.x += 120;
-      const bx = ship.position.x + s.x, by = ship.position.y + s.y, bz = ship.position.z + s.z;
-      a.setXYZ(i * 2, bx, by, bz);
-      a.setXYZ(i * 2 + 1, bx + s.l * (1 + cruise * 3), by, bz);
-    });
-    a.needsUpdate = true;
+  enterShot(name) {
+    this.shotName = name;
+    const host = name === 'depart' ? this.departScene.scene : name === 'cruise' ? this.space : this.arriveScene.scene;
+    host.add(this.ship);
+    this.board();
+    this.camInit = false;
   }
 
-  updateArrival(dt) {
-    const T = this.t - this.tSpace;
-    const R = this.robot, f = this.fake, ship = this.landShip;
-    if (this.land.children.indexOf(R.root) < 0) this.land.add(R.root);
-    // 0–2.4s: descend and touch down
-    const k = seg(T, 0, 2.4);
-    const landY = 1.46;
-    ship.position.set(-26 * (1 - k) * (1 - k), landY + 34 * Math.pow(1 - k, 2), -6 * (1 - k));
-    ship.rotation.set(0, -0.3 * (1 - k), 0.35 * (1 - k) - 0.25 * (1 - k) * (1 - k));
-    ship.userData.flame.visible = T < 2.6;
-    ship.userData.flame.rotation.z = Math.PI / 2 + (1 - k) * 0.2 + k * 1.2;   // swing the jet downward for landing
-    ship.userData.flame.scale.set(1, (0.7 + (1 - k)) * (0.85 + Math.random() * 0.3), 1);
-    // touchdown dust ring
-    const dustT = T - 2.2;
-    for (const d of this.landDust) {
-      const on = dustT > 0 && dustT < 1.6;
-      d.visible = on;
-      if (on) {
-        const r = 1.5 + dustT * 5;
-        d.position.set(Math.cos(d.userData.a) * r, 0.4 + dustT * 0.6, Math.sin(d.userData.a) * r * 0.6);
-        d.scale.setScalar(1.5 + dustT * 2.5);
-        d.material.opacity = 0.6 * (1 - dustT / 1.6);
+  // the robot rides INSIDE the ship — parented to it, so it can never lag behind
+  board() {
+    const R = this.robot;
+    this.ship.userData.inner.add(R.root);
+    R.root.position.set(3, -2.2, 1.2);
+    R.root.rotation.set(0, 0, 0);
+    R.root.visible = false;
+  }
+
+  flames(main, lift) {
+    const u = this.ship.userData;
+    for (const f of u.mainFlames) { f.visible = main > 0.02; f.scale.set(1, Math.max(0.01, main) * (0.85 + Math.random() * 0.3), 1); }
+    for (const f of u.liftFlames) { f.visible = lift > 0.02; f.scale.set(1, Math.max(0.01, lift) * (0.8 + Math.random() * 0.4), 1); }
+  }
+
+  walkRobot(scene, from, to, k, dt) {
+    const R = this.robot;
+    if (R.root.parent !== scene) { scene.add(R.root); R.root.visible = true; R.root.scale.setScalar(1); }
+    R.root.position.copy(from.clone().lerp(to, k));
+    const f = this.fake;
+    f.state = k > 0 && k < 1 ? 'run' : 'idle';
+    f.vx = f.state === 'run' ? 7 : 0;
+    R.update(f, dt, this.t, {});
+    R.root.rotation.y = Math.atan2(to.x - from.x, to.z - from.z);
+  }
+
+  updateDepart(k, dt) {
+    const G = this.departScene, ship = this.ship, u = ship.userData;
+    const landY = SHIP_LEG_DROP;
+    const tip = new THREE.Vector3(3, 0, 7.6), door = new THREE.Vector3(3, 2.4, 3.2);
+    if (k < 1.6) {
+      u.ramp.rotation.x = RAMP_OPEN;
+      if (k < 0.9) this.walkRobot(G.scene, new THREE.Vector3(-8, 0, 13), tip, seg(k, 0, 0.9), dt);
+      else this.walkRobot(G.scene, tip, door, seg(k, 0.9, 1.6), dt);
+    } else {
+      if (this.robot.root.parent !== u.inner) this.board();
+      u.ramp.rotation.x = RAMP_OPEN * (1 - seg(k, 1.6, 2.1));
+    }
+    const lift = seg(k, 2.1, 3.2);
+    const go = seg(k, 3.0, DEPART);
+    const pos = new THREE.Vector3(go * go * 160, landY + lift * 9 + go * go * 70, -go * go * 40);
+    ship.position.copy(pos);
+    orient(ship, new THREE.Vector3(1, 0.04 + go * 0.45, -go * 0.25).normalize());
+    this.flames(go * 1.2, k > 2.0 ? (1 - go) : 0);
+    G.ring.material.emissiveIntensity = 1.2 + Math.sin(this.t * 6) * 0.5;
+    this.dust(G, k - 2.1, true);
+    G.backdrop.update(this.t, 0, 0);
+    this.camera.position.set(-26 + go * 10, 7 + go * 20, 44);
+    this.camera.lookAt(pos.x * 0.6, 3 + pos.y * 0.6, pos.z * 0.6);
+    this.scene = G.scene;
+  }
+
+  updateCruise(k, dt) {
+    const dur = this.shots.find((s) => s[0] === 'cruise');
+    const len = dur[2] - dur[1];
+    const s = Math.min(0.999, ease(k / len) * 0.92 + 0.04);
+    const ship = this.ship;
+    const pos = this.path.getPointAt(s);
+    const tan = this.path.getTangentAt(s);
+    const ahead = this.path.getTangentAt(Math.min(1, s + 0.04));
+    const turn = new THREE.Vector3().crossVectors(tan, ahead).y;   // sideways swing of the heading
+    ship.position.copy(pos);
+    orient(ship, tan, THREE.MathUtils.clamp(-turn * 18, -0.6, 0.6));
+    this.flames(1.3, 0);
+    if (this.pA && this.pA.userData.sphere) this.pA.userData.sphere.rotation.y = this.t * 0.01;
+    if (this.pB.userData && this.pB.userData.sphere) this.pB.userData.sphere.rotation.y = this.t * 0.02; else this.pB.rotation.y = this.t * 0.05;
+    const back = tan.clone().multiplyScalar(-58 + k * 4);
+    const side = new THREE.Vector3().crossVectors(tan, UP).normalize().multiplyScalar(30 - k * 6);
+    // lock to the ship's frame (a lagging camera would fall kilometres behind at cruise speed)
+    const offset = back.add(side).add(new THREE.Vector3(0, 13, 0));
+    if (!this.camInit) { this.camOffset = offset.clone(); this.camInit = true; }
+    this.camOffset.lerp(offset, Math.min(1, dt * 3));
+    this.camera.position.copy(pos).add(this.camOffset);
+    this.camera.lookAt(pos.clone().add(tan.clone().multiplyScalar(30)));
+    const cruise = seg(k, 0.3, 1.0) * (1 - seg(k, len - 1.0, len - 0.2));
+    this.streaks.material.opacity = cruise * 0.7;
+    const a = this.streaks.geometry.attributes.position;
+    this.streakSeeds.forEach((q, i) => {
+      q.z -= dt * 900 * cruise;
+      if (q.z < -140) q.z += 280;
+      const base = pos.clone().add(new THREE.Vector3(q.x, q.y, 0)).add(tan.clone().multiplyScalar(q.z));
+      const end = base.clone().add(tan.clone().multiplyScalar(q.l * (0.3 + cruise)));
+      a.setXYZ(i * 2, base.x, base.y, base.z);
+      a.setXYZ(i * 2 + 1, end.x, end.y, end.z);
+    });
+    a.needsUpdate = true;
+    this.scene = this.space;
+  }
+
+  updateArrive(k, dt) {
+    const G = this.arriveScene, ship = this.ship, u = ship.userData;
+    const landY = SHIP_LEG_DROP;
+    const g = seg(k, 0, 2.8);
+    const start = new THREE.Vector3(-260, 90, -140), ctrl = new THREE.Vector3(-90, 30, -30), hover = new THREE.Vector3(0, landY + 7, 0);
+    const bez = (t) => start.clone().multiplyScalar((1 - t) * (1 - t)).add(ctrl.clone().multiplyScalar(2 * (1 - t) * t)).add(hover.clone().multiplyScalar(t * t));
+    const settle = seg(k, 2.8, 3.6);
+    const pos = k < 2.8 ? bez(g) : new THREE.Vector3(0, landY + 7 * (1 - settle), 0);
+    const vel = k < 2.8 ? bez(Math.min(1, g + 0.02)).sub(bez(g)) : new THREE.Vector3(1, 0, 0);
+    vel.y *= 0.35;
+    if (vel.lengthSq() < 1e-6) vel.set(1, 0, 0);
+    vel.normalize();
+    const heading = vel.lerp(new THREE.Vector3(1, 0, 0), seg(k, 1.8, 2.8)).normalize();
+    ship.position.copy(pos);
+    orient(ship, heading, (1 - g) * 0.25);
+    this.flames((1 - g) * 1.2, seg(k, 1.4, 2.4) * (1 - seg(k, 3.5, 3.9)) * 1.1);
+    this.dust(G, k - 3.0, false);
+    u.ramp.rotation.x = RAMP_OPEN * seg(k, 3.9, 4.5);
+    const door = new THREE.Vector3(3, 2.4, 3.2), tip = new THREE.Vector3(3, 0, 7.6), out = new THREE.Vector3(-1, 0, 11);
+    if (k > 4.5) {
+      if (k < 5.0) this.walkRobot(G.scene, door, tip, seg(k, 4.5, 5.0), dt);
+      else if (k < 5.4) this.walkRobot(G.scene, tip, out, seg(k, 5.0, 5.4), dt);
+      else {
+        const R = this.robot;
+        if (R.root.parent !== G.scene) G.scene.add(R.root);
+        R.root.visible = true; R.root.position.copy(out);
+        R.update(this.fake, dt, this.t, { win: true });
       }
     }
-    // 2.6–3.1s: canopy opens
-    ship.userData.hinge.rotation.z = seg(T, 2.6, 3.1) * 1.1;
-    // robot: seated → hops out with a flip → lands on the pad → waves
-    if (T < 3.15) {
-      R.root.scale.setScalar(0.55);
-      R.root.position.copy(ship.localToWorld(new THREE.Vector3(0.6, 0.15, 0)));
-      R.root.rotation.y = Math.PI / 2;
-      f.state = 'idle';
-      R.update(f, dt, this.t, {});
-    } else if (T < 3.9) {
-      const u = (T - 3.15) / 0.75;
-      if (!this._hop) { this._hop = true; R.trigger('doublejump'); }
-      R.root.scale.setScalar(0.55 + 0.45 * ease(u * 2));
-      f.facing = -1; f.state = u < 0.5 ? 'jump' : 'fall';
-      R.update(f, dt, this.t, {});
-      R.root.position.set(0.9 - u * 3.6, 1.7 + Math.sin(u * Math.PI) * 2.4 - u * 1.7, 0.6 * u);
-    } else {
-      if (!this._landed) { this._landed = true; R.trigger('land'); }
-      R.root.scale.setScalar(1);
-      R.root.position.set(-2.7, 0, 0.6);
-      R.update(f, dt, this.t, { win: T > 4.1 });
+    G.ring.material.emissiveIntensity = 1.2 + Math.sin(this.t * 6) * 0.5;
+    G.backdrop.update(this.t, 0, 0);
+    const c = seg(k, 3.6, 6.0);
+    const follow = 1 - seg(k, 1.6, 3.2);
+    const wide = new THREE.Vector3(-30 + c * 16, 8 - c * 4, 48 - c * 22);
+    const chase = pos.clone().add(new THREE.Vector3(-40, 12, 36));
+    this.camera.position.copy(wide.lerp(chase, follow));
+    this.camera.lookAt(new THREE.Vector3(-c, 4 - c * 2.4, c * 9).lerp(pos, follow));
+    this.scene = G.scene;
+  }
+
+  dust(G, t0, up) {
+    for (const d of G.dust) {
+      const on = t0 > 0 && t0 < 1.8;
+      d.visible = on;
+      if (!on) continue;
+      const r = 4 + t0 * 12;
+      d.position.set(Math.cos(d.userData.a) * r, 0.6 + t0 * (up ? 1.6 : 0.8), Math.sin(d.userData.a) * r * 0.7);
+      d.scale.setScalar(4 + t0 * 6);
+      d.material.opacity = 0.55 * (1 - t0 / 1.8);
     }
-    this.landRing.material.emissiveIntensity = 1.5 + Math.sin(this.t * 6) * 0.8;
-    this.landBackdrop.update(this.t, 0, 0);
-    // camera: wide establishing → push in on the robot
-    const cam = this.landCam;
-    const c = seg(T, 2.0, 5.2);
-    const follow = 1 - seg(T, 0.6, 2.4);         // track the descending ship, then settle on the pad
-    cam.position.set(-1 + c * -1.5 - follow * 6, 4.5 - c * 2.6 + follow * 6, 20 - c * 11 + follow * 6);
-    cam.lookAt((-1 - c * 1.6) * (1 - follow) + ship.position.x * follow, (1.8 - c * 0.7) * (1 - follow) + ship.position.y * follow, ship.position.z * follow);
   }
 
   fade() {
     const t = this.t;
     let f = Math.max(1 - t / 0.5, seg(t, this.duration - 0.6, this.duration));
-    if (this.to) f = Math.max(f, seg(t, this.tSpace - 0.45, this.tSpace) * (1 - seg(t, this.tSpace, this.tSpace + 0.45)));
+    for (let i = 1; i < this.shots.length; i++) {
+      const c = this.shots[i][1];
+      f = Math.max(f, seg(t, c - 0.4, c) * (1 - seg(t, c, c + 0.4)));
+    }
     return f;
   }
 
   render() {
     const r = this.r;
     const w = r.domElement.clientWidth || window.innerWidth, h = r.domElement.clientHeight || window.innerHeight;
-    const arrival = this.to && this.t >= this.tSpace;
-    const cam = arrival ? this.landCam : this.spaceCam;
-    cam.aspect = w / h;
-    cam.updateProjectionMatrix();
-    r.render(arrival ? this.land : this.space, cam);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    if (this.scene) r.render(this.scene, this.camera);
   }
 
   dispose() {
-    for (const sc of [this.space, this.land]) {
+    for (const sc of [this.space, this.departScene && this.departScene.scene, this.arriveScene && this.arriveScene.scene]) {
       if (!sc) continue;
       sc.traverse((o) => {
         if (o.geometry) o.geometry.dispose();

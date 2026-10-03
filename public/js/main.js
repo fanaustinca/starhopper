@@ -1,6 +1,6 @@
 // Game controller: state machine, main loop, UI wiring and the test API.
 import { WORLDS, LEVELS_PER_WORLD, TOTAL_LEVELS, PHYS, MAX_HEALTH, worldIndexOf, subLevelOf, locationOf } from './core/config.js';
-import { generateLevel } from './core/levelgen.js';
+import { getLevel as generateLevel } from './levels/index.js';
 import { LevelSim } from './core/sim.js';
 import { loadSave, writeSave, recordCompletion, defaultSave, totalScore, totalShards, SHARD_BONUS } from './core/save.js';
 import { SKINS, skinById } from './core/skins.js';

@@ -36,7 +36,7 @@ export const EARTH_CITIES = [
   'Beijing', 'Sydney', 'Berlin', 'Moscow', 'Tokyo',
 ];
 
-// `pool` = weighted segment builders (see levelgen.js).
+// `pool`/`signature` describe each world's mechanics (for reference; levels are hand-written in levels/).
 // Colours are hex ints; sky = [top, horizon].
 export const WORLDS = [
   {

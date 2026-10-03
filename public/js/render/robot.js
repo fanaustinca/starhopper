@@ -49,12 +49,12 @@ export class Robot {
 
   build(S) {
     const bodyMat = new THREE.MeshPhysicalMaterial({
-      color: S.body, roughness: S.rough ?? 0.2, metalness: S.metal ?? 0.05, clearcoat: 1, clearcoatRoughness: 0.08,
+      color: S.body, roughness: S.rough ?? 0.32, metalness: S.metal ?? 0.05, clearcoat: 0.6, clearcoatRoughness: 0.2,
       emissive: S.bodyGlow ?? 0x000000, map: S.galaxy ? galaxyTexture() : null,
       transmission: S.glass ? 0.35 : 0, thickness: S.glass ? 0.4 : 0, ior: 1.4,
     });
     const jointMat = new THREE.MeshPhysicalMaterial({ color: S.joint, roughness: 0.3, metalness: 0.6, clearcoat: 0.6 });
-    const accentMat = new THREE.MeshStandardMaterial({ color: S.accent, emissive: S.accent, emissiveIntensity: S.accentGlow ?? 0.9, roughness: 0.3 });
+    const accentMat = new THREE.MeshStandardMaterial({ color: S.accent, emissive: S.accent, emissiveIntensity: S.accentGlow ?? 0.6, roughness: 0.3 });
     const visorMat = new THREE.MeshPhysicalMaterial({ color: 0x04060b, roughness: 0.04, metalness: 0.3, clearcoat: 1, clearcoatRoughness: 0.02 });
     this.eyeMat = new THREE.MeshBasicMaterial({ color: S.eye });
     this.eyeColor = S.eye;
@@ -193,11 +193,28 @@ export class Robot {
     }
   }
 
+  // Air tricks: every jump picks a random move. First jumps get lighter
+  // moves, double jumps / springs / wall kicks get the big rotations.
+  static TRICKS = {
+    jump: ['starjump', 'tuck', 'superman', 'split', 'twirl', 'cheer', 'frontflip', 'scissor'],
+    double: ['frontflip', 'backflip', 'cartwheel', 'corkscrew', 'doubleflip', 'sideflip', 'helicopter', 'twirl', 'cartwheel'],
+    wall: ['backflip', 'sideflip', 'cartwheel'],
+    launch: ['corkscrew', 'doubleflip', 'helicopter', 'cartwheel', 'backflip'],
+  };
+  startTrick(pool, dur) {
+    const list = Robot.TRICKS[pool];
+    let pick = list[Math.floor(Math.random() * list.length)];
+    if (pick === this.lastTrick) pick = list[Math.floor(Math.random() * list.length)];
+    this.lastTrick = pick;
+    this.trick = { type: pick, t: 0, dur };
+  }
+
   trigger(ev) {
-    if (ev === 'doublejump') { this.flip = 1; this.jetT = 0.45; }
-    if (ev === 'land') this.squash = 1;
-    if (ev === 'jump' || ev === 'walljump') this.squash = -0.6;
-    if (ev === 'launch') this.jetT = 0.6;
+    if (ev === 'jump') { this.squash = -0.6; this.startTrick('jump', 0.55); }
+    if (ev === 'doublejump') { this.jetT = 0.45; this.startTrick('double', 0.46); }
+    if (ev === 'walljump') { this.squash = -0.6; this.startTrick('wall', 0.45); }
+    if (ev === 'launch') { this.jetT = 0.6; this.startTrick('launch', 0.7); }
+    if (ev === 'land') { this.squash = 1; this.trick = null; }
   }
 
   update(p, dt, t, extra = {}) {
@@ -257,9 +274,44 @@ export class Robot {
         break;
     }
 
-    if (this.flip > 0) this.flip = Math.max(0, this.flip - dt / 0.38);
-    const flipAngle = this.flip > 0 ? (1 - this.flip) * Math.PI * 2 : 0;
-    this.body.rotation.x = lean + flipAngle;
+    // ---- air trick overrides pose + adds a body rotation ----
+    let rx = 0, ry = 0, rz = 0;
+    const airborne = st === 'jump' || st === 'flip' || st === 'fall';
+    if (this.trick && !airborne && st !== 'showcase') this.trick = null;
+    if (this.trick) {
+      const tr = this.trick;
+      tr.t += dt;
+      const k = Math.min(1, tr.t / tr.dur);
+      const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;   // ease in-out
+      const dirS = p.facing > 0 ? 1 : -1;
+      const tuck = () => { legL = legR = -1.4; knL = knR = 2.0; armL = armR = -0.6; elL = elR = -1.6; spread = 0.3; };
+      switch (tr.type) {
+        case 'frontflip': tuck(); rx = e * Math.PI * 2; break;
+        case 'backflip': tuck(); rx = -e * Math.PI * 2; break;
+        case 'doubleflip': tuck(); rx = e * Math.PI * 4; break;
+        case 'cartwheel':
+          armL = armR = -0.2; spread = 1.6; elL = elR = 0; legL = legR = 0; knL = knR = 0;
+          this.legs[0].rotation.z = 0.6; this.legs[1].rotation.z = -0.6;
+          rz = -dirS * e * Math.PI * 2; break;
+        case 'sideflip': tuck(); rz = dirS * e * Math.PI * 2; break;
+        case 'corkscrew': tuck(); rx = e * Math.PI * 2; ry = e * Math.PI * 2; break;
+        case 'helicopter': armL = armR = -0.1; spread = 1.5; elL = elR = 0; legL = 0.1; legR = -0.1; ry = e * Math.PI * 6; break;
+        case 'twirl': armL = armR = -2.9; spread = 0.2; elL = elR = 0; legL = 0.3; knL = 0.8; ry = e * Math.PI * 2; break;
+        case 'starjump': {
+          const o = Math.sin(k * Math.PI);
+          armL = armR = -0.4 * o; spread = 0.3 + 1.6 * o; elL = elR = 0;
+          this.legs[0].rotation.z = 0.5 * o; this.legs[1].rotation.z = -0.5 * o; break;
+        }
+        case 'tuck': { const o = Math.sin(k * Math.PI); legL = legR = -1.4 * o; knL = knR = 2.0 * o; armL = armR = -0.5; elL = elR = -1.5 * o; break; }
+        case 'superman': { const o = Math.sin(Math.min(1, k * 1.3) * Math.PI * 0.5); lean = 1.1 * o; armL = armR = -3.0; spread = 0.1; elL = elR = 0; legL = legR = 0.15; break; }
+        case 'split': { const o = Math.sin(k * Math.PI); legL = -1.3 * o; legR = 1.1 * o; knL = knR = 0; armL = armR = -2.6; spread = 0.5; break; }
+        case 'scissor': legL = Math.sin(k * 18) * 0.9; legR = -legL; knL = knR = 0.2; armL = -2.2; armR = -0.4; break;
+        case 'cheer': armL = -3.0; armR = -3.0; spread = 0.45 + Math.sin(k * 20) * 0.15; elL = elR = 0; legL = -0.5; knL = 1.0; break;
+      }
+      if (k >= 1) this.trick = null;
+    }
+    if (!this.trick || (this.trick.type !== 'cartwheel' && this.trick.type !== 'starjump')) { this.legs[0].rotation.z = 0; this.legs[1].rotation.z = 0; }
+    this.body.rotation.set(lean + rx, ry, rz);
     this.squash += (0 - this.squash) * Math.min(1, dt * 10);
     const sq = this.squash;
     this.body.scale.set(1 + sq * 0.12, 1 - sq * 0.15, 1 + sq * 0.12);

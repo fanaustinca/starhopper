@@ -42,7 +42,7 @@ export class Renderer {
     this.opts = opts;
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: !!opts.test });
     r.toneMapping = THREE.ACESFilmicToneMapping;
-    r.toneMappingExposure = 1.05;
+    r.toneMappingExposure = 0.8;
     r.outputColorSpace = THREE.SRGBColorSpace;
     r.shadowMap.enabled = true;
     r.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -54,7 +54,7 @@ export class Renderer {
     const pmrem = new THREE.PMREMGenerator(r);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     r.__env = this.scene.environment;   // shared with cutscene scenes
-    this.scene.environmentIntensity = 0.45;
+    this.scene.environmentIntensity = 0.28;
     this.camera = new THREE.PerspectiveCamera(38, 16 / 9, 0.5, 2500);
     this.hemi = new THREE.HemisphereLight(0xffffff, 0x404040, 1.1);
     this.scene.add(this.hemi);
@@ -74,7 +74,7 @@ export class Renderer {
     this.rim.position.set(-20, 10, -20);
     this.scene.add(this.rim);
     // a soft light that travels with the hero so it always pops
-    this.heroLight = new THREE.PointLight(0xffffff, 6, 9, 2);
+    this.heroLight = new THREE.PointLight(0xffffff, 1.6, 7, 2);
     this.scene.add(this.heroLight);
 
     this.robot = new Robot(opts.skin || 'classic');
@@ -87,7 +87,7 @@ export class Renderer {
 
     this.composer = new EffectComposer(r);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), 0.5, 0.55, 0.85);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), 0.35, 0.5, 0.92);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
 
@@ -153,13 +153,13 @@ export class Renderer {
     this.baseFog = W.fogDensity;
     this.hemi.color.setHex(W.light); this.hemi.groundColor.setHex(W.ambient);
     this.sun.color.setHex(W.light);
-    this.sun.intensity = W.id === 'biolumina' ? 1.4 : 2.6;
-    this.hemi.intensity = W.id === 'biolumina' || W.id === 'chronos' ? 0.8 : 1.1;
+    this.sun.intensity = W.id === 'biolumina' ? 1.1 : 1.9;
+    this.hemi.intensity = W.id === 'biolumina' || W.id === 'chronos' ? 0.65 : 0.85;
     this.bloom.strength = W.id === 'sun' ? 0.6 : ['biolumina', 'prismara', 'chronos'].includes(W.id) ? 0.75 : 0.45;
-    const underLight = { sun: [0xff8a30, 2.4], mars: [0xff6a20, 0.5], venus: [0xa0ff40, 0.4], biolumina: [0x30ffc0, 0.8], mercury: [0xd0d8e0, 0.4] }[W.id];
+    const underLight = { sun: [0xff8a30, 1.6], mars: [0xff6a20, 0.5], venus: [0xa0ff40, 0.4], biolumina: [0x30ffc0, 0.8], mercury: [0xd0d8e0, 0.4] }[W.id];
     this.under.color.setHex(underLight ? underLight[0] : 0xffffff);
     this.under.intensity = underLight ? underLight[1] : 0;
-    if (W.id === 'sun') { this.hemi.groundColor.setHex(0xff5a10); this.hemi.intensity = 1.3; this.sun.intensity = 2.0; }
+    if (W.id === 'sun') { this.hemi.groundColor.setHex(0xff5a10); this.hemi.intensity = 0.95; this.sun.intensity = 1.5; }
 
     this.backdrop = buildBackdrop(level);
     G.add(this.backdrop.group);
@@ -286,6 +286,31 @@ export class Renderer {
       G.add(g);
       return g;
     });
+    this.enemyMeshes = (level.enemies || []).map((e) => { const m = this.makeEnemy(e, W); G.add(m); return m; });
+    this.turretMeshes = (level.turrets || []).map((t) => {
+      const g = new THREE.Group();
+      g.position.set(t.x, t.y, 0.4);
+      const body = addMesh(g, new THREE.SphereGeometry(0.55, 20, 14), mat(0x3a3f50, { metalness: 0.8, roughness: 0.3 }), 0, 0, 0);
+      body.scale.set(1, 0.85, 1);
+      const barrel = addMesh(g, new THREE.CylinderGeometry(0.18, 0.24, 0.9, 14), mat(0x5a6070, { metalness: 0.9, roughness: 0.25 }), t.dir * 0.55, 0, 0);
+      barrel.rotation.z = Math.PI / 2;
+      const ring = addMesh(g, new THREE.TorusGeometry(0.2, 0.05, 8, 20), glowMat(0xff4a3a, 2), t.dir * 1.0, 0, 0);
+      ring.rotation.y = Math.PI / 2;
+      const eye = addMesh(g, new THREE.SphereGeometry(0.14, 12, 10), glowMat(0xff4a3a, 2.5), t.dir * 0.2, 0.18, 0.45);
+      g.userData = { ring, eye };
+      G.add(g);
+      return g;
+    });
+    this.shotPool = [];
+    for (let i = 0; i < 24; i++) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), glowMat(0xff6a3a, 3));
+      const trail = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.01, 1.2, 8, 1, true), additive(0xff8a4a, 0.6));
+      trail.rotation.z = Math.PI / 2; trail.position.x = -0.6;
+      m.add(trail);
+      m.visible = false; m.userData.trail = trail;
+      G.add(m);
+      this.shotPool.push(m);
+    }
     this.doorMeshes = level.doors.map((d) => this.makeDoor(d));
     for (const m of this.doorMeshes) G.add(m);
     this.roadMeshes = level.roads.map((rd) => this.makeRoad(rd, W));
@@ -386,6 +411,33 @@ export class Renderer {
       g.userData.spring = pad;
       return g;
     }
+    if (s.style === 'thin') {
+      addMesh(g, new RoundedBoxGeometry(s.w, 0.3, DEPTH * 0.8, 2, 0.1), mat(new THREE.Color(W.plat).multiplyScalar(1.2).getHex(), { roughness: 0.4, metalness: 0.5 }), cx, top - 0.15, 0);
+      addMesh(g, new THREE.BoxGeometry(s.w * 0.96, 0.05, 0.05), glowMat(W.accent, 1.0), cx, top - 0.05, DEPTH * 0.4 + 0.02, false);
+      return g;
+    }
+    if (s.style === 'blink') {
+      const m = new THREE.MeshPhysicalMaterial({ color: W.accent, emissive: W.accent, emissiveIntensity: 0.5, roughness: 0.1, transmission: 0.3, transparent: true, opacity: 0.85 });
+      addMesh(g, new RoundedBoxGeometry(s.w, s.h, DEPTH * 0.85, 2, 0.12), m, cx, s.y + s.h / 2, 0);
+      g.userData.blinkMat = m;
+      return g;
+    }
+    if (s.style === 'onoff') {
+      const c = s.onoff === 'red' ? 0xff3a4a : 0x3a7aff;
+      const solidM = mat(c, { roughness: 0.35, metalness: 0.2, emissive: c, emissiveIntensity: 0.25 });
+      const solid = addMesh(g, new RoundedBoxGeometry(s.w, s.h, DEPTH * 0.9, 2, Math.min(0.15, s.w / 5, s.h / 5)), solidM, cx, s.y + s.h / 2, 0);
+      const ghost = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(s.w, s.h, DEPTH * 0.9)), new THREE.LineBasicMaterial({ color: c, transparent: true, opacity: 0.55 }));
+      ghost.position.set(cx, s.y + s.h / 2, 0);
+      g.add(ghost);
+      g.userData.onoff = { solid, ghost };
+      return g;
+    }
+    if (s.style === 'button') {
+      addMesh(g, new THREE.CylinderGeometry(0.75, 0.85, 0.16, 24), mat(0x3a3f4a, { metalness: 0.7 }), cx, s.y + 0.08, 0);
+      const cap = addMesh(g, new THREE.CylinderGeometry(0.55, 0.6, 0.18, 24), glowMat(0xff3a4a, 1.6), cx, s.y + 0.24, 0);
+      g.userData.button = cap;
+      return g;
+    }
     if (s.style === 'wall') {
       addMesh(g, new RoundedBoxGeometry(s.w, s.h, DEPTH, 2, 0.12), mat(W.plat, { roughness: 0.5, metalness: 0.4 }), cx, s.y + s.h / 2, 0);
       addMesh(g, new THREE.BoxGeometry(0.06, s.h * 0.9, 0.04), glowMat(0xffd84a, 1.4), cx, s.y + s.h / 2, DEPTH / 2 + 0.02, false);
@@ -417,7 +469,9 @@ export class Renderer {
     const body = addMesh(g, new RoundedBoxGeometry(s.w, bodyH - 0.1, DEPTH, 2, Math.min(0.18, s.w / 6)), bodyMat, cx, s.y + (bodyH - 0.1) / 2, 0);
     body.castShadow = bodyH < 12;
     // top surface + accent strip (the Astro-style "sleek" read)
-    let topMat = mat(s.ice ? 0xe8ffff : W.platTop, { roughness: s.ice ? 0.05 : 0.35, metalness: s.ice ? 0.3 : 0.05 });
+    // tops are toned down from the palette's near-white so platforms never glare
+    const topCol = new THREE.Color(s.ice ? 0xbfe6ee : W.platTop).lerp(new THREE.Color(W.plat), 0.35).multiplyScalar(0.78);
+    let topMat = mat(topCol.getHex(), { roughness: s.ice ? 0.1 : 0.55, metalness: s.ice ? 0.3 : 0.05 });
     if (s.style === 'conveyor') {
       const tex = stripeTexture('#ffb040', '#2a2018');
       tex.repeat.set(s.w / 2, 1);
@@ -430,7 +484,7 @@ export class Renderer {
       }
     }
     addMesh(g, new RoundedBoxGeometry(s.w + 0.06, 0.2, DEPTH + 0.06, 2, 0.07), topMat, cx, top - 0.1, 0);
-    addMesh(g, new THREE.BoxGeometry(Math.max(0.2, s.w - 0.4), 0.07, 0.04), glowMat(s.style === 'conveyor' ? 0xffb040 : W.accent, 1.8), cx, top - 0.32, DEPTH / 2 + 0.02, false);
+    addMesh(g, new THREE.BoxGeometry(Math.max(0.2, s.w - 0.4), 0.07, 0.04), glowMat(s.style === 'conveyor' ? 0xffb040 : W.accent, 1.0), cx, top - 0.32, DEPTH / 2 + 0.02, false);
     if (!slab && bodyH > 4 && W.id !== 'earth') {
       for (let y = top - 3; y > s.y + 1; y -= 3) addMesh(g, new THREE.BoxGeometry(s.w + 0.02, 0.12, DEPTH + 0.02), mat(0x000000, { transparent: true, opacity: 0.18 }), cx, y, 0, false);
     }
@@ -459,7 +513,7 @@ export class Renderer {
     const g = new THREE.Group();
     const cx = h.x + h.w / 2;
     if (h.respawn) {
-      const col = { fire: 0xff5010, lava: 0xff4a10, mercury: 0xd0d8e0, water: 0x2a5ad0 }[h.type] || 0xff4a10;
+      const col = { fire: 0xff5010, lava: 0xff4a10, mercury: 0xd0d8e0, water: 0x2a5ad0, acid: 0x9ad020 }[h.type] || 0xff4a10;
       const liquid = h.type === 'mercury'
         ? mat(0xdfe6ee, { metalness: 1, roughness: 0.08 })
         : mat(col, { emissive: col, emissiveIntensity: 1.6, roughness: 0.6 });
@@ -528,6 +582,49 @@ export class Renderer {
       g.add(cl);
       g.userData.cloud = cl;
       return g;
+    }
+    return g;
+  }
+
+  makeEnemy(e, W) {
+    const g = new THREE.Group();
+    if (e.type === 'walker') {
+      // a round little beetle-bot with a glowing eye and scuttling legs
+      const shell = addMesh(g, new THREE.SphereGeometry(0.55, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xe8603a, { roughness: 0.3, metalness: 0.2, clearcoat: 1, physical: true }), 0, 0.25, 0);
+      shell.scale.set(1, 0.9, 0.85);
+      addMesh(g, new THREE.CylinderGeometry(0.55, 0.5, 0.18, 24), mat(0x2a2a34), 0, 0.22, 0).scale.z = 0.85;
+      addMesh(g, new THREE.SphereGeometry(0.13, 12, 10), glowMat(0xfff08a, 2.5), 0.42, 0.42, 0);
+      const legs = [];
+      for (let k = 0; k < 6; k++) {
+        const leg = addMesh(g, new THREE.CylinderGeometry(0.04, 0.03, 0.4, 6), mat(0x2a2a34), -0.3 + (k % 3) * 0.3, 0.1, k < 3 ? 0.35 : -0.35);
+        legs.push(leg);
+      }
+      g.userData = { legs, turn: 0 };
+    } else if (e.type === 'spiker') {
+      const spin = new THREE.Group();
+      spin.position.y = 0.5;
+      g.add(spin);
+      addMesh(spin, new THREE.IcosahedronGeometry(0.42, 1), mat(0x6a1a5a, { roughness: 0.4, metalness: 0.4 }), 0, 0, 0);
+      const spikeM = mat(0xff4ab0, { emissive: 0xc0207a, emissiveIntensity: 0.9 });
+      const ico = new THREE.IcosahedronGeometry(1, 0).attributes.position;
+      const seen = new Set();
+      for (let k = 0; k < ico.count; k++) {
+        const v = new THREE.Vector3(ico.getX(k), ico.getY(k), ico.getZ(k)).normalize();
+        const key = v.toArray().map((q) => q.toFixed(2)).join();
+        if (seen.has(key)) continue; seen.add(key);
+        const sp = addMesh(spin, new THREE.ConeGeometry(0.1, 0.36, 8), spikeM, v.x * 0.5, v.y * 0.5, v.z * 0.5);
+        sp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v);
+      }
+      g.userData = { spin };
+    } else {
+      // flyer: a hovering drone with a spinning rotor
+      addMesh(g, new THREE.SphereGeometry(0.42, 20, 14), mat(0x3a4a6a, { metalness: 0.7, roughness: 0.25 }), 0, 0, 0).scale.y = 0.7;
+      addMesh(g, new THREE.SphereGeometry(0.16, 12, 10), glowMat(0xff3a4a, 2.5), 0, -0.05, 0.36);
+      const prop = new THREE.Group(); prop.position.y = 0.42; g.add(prop);
+      addMesh(prop, new THREE.BoxGeometry(1.4, 0.04, 0.14), mat(0xc0c8d8, { metalness: 0.8 }), 0, 0, 0);
+      addMesh(prop, new THREE.BoxGeometry(0.14, 0.04, 1.4), mat(0xc0c8d8, { metalness: 0.8 }), 0, 0, 0);
+      addMesh(g, new THREE.CylinderGeometry(0.03, 0.03, 0.3, 6), mat(0x888888), 0, 0.28, 0);
+      g.userData = { prop };
     }
     return g;
   }
@@ -623,6 +720,8 @@ export class Renderer {
           this.shake = 0.15;
           break;
         }
+        case 'stomp': this.fx.burst('sparkle', e.x, e.y, 0xffd84a); this.robot.trigger('launch'); break;
+        case 'switch': this.fx.burst('flash', p.x, p.y, e.state ? 0x3a7aff : 0xff3a4a); this.shake = 0.12; break;
         case 'walljump': this.robot.trigger('walljump'); this.fx.burst('dust', p.x + p.facing * -0.4, p.y + 0.8); break;
         case 'crumble': this.fx.burst('dust', p.x, p.y); break;
         case 'cell': {
@@ -672,6 +771,14 @@ export class Renderer {
     tickShaders(this.time);
     for (let i = 0; i < this.solidMeshes.length; i++) {
       const sm = this.solidMeshes[i], col = sim.colliders[i];
+      const u = sm.userData;
+      if (u.blinkMat) {
+        sm.visible = col.active || false;
+        const fl = col.blinkPhase === 'warn' ? (Math.sin(t * 40) > 0 ? 0.25 : 0.85) : 0.85;
+        u.blinkMat.opacity = fl;
+      }
+      if (u.onoff) { u.onoff.solid.visible = col.active; u.onoff.ghost.visible = !col.active; }
+      if (u.button) u.button.material = glowMat(sim.switchState ? 0x3a7aff : 0xff3a4a, 1.6);
       if (sm.userData.crumble) {
         if (col.fallT >= 0) {
           const k = t - col.fallT;
@@ -813,6 +920,28 @@ export class Renderer {
       }
     }
     if (L.tide && this.backdrop.floor) this.backdrop.floor.position.y = sim.floorY;
+
+    sim.enemies.forEach((e, i) => {
+      const m = this.enemyMeshes[i];
+      m.visible = e.alive;
+      m.position.set(e.x, e.y, 0);
+      const ud = m.userData;
+      if (ud.legs) ud.legs.forEach((l, k) => { l.rotation.x = Math.sin(t * 14 + k * 1.7) * 0.6; });
+      if (ud.turn !== undefined) m.rotation.y = e.dir > 0 ? 0.6 : Math.PI - 0.6;
+      if (ud.spin) ud.spin.rotation.z -= dt * 6 * e.dir;
+      if (ud.prop) ud.prop.rotation.y += dt * 30;
+    });
+    sim.turrets.forEach((tu, i) => {
+      const u = this.turretMeshes[i].userData;
+      const P = tu.def.P || 2.5;
+      const ph = ((sim.t + (tu.def.off || 0)) % P) / P;
+      u.ring.material = glowMat(ph > 0.75 ? 0xffd04a : 0xff4a3a, ph > 0.75 ? 3.5 : 1.5);
+    });
+    this.shotPool.forEach((m, i) => {
+      const b = sim.shots[i];
+      m.visible = !!b;
+      if (b) { m.position.set(b.x, b.y, 0); m.userData.trail.position.x = -Math.sign(b.vx) * 0.6; }
+    });
 
     // hero
     this.robot.root.position.set(p.x, p.y, 0);

@@ -45,6 +45,31 @@ export function moverPos(m, tau, lookup) {
       const y = P.y + (P.bob ? Math.sin(tau * 2.1 + P.offset) * P.bob : 0);
       return { x, y, alpha: Math.min(fadeIn, fadeOut) };
     }
+    case 'poly': {
+      // multi-point path, looped or ping-pong, constant speed along its length
+      const pts = P.pts;
+      if (!P._len) {
+        P._seg = [];
+        let L = 0;
+        const n = P.loop ? pts.length : pts.length - 1;
+        for (let i = 0; i < n; i++) {
+          const a = pts[i], b = pts[(i + 1) % pts.length];
+          const l = Math.hypot(b[0] - a[0], b[1] - a[1]);
+          P._seg.push([L, l, a, b]); L += l;
+        }
+        P._len = L;
+      }
+      let d = tau * P.speed + (P.phase || 0) * P._len;
+      if (P.loop) d = ((d % P._len) + P._len) % P._len;
+      else { const per = P._len * 2; d = ((d % per) + per) % per; if (d > P._len) d = per - d; }
+      for (const [L0, l, a, b] of P._seg) {
+        if (d <= L0 + l || L0 + l >= P._len - 1e-9) {
+          const u = l > 0 ? Math.min(1, (d - L0) / l) : 0;
+          return { x: a[0] + (b[0] - a[0]) * u - m.w / 2, y: a[1] + (b[1] - a[1]) * u - m.h, alpha: 1 };
+        }
+      }
+      return { x: pts[0][0] - m.w / 2, y: pts[0][1] - m.h, alpha: 1 };
+    }
     case 'mirror': {
       const master = lookup(P.master);
       return { x: 2 * P.m - (master.x + m.w), y: master.y, alpha: 1 };
@@ -108,6 +133,14 @@ export class LevelSim {
     this.gravState = level.gravZones.map((z) => ({ def: z, low: true }));
     this.world = { colliders: this.colliders, vines: this.vines };
     this.crumbles = this.colliders.filter((c) => c.crumble);
+    this.blinks = this.colliders.filter((c) => c.blink);
+    this.onoffs = this.colliders.filter((c) => c.onoff);
+    this.switchState = 0;
+    this.applySwitch();
+    this.enemies = (level.enemies || []).map((e) => ({ def: e, x: e.x, y: e.y, alive: true, dir: 1, deadT: 0 }));
+    this.turrets = (level.turrets || []).map((t) => ({ def: t, lastShot: -1 }));
+    this.shots = [];
+    this.onButton = false;
     this.heats = this.colliders.filter((c) => c.heat);
     this.floorY = level.floor.y;
     this.chaser = level.chaser ? { ...level.chaser, active: false, x: -1e9 } : null;
@@ -137,6 +170,10 @@ export class LevelSim {
     return 1;
   }
 
+  applySwitch() {
+    for (const c of this.onoffs) c.active = (c.onoff === 'red') === (this.switchState === 0);
+  }
+
   emit(type, data) { this.events.push({ type, t: this.t, ...data }); }
 
   updateEntities(dt) {
@@ -159,6 +196,28 @@ export class LevelSim {
         c.x = st.x + c.ox; c.y = st.y + c.oy;
         c.dx = dx; c.dy = dy;
         c.active = st.alpha > 0.55;
+      }
+    }
+    for (const c of this.blinks) {
+      // solid for `on` seconds (flickering for the last 0.6s), then gone until the period wraps
+      const B = c.blink, u = (((t + (B.off || 0)) % B.P) + B.P) % B.P;
+      c.active = u < B.on;
+      c.blinkPhase = !c.active ? 'gone' : u > B.on - 0.6 ? 'warn' : 'on';
+    }
+    for (const e of this.enemies) {
+      const d = e.def;
+      if (!e.alive) continue;
+      if (d.type === 'flyer') {
+        const k = (Math.PI * 2 * t) / (d.T || 4);
+        e.x = d.x + Math.sin(k) * (d.ax ?? 3);
+        e.y = d.y + Math.sin(k * 2) * (d.ay ?? 1);
+      } else {
+        // walkers / spikers patrol back and forth along their ledge
+        const range = d.range || 4, sp = d.speed || 1.6;
+        const u = ((t * sp) % (range * 2) + range * 2) % (range * 2);
+        e.dir = u < range ? 1 : -1;
+        e.x = d.x + (u < range ? u : range * 2 - u);
+        e.y = d.y;
       }
     }
     for (const h of this.hazardState) {
@@ -228,6 +287,7 @@ export class LevelSim {
       this.placePlayer(cp.x, cp.y);
       this.lastSafe = { x: cp.x, y: cp.y };
       this.relieve(cp.x, cp.y);
+      for (const e of this.enemies) e.alive = true;
       this.emit('fail', {});
       return;
     }
@@ -295,7 +355,7 @@ export class LevelSim {
     if (p.onGround && p.ground && p.ground.heat && phaseOf(p.ground.heat, this.t) === 'on') this.hurt(false, 'heat');
 
     // remember the last solid, safe footing for respawns
-    if (p.onGround && p.ground && p.ground.static && !p.ground.bounce && !p.ground.crumble && !p.ground.heat && !p.ground.oneWay) {
+    if (p.onGround && p.ground && p.ground.static && !p.ground.bounce && !p.ground.crumble && !p.ground.heat && !p.ground.oneWay && !p.ground.blink && !p.ground.onoff && !p.ground.button) {
       const g = p.ground;
       this.lastSafe = { x: Math.min(Math.max(p.x, g.x + 0.7), g.x + g.w - 0.7), y: g.y + g.h };
     }
@@ -357,6 +417,50 @@ export class LevelSim {
         ch.x += ch.speed * (1 + Math.max(0, (lead - 30) / 25)) * dt;   // rubber-band so it stays a threat
         if (p.x - p.w / 2 < ch.x) this.hurt(true, 'chaser');
       }
+    }
+
+    // floor buttons flip red/blue blocks each time you land on them
+    const onBtn = !!(p.onGround && p.ground && p.ground.button);
+    if (onBtn && !this.onButton) {
+      this.switchState = 1 - this.switchState;
+      this.applySwitch();
+      this.emit('switch', { state: this.switchState });
+    }
+    this.onButton = onBtn;
+
+    // enemies: stomp from above (except spikers), otherwise they hurt
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      const hw = e.def.type === 'flyer' ? 0.55 : 0.5, hh = e.def.type === 'flyer' ? 0.7 : 0.9;
+      const ey = e.def.type === 'flyer' ? e.y - hh / 2 : e.y;
+      if (p.x + p.w / 2 > e.x - hw && p.x - p.w / 2 < e.x + hw && p.y < ey + hh && p.y + p.h > ey) {
+        if (e.def.type !== 'spiker' && p.vy < 0 && p.y > ey + hh * 0.35) {
+          e.alive = false; e.deadT = this.t;
+          p.vy = 11; p.jumps = 1; p.onGround = false;
+          this.cells++;
+          this.emit('stomp', { x: e.x, y: ey + hh / 2 });
+        } else this.hurt(false, 'enemy');
+      }
+    }
+    // turrets fire glowing bolts on a rhythm
+    for (const tu of this.turrets) {
+      const d = tu.def, P = d.P || 2.5;
+      const k = Math.floor((this.t + (d.off || 0)) / P);
+      if (k !== tu.lastShot) {
+        if (tu.lastShot >= 0) { this.shots.push({ x: d.x + d.dir * 0.8, y: d.y, vx: d.dir * (d.speed || 7), life: (d.range || 26) / (d.speed || 7) }); this.emit('shoot', { x: d.x, y: d.y }); }
+        tu.lastShot = k;
+      }
+    }
+    for (let i = this.shots.length - 1; i >= 0; i--) {
+      const b = this.shots[i];
+      b.x += b.vx * dt; b.life -= dt;
+      let dead = b.life <= 0;
+      if (!dead) for (const c of this.colliders) {
+        if (c.active === false || c.oneWay || c.mover) continue;
+        if (b.x > c.x && b.x < c.x + c.w && b.y > c.y && b.y < c.y + c.h) { dead = true; break; }
+      }
+      if (!dead && Math.abs(p.x - b.x) < p.w / 2 + 0.3 && b.y > p.y && b.y < p.y + p.h) { this.hurt(false, 'shot'); dead = true; }
+      if (dead) this.shots.splice(i, 1);
     }
 
     // pickups

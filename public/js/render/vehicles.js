@@ -238,3 +238,99 @@ export function makeShip() {
 }
 
 export { rockGeo };
+
+// ---------------------------------------------------------------------------
+// The mothership: ~30 units long, three decks of windows, a bridge tower,
+// five main engines, four VTOL landing thrusters, landing legs and a hangar
+// ramp on the camera side. Nose points +x. Origin = hull centre; landed, the
+// feet touch y = -LEG_DROP.
+export const SHIP_LEG_DROP = 4.6;
+export function makeMothership() {
+  const outer = new THREE.Group();
+  const inner = new THREE.Group();          // inner.rotation lets outer.lookAt() aim the nose
+  outer.add(inner);
+  const hullMat = mat(0xd8dde6, { physical: true, roughness: 0.32, metalness: 0.35, clearcoat: 0.7 });
+  const darkMat = mat(0x3a4150, { metalness: 0.7, roughness: 0.35 });
+  const accent = mat(0x1e7bff, { emissive: 0x1e5ad0, emissiveIntensity: 0.9 });
+  const windowMat = mat(0xffe2a0, { emissive: 0xffc860, emissiveIntensity: 1.6 });
+  const glassMat = mat(0x0a1a30, { physical: true, roughness: 0.05, metalness: 0.4, clearcoat: 1 });
+  const add = (geo, m, x = 0, y = 0, z = 0, parent = inner) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; parent.add(o); return o; };
+
+  // hull: a smooth lathe turned along +x
+  const prof = [[0.01, 0], [2.6, 0.2], [3.4, 3], [3.8, 8], [3.9, 14], [3.6, 20], [2.8, 25], [1.5, 28.5], [0.3, 30]];
+  const curve = new THREE.SplineCurve(prof.map(([r, y]) => new THREE.Vector2(r, y)));
+  const hullGeo = new THREE.LatheGeometry(curve.getPoints(40), 48);
+  hullGeo.rotateZ(-Math.PI / 2);
+  hullGeo.translate(-15, 0, 0);
+  const hull = add(hullGeo, hullMat);
+  hull.scale.set(1, 0.72, 0.86);
+  // accent stripe + belly plate
+  const stripe = add(new THREE.TorusGeometry(3.25, 0.12, 8, 48), accent, 4, 0, 0); stripe.rotation.y = Math.PI / 2; stripe.scale.set(0.72, 0.86, 1); stripe.scale.set(1, 0.72 / 1, 0.86);
+  stripe.scale.set(0.86, 0.72, 1);
+  add(new RoundedBoxGeometry(20, 0.6, 4.6, 2, 0.25), darkMat, -2, -2.55, 0);
+  // upper decks + bridge tower
+  add(new RoundedBoxGeometry(14, 1.8, 4.6, 3, 0.6), hullMat, -4, 2.8, 0);
+  add(new RoundedBoxGeometry(9, 1.4, 3.4, 3, 0.5), hullMat, -3, 4.2, 0);
+  const bridge = add(new RoundedBoxGeometry(5, 1.6, 3.0, 3, 0.6), hullMat, 5.2, 3.4, 0);
+  add(new RoundedBoxGeometry(4.6, 0.6, 3.05, 2, 0.25), glassMat, 5.6, 3.6, 0);
+  add(new THREE.BoxGeometry(4.2, 0.08, 0.05), windowMat, 5.6, 3.62, 1.55);
+  // rows of windows on three decks, both sides
+  for (const side of [1, -1]) {
+    for (const [y, x0, x1, zr] of [[-1.1, -11, 9, 3.15], [0.4, -12, 10, 3.3], [1.9, -10, 6, 2.95], [2.9, -10.5, 2.5, 2.32]]) {
+      for (let x = x0; x <= x1; x += 0.9) add(new THREE.BoxGeometry(0.5, 0.32, 0.05), windowMat, x, y, side * zr);
+    }
+  }
+  // dorsal fin + antenna dish
+  const finShape = new THREE.Shape(); finShape.moveTo(0, 0); finShape.lineTo(5, 0); finShape.lineTo(1.5, 4); finShape.lineTo(0, 4); finShape.closePath();
+  const fin = add(new THREE.ExtrudeGeometry(finShape, { depth: 0.35, bevelEnabled: true, bevelSize: 0.08, bevelThickness: 0.08 }), hullMat, -14, 4.6, -0.18);
+  fin.scale.x = -1; fin.position.x = -9;
+  const dish = add(new THREE.SphereGeometry(0.9, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2.4), darkMat, 0.5, 5.2, 0); dish.rotation.z = 0.5;
+  // swept wings with nav lights
+  const wingShape = new THREE.Shape(); wingShape.moveTo(0, 0); wingShape.lineTo(9, 0); wingShape.lineTo(3, 7.5); wingShape.lineTo(-1, 7.5); wingShape.closePath();
+  const navLights = [];
+  for (const side of [1, -1]) {
+    const wing = add(new THREE.ExtrudeGeometry(wingShape, { depth: 0.45, bevelEnabled: true, bevelSize: 0.12, bevelThickness: 0.12 }), hullMat, -2, -0.9, side * 2.6);
+    wing.rotation.x = side * Math.PI / 2; wing.scale.x = -1;
+    const nl = add(new THREE.SphereGeometry(0.22, 12, 10), new THREE.MeshBasicMaterial({ color: side > 0 ? 0x30ff60 : 0xff3030 }), -4.5, -0.7, side * 10.2);
+    navLights.push(nl);
+    add(new THREE.BoxGeometry(6, 0.12, 0.15), accent, -5.5, -0.7, side * 9.9);
+  }
+  // main engines
+  const flameMat = new THREE.MeshBasicMaterial({ color: 0x8ad8ff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
+  const mainFlames = [];
+  for (const [y, z, r] of [[0, 0, 1.5], [1.3, 2.4, 1.0], [1.3, -2.4, 1.0], [-1.1, 2.0, 0.9], [-1.1, -2.0, 0.9]]) {
+    const nac = add(new THREE.CylinderGeometry(r * 1.05, r * 1.2, 3.4, 24), darkMat, -15.2, y, z); nac.rotation.z = Math.PI / 2;
+    const ring = add(new THREE.TorusGeometry(r * 0.95, 0.12, 8, 28), accent, -16.95, y, z); ring.rotation.y = Math.PI / 2;
+    add(new THREE.CircleGeometry(r * 0.9, 24), new THREE.MeshBasicMaterial({ color: 0xbfeaff }), -16.98, y, z).rotation.y = -Math.PI / 2;
+    const fl = new THREE.Mesh(new THREE.ConeGeometry(r * 0.85, r * 7, 20, 1, true), flameMat);
+    fl.geometry.translate(0, -r * 3.5, 0);
+    fl.rotation.z = -Math.PI / 2; fl.position.set(-17, y, z);
+    inner.add(fl); mainFlames.push(fl);
+  }
+  // VTOL lift thrusters underneath
+  const liftFlames = [];
+  for (const [x, z] of [[-9, 2.2], [-9, -2.2], [7, 2.0], [7, -2.0]]) {
+    add(new THREE.CylinderGeometry(0.75, 0.9, 0.7, 20), darkMat, x, -2.75, z);
+    const fl = new THREE.Mesh(new THREE.ConeGeometry(0.65, 4, 16, 1, true), flameMat);
+    fl.geometry.translate(0, -2, 0);
+    fl.rotation.z = Math.PI; fl.position.set(x, -3.05, z);
+    fl.rotation.set(Math.PI, 0, 0);
+    inner.add(fl); liftFlames.push(fl);
+  }
+  // landing legs
+  for (const [x, z] of [[-10, 2.6], [-10, -2.6], [8, 2.4], [8, -2.4]]) {
+    const leg = add(new THREE.CylinderGeometry(0.22, 0.28, 2.4, 10), darkMat, x, -3.6, z);
+    leg.rotation.x = Math.sign(z) * 0.25;
+    add(new THREE.CylinderGeometry(0.7, 0.8, 0.2, 16), darkMat, x, -SHIP_LEG_DROP + 0.1, z + Math.sign(z) * 0.3);
+  }
+  // hangar bay + ramp on the +z (camera) side
+  const bay = add(new RoundedBoxGeometry(4.2, 2.4, 0.4, 2, 0.15), mat(0xffd8a0, { emissive: 0xffb860, emissiveIntensity: 1.4 }), 3, -1.3, 2.55);
+  const ramp = new THREE.Group();
+  ramp.position.set(3, -2.5, 2.95);
+  inner.add(ramp);
+  const panel = add(new RoundedBoxGeometry(4.2, 5.2, 0.25, 2, 0.1), hullMat, 0, 2.6, 0, ramp);
+  for (let k = 0; k < 6; k++) add(new THREE.BoxGeometry(3.8, 0.06, 0.06), accent, 0, 0.6 + k * 0.8, 0.14, ramp);
+  void panel;
+  outer.userData = { inner, mainFlames, liftFlames, navLights, ramp, bay, length: 32 };
+  return outer;
+}
