@@ -48,8 +48,8 @@ page.on('console', (m) => { if (m.type() === 'error' && !/fonts\.(googleapis|gst
 page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));
 
 async function boot(query = 'test&fresh') {
-  await page.goto(BASE + '?' + query);
-  await page.waitForFunction(() => window.SH && window.SH.ready, null, { timeout: 60000 });
+  await page.goto(BASE + '?' + query, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await page.waitForFunction(() => window.SH && window.SH.ready, null, { timeout: 120000 });
 }
 const S = (fn, arg) => page.evaluate(fn, arg);
 
@@ -417,10 +417,11 @@ await test('dev console: dev.unlockAll() and dev.level(n) skip ahead', async () 
 });
 
 await test('mobile viewport: HUD fits and touch controls appear', async () => {
+  await page.close();   // free the desktop page's GPU work on slow CI runners
   const m = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const p2 = await m.newPage();
-  await p2.goto(BASE + '?test&fresh');
-  await p2.waitForFunction(() => window.SH && window.SH.ready, null, { timeout: 60000 });
+  await p2.goto(BASE + '?test&fresh', { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await p2.waitForFunction(() => window.SH && window.SH.ready, null, { timeout: 120000 });
   await p2.evaluate(() => SH.startLevel(2));
   await p2.waitForFunction(() => SH.state().mode === 'playing');
   assert(await p2.isVisible('#touch'), 'touch controls visible');
