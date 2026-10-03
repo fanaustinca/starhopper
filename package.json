@@ -1,0 +1,18 @@
+{
+  "name": "starhopper",
+  "version": "1.0.0",
+  "description": "Starhopper: a 2.5D Three.js platformer across 14 worlds and 700 levels",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "python3 -m http.server 8000 -d public",
+    "test": "node tests/unit.mjs && node tests/e2e.mjs",
+    "test:unit": "node tests/unit.mjs",
+    "test:e2e": "node tests/e2e.mjs",
+    "test:live": "BASE_URL=https://fanaustinca.github.io/starhopper/ node tests/e2e.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0",
+    "three": "^0.186.1"
+  }
+}

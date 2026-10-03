@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Starhopper</title>
+  <meta name="description" content="A 2.5D robot platformer across the solar system and beyond: 14 worlds, 700 levels.">
+  <meta name="theme-color" content="#05070f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='10' y='12' width='44' height='34' rx='14' fill='%23f4f6fa'/%3E%3Crect x='16' y='19' width='32' height='18' rx='8' fill='%2305070c'/%3E%3Ccircle cx='26' cy='28' r='4' fill='%235fd8ff'/%3E%3Ccircle cx='38' cy='28' r='4' fill='%235fd8ff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
+  </script>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="fade"></div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-card hud-level">
+      <div class="hud-world-dot" id="hud-dot"></div>
+      <div>
+        <div class="hud-title"><span id="hud-level">Level 1</span> <span class="hud-sep">/</span> <span id="hud-world">The Sun</span></div>
+        <div class="hud-sub" id="hud-sub">World 1 · Stage 1 of 50</div>
+      </div>
+    </div>
+    <div class="hud-card hud-stats">
+      <div class="hud-hearts" id="hud-hearts"></div>
+      <div class="hud-stat"><span class="cell-icon"></span><span id="hud-cells">0/0</span></div>
+      <div class="hud-stat"><span class="lbl">TIME</span><span id="hud-time">0:00</span></div>
+      <div class="hud-stat"><span class="lbl">SCORE</span><span id="hud-score">0</span></div>
+      <div class="hud-stat"><span class="lbl">BEST</span><span id="hud-best">—</span></div>
+    </div>
+    <button class="hud-pause" id="btn-pause" aria-label="Pause">❚❚</button>
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <!-- touch controls -->
+  <div id="touch" class="hidden">
+    <div class="touch-pad">
+      <button data-touch="left" aria-label="Left">◀</button>
+      <button data-touch="right" aria-label="Right">▶</button>
+    </div>
+    <div class="touch-pad">
+      <button data-touch="down" aria-label="Down" class="small">▼</button>
+      <button data-touch="jump" aria-label="Jump" class="big">⤒</button>
+    </div>
+  </div>
+
+  <!-- main menu -->
+  <section id="menu" class="screen">
+    <div class="menu-inner">
+      <div class="logo">STAR<span>HOPPER</span></div>
+      <div class="tagline">A robot's journey across 14 worlds · 700 levels</div>
+      <div class="menu-buttons">
+        <button class="btn primary" id="btn-play">Play</button>
+        <button class="btn" id="btn-select">Level Select</button>
+        <button class="btn" id="btn-settings">Settings</button>
+        <button class="btn ghost" id="btn-help">How to Play</button>
+      </div>
+      <div class="menu-progress" id="menu-progress"></div>
+    </div>
+  </section>
+
+  <!-- level select -->
+  <section id="select" class="screen hidden">
+    <div class="panel wide">
+      <div class="panel-head">
+        <button class="btn icon" data-back>←</button>
+        <h2>Level Select</h2>
+        <div class="panel-meta" id="select-meta"></div>
+      </div>
+      <div class="world-tabs" id="world-tabs"></div>
+      <div class="world-banner" id="world-banner"></div>
+      <div class="level-grid" id="level-grid"></div>
+    </div>
+  </section>
+
+  <!-- settings -->
+  <section id="settings" class="screen hidden">
+    <div class="panel">
+      <div class="panel-head"><button class="btn icon" data-back>←</button><h2>Settings</h2></div>
+      <div class="setting"><label>Graphics quality</label>
+        <div class="seg" id="set-quality"><button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button></div>
+      </div>
+      <div class="setting"><label>Sound effects</label><div class="seg" id="set-sound"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+      <div class="setting"><label>Music</label><div class="seg" id="set-music"><button data-v="on">On</button><button data-v="off">Off</button></div></div>
+      <div class="setting"><label>Progress</label><button class="btn danger small" id="btn-reset">Reset save</button></div>
+    </div>
+  </section>
+
+  <!-- help -->
+  <section id="help" class="screen hidden">
+    <div class="panel">
+      <div class="panel-head"><button class="btn icon" data-back>←</button><h2>How to Play</h2></div>
+      <div class="help-grid">
+        <div><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd></div><div>Run</div>
+        <div><kbd>Space</kbd> / <kbd>W</kbd> / <kbd>↑</kbd></div><div>Jump — press again in mid-air to double-jump</div>
+        <div>Fall short?</div><div>Push toward a ledge to grab it, then jump or ↑ to climb</div>
+        <div><kbd>↓</kbd> + <kbd>Space</kbd></div><div>Drop through vehicle decks &amp; thin platforms</div>
+        <div><kbd>Esc</kbd> / <kbd>P</kbd></div><div>Pause</div>
+        <div>Gamepad</div><div>Stick / D-pad to move, A to jump, Start to pause</div>
+      </div>
+      <p class="help-note">Collect energy cells, avoid hazards, and reach the golden portal. Finish a world to fly your ship to the next planet.</p>
+    </div>
+  </section>
+
+  <!-- pause -->
+  <section id="pause" class="screen hidden dim">
+    <div class="panel small">
+      <h2>Paused</h2>
+      <div class="menu-buttons">
+        <button class="btn primary" id="btn-resume">Resume</button>
+        <button class="btn" id="btn-restart">Restart Level</button>
+        <button class="btn" id="btn-pause-select">Level Select</button>
+        <button class="btn ghost" id="btn-quit">Main Menu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- level complete -->
+  <section id="complete" class="screen hidden dim">
+    <div class="panel small">
+      <div class="complete-kicker" id="complete-kicker">LEVEL COMPLETE</div>
+      <h2 id="complete-title">Level 1</h2>
+      <div class="complete-stats">
+        <div><span>Score</span><b id="c-score">0</b></div>
+        <div><span>Cells</span><b id="c-cells">0/0</b></div>
+        <div><span>Time</span><b id="c-time">0:00</b></div>
+        <div><span>Best</span><b id="c-best">0</b></div>
+      </div>
+      <div class="new-best hidden" id="c-newbest">NEW HIGH SCORE</div>
+      <div class="menu-buttons row">
+        <button class="btn primary" id="btn-next">Next Level</button>
+        <button class="btn" id="btn-replay">Replay</button>
+        <button class="btn ghost" id="btn-complete-select">Levels</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- cutscene caption -->
+  <div id="caption" class="hidden">
+    <div class="cap-small" id="cap-small"></div>
+    <div class="cap-big" id="cap-big"></div>
+    <div class="cap-skip">Press Space / tap to skip</div>
+  </div>
+
+  <div id="loading"><div class="spinner"></div><div>Booting robot…</div></div>
+  <noscript>Starhopper needs JavaScript and WebGL.</noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
