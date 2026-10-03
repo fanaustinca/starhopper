@@ -2,7 +2,8 @@
 import { WORLDS, LEVELS_PER_WORLD, TOTAL_LEVELS, PHYS, MAX_HEALTH, worldIndexOf, subLevelOf, locationOf } from './core/config.js';
 import { generateLevel } from './core/levelgen.js';
 import { LevelSim } from './core/sim.js';
-import { loadSave, writeSave, recordCompletion, defaultSave, totalScore } from './core/save.js';
+import { loadSave, writeSave, recordCompletion, defaultSave, totalScore, totalShards, SHARD_BONUS } from './core/save.js';
+import { SKINS, skinById } from './core/skins.js';
 import { Input } from './core/input.js';
 import { Audio } from './core/audio.js';
 import { Renderer } from './render/renderer.js';
@@ -13,7 +14,7 @@ const TEST = params.has('test');
 const $ = (id) => document.getElementById(id);
 const hex = (c) => '#' + c.toString(16).padStart(6, '0');
 const fmtTime = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
-const SCREENS = ['menu', 'select', 'settings', 'help', 'pause', 'complete'];
+const SCREENS = ['menu', 'select', 'shop', 'settings', 'help', 'pause', 'complete'];
 
 class Game {
   constructor() {
@@ -24,7 +25,7 @@ class Game {
     this.audio = new Audio();
     this.audio.enabled = !TEST && this.save.settings.sound;
     this.audio.musicOn = this.save.settings.music;
-    this.renderer = new Renderer($('stage'), { test: TEST, quality: TEST ? 'low' : this.save.settings.quality });
+    this.renderer = new Renderer($('stage'), { test: TEST, quality: TEST ? 'low' : this.save.settings.quality, skin: this.save.skin });
     this.mode = 'menu';
     this.prevMode = 'menu';
     this.sim = null;
@@ -67,7 +68,9 @@ class Game {
 
   bindUI() {
     const click = (id, fn) => $(id).addEventListener('click', () => { this.audio.play('ui'); fn(); });
-    click('btn-play', () => this.startLevel(this.save.unlocked));
+    click('btn-play', () => this.play());
+    click('btn-shop', () => this.openShop());
+    click('btn-shop-action', () => this.shopAction());
     click('btn-select', () => this.openSelect());
     click('btn-settings', () => { this.backStack.push(this.screen); this.show('settings'); this.refreshSettings(); });
     click('btn-help', () => { this.backStack.push(this.screen); this.show('help'); });
@@ -100,12 +103,20 @@ class Game {
       if (e.code === 'Escape' && ['select', 'settings', 'help'].includes(this.screen)) { this.back(); return; }
       if (this.mode === 'complete' && (e.code === 'Enter' || e.code === 'Space') && this.completeReadyAt < performance.now()) { this.next(); return; }
       if (this.mode === 'cutscene' && (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape')) this.cutscene.skip();
-      if (this.mode === 'menu' && this.screen === 'menu' && e.code === 'Enter') this.startLevel(this.save.unlocked);
+      if (this.mode === 'menu' && this.screen === 'menu' && e.code === 'Enter') this.play();
+      if (e.code === 'Escape' && this.screen === 'shop') { this.back(); return; }
     };
     $('stage').addEventListener('pointerdown', () => { if (this.mode === 'cutscene') this.cutscene.skip(); this.audio.ensure(); });
   }
 
+  play() {
+    // first launch: watch the ship arrive at the Sun before level 1
+    if (!this.save.introSeen && this.save.unlocked === 1) return this.playCutscene(null, 0);
+    return this.startLevel(this.save.unlocked);
+  }
+
   back() {
+    if (this.screen === 'shop') { this.renderer.showcase = false; this.renderer.robot.setSkin(this.save.skin); }
     const prev = this.backStack.pop() || 'menu';
     if (prev === 'pause' || prev === 'complete') this.show(prev);
     else { this.mode = 'menu'; this.show(prev); if (prev === 'menu') this.refreshMenu(); }
@@ -115,7 +126,8 @@ class Game {
     const s = this.save;
     const done = Object.keys(s.best).length;
     $('btn-play').textContent = s.unlocked > 1 ? `Continue · Level ${s.unlocked}` : 'Play';
-    $('menu-progress').innerHTML = `<b>${done}</b> / ${TOTAL_LEVELS} levels cleared · <b>${s.totalCells}</b> cells · <b>${totalScore(s).toLocaleString()}</b> total score`;
+    $('menu-progress').innerHTML = `<b>${done}</b> / ${TOTAL_LEVELS} levels cleared · <b>${totalShards(s)}</b> / ${TOTAL_LEVELS * 3} star shards · <b>${totalScore(s).toLocaleString()}</b> total score`;
+    $('menu-wallet').textContent = (s.wallet || 0).toLocaleString();
   }
 
   refreshSettings() {
@@ -163,11 +175,64 @@ class Game {
       b.className = 'lvl' + (best ? ' done' : '') + (locked ? ' locked' : '') + (n === s.unlocked ? ' current' : '');
       b.dataset.level = n;
       const pct = best && best.total ? Math.round((best.cells / best.total) * 100) : 0;
-      b.innerHTML = `<span class="n">${n}</span><span class="s">${best ? best.score.toLocaleString() : locked ? '' : 'new'}</span>${best ? `<span class="bar"><i style="width:${pct}%"></i></span>` : ''}`;
-      b.title = locked ? 'Locked' : `Level ${n}${locationOf(n) ? ' · ' + locationOf(n) : ''}`;
+      const sh = (s.shardIds[n] || []).length;
+      const stars = best ? `<span class="stars">${[0, 1, 2].map((i) => `<i class="shard${i < sh ? ' on' : ''}"></i>`).join('')}</span>` : '';
+      b.innerHTML = `<span class="n">${n}</span>${stars}<span class="s">${best ? best.score.toLocaleString() : locked ? '' : 'new'}</span>${best ? `<span class="bar"><i style="width:${pct}%"></i></span>` : ''}`;
+      const L = locked ? null : generateLevel(n);
+      b.title = locked ? 'Locked' : `Level ${n} · ${L.name}${L.location ? ' · ' + L.location : ''}`;
       if (!locked) b.addEventListener('click', () => { this.audio.play('ui'); this.startLevel(n); });
       grid.appendChild(b);
     }
+  }
+
+  // ------------------------------------------------------------- shop
+  openShop() {
+    this.backStack = ['menu'];
+    this.mode = 'menu';
+    this.shopSel = this.save.skin;
+    this.renderer.showcase = true;
+    this.show('shop');
+    this.renderShop();
+  }
+
+  renderShop() {
+    const s = this.save;
+    $('shop-wallet').textContent = (s.wallet || 0).toLocaleString();
+    const grid = $('skin-grid');
+    grid.innerHTML = '';
+    for (const sk of SKINS) {
+      const owned = s.skins.includes(sk.id);
+      const b = document.createElement('button');
+      b.className = 'skin' + (sk.id === this.shopSel ? ' sel' : '') + (!owned && sk.price > (s.wallet || 0) ? ' locked' : '');
+      b.dataset.skin = sk.id;
+      const bg = sk.galaxy ? 'radial-gradient(circle at 30% 30%, #ff4ad0, #241650 60%, #0e2a6a)' : `radial-gradient(circle at 35% 30%, #fff 0%, ${hex(sk.body)} 35%, ${hex(sk.body)} 70%, ${hex(sk.accent)} 100%)`;
+      const status = s.skin === sk.id ? '<span class="pr eq">Equipped</span>' : owned ? '<span class="pr owned">Owned</span>' : `<span class="pr">◆ ${sk.price.toLocaleString()}</span>`;
+      b.innerHTML = `<div class="swatch" style="background:${bg};--eye:${hex(sk.eye)}"><i></i></div><div class="nm">${sk.name}</div>${status}`;
+      b.addEventListener('click', () => { this.audio.play('ui'); this.shopSel = sk.id; this.renderer.robot.setSkin(sk.id); this.renderShop(); });
+      grid.appendChild(b);
+    }
+    const sel = skinById(this.shopSel);
+    const owned = s.skins.includes(sel.id);
+    $('shop-name').textContent = sel.name;
+    $('shop-price').textContent = owned ? (s.skin === sel.id ? 'Currently equipped' : 'Owned') : `${sel.price.toLocaleString()} cells`;
+    const btn = $('btn-shop-action');
+    btn.textContent = s.skin === sel.id ? 'Equipped' : owned ? 'Equip' : (s.wallet || 0) >= sel.price ? `Buy · ${sel.price.toLocaleString()}` : `Need ${(sel.price - (s.wallet || 0)).toLocaleString()} more`;
+    btn.disabled = s.skin === sel.id || (!owned && (s.wallet || 0) < sel.price);
+    btn.style.opacity = btn.disabled ? 0.55 : 1;
+  }
+
+  shopAction() {
+    const s = this.save, sel = skinById(this.shopSel);
+    if (!s.skins.includes(sel.id)) {
+      if ((s.wallet || 0) < sel.price) return;
+      s.wallet -= sel.price;
+      s.skins.push(sel.id);
+      this.audio.play('complete');
+      this.toast(`UNLOCKED ${sel.name.toUpperCase()}`);
+    }
+    s.skin = sel.id;
+    writeSave(s);
+    this.renderShop();
   }
 
   toast(text, ms = 1400) {
@@ -202,7 +267,9 @@ class Game {
       this.updateHUD(true);
       this.acc = 0;
       const W = WORLDS[L.worldIndex];
-      this.toast(`${W.name.toUpperCase()}${L.location ? ' · ' + L.location.toUpperCase() : ''}`, 1800);
+      this.toast(`${L.name.toUpperCase()}${L.location ? ' · ' + L.location.toUpperCase() : ''}`, 2000);
+      if (L.chaser) setTimeout(() => { if (this.sim && this.sim.L === L) this.toast(`RUN! THE ${L.chaser.name.toUpperCase()} IS COMING`, 1800); }, 2100);
+      if (L.tide) setTimeout(() => { if (this.sim && this.sim.L === L) this.toast('THE FLOOR IS RISING — CLIMB!', 1800); }, 2100);
       if (this.musicWorld !== L.worldIndex || !this.audio.pad) { this.audio.music(L.worldIndex); this.musicWorld = L.worldIndex; }
     });
   }
@@ -227,8 +294,9 @@ class Game {
 
   finishLevel() {
     const sim = this.sim;
-    const result = { score: Math.max(0, sim.score()), cells: sim.cells, total: sim.L.totalCells, time: sim.t };
-    const { newBest } = recordCompletion(this.save, this.levelNum, result);
+    const shardIds = sim.L.pickups.filter((k) => k.type === 'shard' && sim.collected.has(k.id)).map((k) => k.id);
+    const result = { score: Math.max(0, sim.score()), cells: sim.cells, total: sim.L.totalCells, time: sim.t, shardIds };
+    const { newBest, earned, newShards } = recordCompletion(this.save, this.levelNum, result);
     if (!this.save.seenWorlds.includes(worldIndexOf(Math.min(TOTAL_LEVELS, this.levelNum + 1)))) this.save.seenWorlds.push(worldIndexOf(Math.min(TOTAL_LEVELS, this.levelNum + 1)));
     writeSave(this.save);
     this.mode = 'complete';
@@ -242,6 +310,8 @@ class Game {
     $('c-time').textContent = fmtTime(result.time);
     $('c-best').textContent = this.save.best[n].score.toLocaleString();
     $('c-newbest').classList.toggle('hidden', !newBest);
+    $('c-shards').textContent = `${(this.save.shardIds[n] || []).length}/3`;
+    $('c-earned').textContent = `+${earned}` + (newShards ? ` (${newShards}★)` : '');
     $('btn-next').textContent = n === TOTAL_LEVELS ? 'Finale' : worldDone ? `Fly to ${WORLDS[worldIndexOf(n + 1)].short} 🚀` : 'Next Level';
     this.show('complete');
     this.updateHUD(true);
@@ -258,7 +328,8 @@ class Game {
     return this.fade(() => {
       this.mode = 'cutscene';
       this.show(null);
-      this.cutscene = new Cutscene(this.renderer.renderer, from, to);
+      this.cutscene = new Cutscene(this.renderer.renderer, from, to, { skin: this.save.skin });
+      this.cutsceneFrom = from;
       this.cutsceneTo = to;
       $('caption').classList.remove('hidden');
       this.audio.stopMusic();
@@ -272,6 +343,7 @@ class Game {
     this.cutscene = null;
     $('caption').classList.add('hidden');
     $('fade').style.opacity = '';
+    if (this.cutsceneFrom == null) { this.save.introSeen = true; writeSave(this.save); }
     if (to == null) { this.toMenu(); this.toast('YOU CONQUERED ALL 14 WORLDS!', 3000); return; }
     this.startLevel(to * LEVELS_PER_WORLD + 1);
   }
@@ -307,6 +379,7 @@ class Game {
     if (e.type === 'checkpoint') this.toast('CHECKPOINT');
     if (e.type === 'fail') this.toast('TRY AGAIN — HEALTH RESTORED');
     if (e.type === 'heart') this.toast('+1 HEALTH');
+    if (e.type === 'shard') this.toast(`STAR SHARD ${this.sim.shards}/3 · +${SHARD_BONUS} CELLS`);
   }
 
   tick(dt) {
@@ -349,6 +422,12 @@ class Game {
     set('hud-level', `Level ${L.index}`);
     set('hud-world', W.name + (L.location ? ` · ${L.location}` : ''));
     set('hud-sub', `World ${L.worldIndex + 1} · Stage ${L.sub} of ${LEVELS_PER_WORLD}`);
+    set('hud-name', L.name);
+    if (force || this.hudCache.sh !== sim.shards) {
+      const gained = this.hudCache.sh !== undefined && sim.shards > this.hudCache.sh;
+      this.hudCache.sh = sim.shards;
+      $('hud-shards').innerHTML = [0, 1, 2].map((i) => `<i class="shard${i < sim.shards ? ' on' : ''}${gained && i === sim.shards - 1 ? ' pop' : ''}"></i>`).join('');
+    }
     if (force) { $('hud-dot').style.background = `radial-gradient(circle at 35% 35%, ${hex(W.planet.color)}, ${hex(W.sky[0])})`; $('hud-dot').style.color = hex(W.planet.color); }
     set('hud-cells', `${sim.cells}/${L.totalCells}`);
     set('hud-time', fmtTime(sim.t));
@@ -373,6 +452,8 @@ class Game {
       player: p && { x: p.x, y: p.y, vx: p.vx, vy: p.vy, state: p.state, onGround: p.onGround, hanging: !!p.hang, jumps: p.jumps },
       health: sim && sim.health, cells: sim && sim.cells, totalCells: sim && sim.L.totalCells,
       complete: sim && sim.complete, t: sim && sim.t, deaths: sim && sim.deaths,
+      shards: sim && sim.shards, name: sim && sim.L.name, archetype: sim && sim.L.archetype,
+      wallet: this.save.wallet, skin: this.save.skin, skins: this.save.skins.slice(),
       unlocked: this.save.unlocked, best: this.save.best,
       cutscene: this.cutscene ? { t: this.cutscene.t, duration: this.cutscene.duration, to: this.cutsceneTo } : null,
       errors: this.errors.slice(),
@@ -429,3 +510,44 @@ window.SH = {
   resetSave: () => { game.save = defaultSave(); writeSave(game.save); return true; },
   generate: (n) => generateLevel(n),
 };
+
+// ---------------------------------------------------------------- dev console
+// Open DevTools (F12) → Console and type dev.help()
+window.dev = {
+  help() {
+    console.log([
+      'Starhopper dev commands:',
+      '  dev.unlockAll()        unlock every level in the level select',
+      '  dev.skipAll()          unlock everything and jump to the final level',
+      '  dev.level(n)           start level n right now',
+      '  dev.world(w)           start the first level of world w (1-14)',
+      '  dev.win()              finish the current level instantly',
+      '  dev.cells(n = 5000)    add cells to your wallet for the shop',
+      '  dev.allSkins()         own every skin',
+      '  dev.intro()            replay the opening cutscene',
+      '  dev.fly(w)             play the ship cutscene from world w to w+1',
+      '  dev.reset()            wipe the save',
+    ].join('\n'));
+    return 'ok';
+  },
+  unlockAll() {
+    game.save.unlocked = TOTAL_LEVELS;
+    game.save.introSeen = true;
+    writeSave(game.save); game.refreshMenu();
+    if (game.screen === 'select') game.renderSelect();
+    return `all ${TOTAL_LEVELS} levels unlocked`;
+  },
+  skipAll() { window.dev.unlockAll(); game.startLevel(TOTAL_LEVELS); return `skipped to level ${TOTAL_LEVELS}`; },
+  level(n) { game.save.unlocked = Math.max(game.save.unlocked, n); writeSave(game.save); game.startLevel(n); return `starting level ${n}`; },
+  world(w) { return window.dev.level((w - 1) * LEVELS_PER_WORLD + 1); },
+  win() {
+    if (game.mode !== 'playing') return 'not in a level';
+    const g = game.sim.L.goal; game.sim.teleport(g.x, g.y); return 'level complete';
+  },
+  cells(n = 5000) { game.save.wallet = (game.save.wallet || 0) + n; writeSave(game.save); game.refreshMenu(); if (game.screen === 'shop') game.renderShop(); return `wallet: ${game.save.wallet}`; },
+  allSkins() { game.save.skins = SKINS.map((k) => k.id); writeSave(game.save); if (game.screen === 'shop') game.renderShop(); return 'all skins owned'; },
+  intro() { game.playCutscene(null, 0); return 'rolling intro'; },
+  fly(w = 1) { game.playCutscene(w - 1, w < WORLDS.length ? w : null); return 'rolling cutscene'; },
+  reset() { localStorage.removeItem('starhopper.save.v2'); location.reload(); },
+};
+if (!TEST) console.log('%c★ Starhopper%c  dev commands: type dev.help()', 'color:#5fd8ff;font-weight:bold;font-size:14px', 'color:#9aa8c4');

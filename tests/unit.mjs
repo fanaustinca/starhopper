@@ -24,6 +24,8 @@ function run(p, world, ticks, inputFn, env = { gravityScale: 1 }) {
 
 // Try to cross from platform A to platform B with the real controller.
 function canCross(chk) {
+  // leftward jumps (tower zig-zags) are mirrored into rightward ones
+  if (chk.dir < 0) chk = { ...chk, dir: 1, ax: -chk.ax, bx: -chk.bx };
   const A = solid(chk.ax - 6, chk.ay - 1, 6, 1);
   const B = chk.tall ? solid(chk.bx, chk.by - 30, chk.bw, 30) : solid(chk.bx, chk.by - 1.2, chk.bw, 1.2);
   const world = { colliders: [A, B] };
@@ -127,6 +129,15 @@ test('ledge grab then climb onto the ledge', () => {
   assert.ok(p.onGround && p.ground === ledge, 'climbed: y=' + p.y);
   assert.ok(Math.abs(p.y - 3) < 1e-6);
 });
+test('wall slide slows the fall; wall jump kicks away and up', () => {
+  const wall = solid(2, -10, 1, 30);
+  const p = createPlayer(1.55, 6);
+  const world = { colliders: [wall] };
+  for (let i = 0; i < 120; i++) stepPlayer(p, { ...idle(), right: true }, world, { gravityScale: 1 }, DT);
+  assert.ok(p.state === 'wall' && p.vy >= -PHYS.wallSlide - 1e-6, 'sliding at ' + p.vy);
+  stepPlayer(p, { ...idle(), right: true, jump: true, jumpPressed: true }, world, { gravityScale: 1 }, DT);
+  assert.ok(p.vx < -5 && p.vy > 10, `kicked off: vx=${p.vx} vy=${p.vy}`);
+});
 test('rides a moving platform', () => {
   const plat = solid(0, -0.5, 3, 0.5, { oneWay: true });
   const p = createPlayer(1.5, 0); p.onGround = true; p.ground = plat;
@@ -139,21 +150,23 @@ test('rides a moving platform', () => {
 });
 
 console.log('\nCampaign structure');
-test('14 worlds × 50 levels = 700', () => {
+test('14 worlds × 30 levels = 420', () => {
   assert.equal(WORLDS.length, 14);
-  assert.equal(TOTAL_LEVELS, 700);
+  assert.equal(TOTAL_LEVELS, 420);
   assert.equal(worldOf(1).id, 'sun');
-  assert.equal(worldOf(51).id, 'mercury');
-  assert.equal(worldOf(152).id, 'earth');
-  assert.equal(worldOf(345).id, 'jupiter');
-  assert.equal(locationOf(345), 'Great Red Spot');
-  assert.equal(locationOf(360), 'The Rings');
-  assert.equal(locationOf(380), 'Gas Surface');
-  assert.equal(worldOf(700).id, 'chronos');
+  assert.equal(worldOf(31).id, 'mercury');
+  assert.equal(worldOf(92).id, 'earth');
+  assert.equal(locationOf(92), 'London');
+  assert.equal(locationOf(120), 'Tokyo');
+  assert.equal(worldOf(205).id, 'jupiter');
+  assert.equal(locationOf(205), 'Great Red Spot');
+  assert.equal(locationOf(215), 'The Rings');
+  assert.equal(locationOf(230), 'Gas Surface');
+  assert.equal(worldOf(420).id, 'chronos');
 });
 
 const levels = [];
-test('all 700 levels generate deterministically with sane data', () => {
+test('all 420 levels generate deterministically with sane data', () => {
   for (let n = 1; n <= TOTAL_LEVELS; n++) {
     const L = generateLevel(n);
     levels.push(L);
@@ -168,14 +181,15 @@ test('all 700 levels generate deterministically with sane data', () => {
     assert.ok(L.floor.y < L.goal.y && L.floor.y < 0, `L${n} floor above course`);
     assert.ok(L.totalCells > 0);
   }
-  const a = JSON.stringify(generateLevel(321)), b = JSON.stringify(generateLevel(321));
+  const a = JSON.stringify(generateLevel(221)), b = JSON.stringify(generateLevel(221));
   assert.equal(a, b);
 });
 test('signature mechanics appear in every world', () => {
   const need = { sun: 'flare', mercury: 'vent', venus: 'cloud', earth: 'vehicle', mars: 'rover', asteroids: 'asteroid', jupiter: 'wind', saturn: 'ring', uranus: 'geyser', neptune: 'gust', prismara: 'bridge', mechanus: 'gear', biolumina: 'vine', chronos: 'warp' };
   for (const L of levels) {
     let sig = need[L.world];
-    if (L.world === 'saturn' && L.sub > 25) sig = 'updraft';
+    if (L.world === 'saturn' && L.sub > 15) sig = 'updraft';
+    if (['chase', 'tide', 'precision', 'gauntlet', 'ride', 'ascent', 'descent'].includes(L.archetype)) continue;
     assert.ok(L.sequence.includes(sig), `L${L.index} (${L.world}) missing ${sig}`);
   }
 });
@@ -208,6 +222,24 @@ test('vehicle/stream, lift and launcher geometry is reachable', () => {
   }
 });
 
+test('archetypes vary: no repeats back-to-back, ≥7 kinds per world, chase+finale present', () => {
+  for (let w = 0; w < 14; w++) {
+    const arch = levels.slice(w * 30, w * 30 + 30).map((l) => l.archetype);
+    for (let i = 1; i < 30; i++) assert.notEqual(arch[i], arch[i - 1], `world ${w + 1} repeats ${arch[i]} at ${i + 1}`);
+    assert.ok(new Set(arch).size >= 7, `world ${w + 1} only ${new Set(arch).size} archetypes`);
+    assert.equal(arch[0], 'intro'); assert.equal(arch[29], 'finale');
+    assert.ok(arch.includes('ascent') && arch.includes('chase') && arch.includes('tide'));
+  }
+});
+test('every level has a name and exactly 3 star shards', () => {
+  for (const L of levels) {
+    assert.ok(L.name && L.name.length > 3, `L${L.index} name`);
+    assert.equal(L.totalShards, 3, `L${L.index} shards ${L.totalShards}`);
+  }
+  const names = new Set(levels.slice(0, 30).map((l) => l.name));
+  assert.ok(names.size >= 25, 'names mostly unique within a world: ' + names.size);
+});
+
 console.log('\nLevel runtime');
 test('teleporting onto the goal completes the level', () => {
   const sim = new LevelSim(generateLevel(1));
@@ -236,7 +268,7 @@ test('losing all health returns to the checkpoint with full health', () => {
 });
 test('lava hazards damage the player (Sun)', () => {
   // find a Sun level with a pit pool
-  const L = levels.slice(0, 50).find((l) => l.hazards.some((h) => h.type === 'fire'));
+  const L = levels.slice(0, 30).find((l) => l.hazards.some((h) => h.type === 'fire'));
   assert.ok(L, 'a sun level with fire pits');
   const sim = new LevelSim(generateLevel(L.index));
   const h = L.hazards.find((x) => x.type === 'fire');
@@ -253,8 +285,40 @@ test('light bridges solidify on touch (Prismara)', () => {
   sim.step(idle());
   assert.equal(sim.bridgeState[0].c.active, true);
 });
+test('crumbling platforms give way after standing on them, then re-form', () => {
+  const L = levels.find((l) => l.solids.some((s) => s.crumble));
+  const sim = new LevelSim(generateLevel(L.index));
+  const c = sim.crumbles[0];
+  sim.teleport(c.x + c.w / 2, c.y + c.h);
+  for (let i = 0; i < 40; i++) sim.step(idle());
+  assert.ok(c.active && c.crumbleStart >= 0, 'started crumbling');
+  for (let i = 0; i < 60; i++) sim.step(idle());
+  assert.equal(c.active, false, 'gave way');
+  sim.teleport(L.goal.x - 3, L.goal.y);
+  for (let i = 0; i < 400; i++) sim.step(idle());
+  assert.equal(c.active, true, 're-formed');
+});
+test('chase levels: the wall advances and catching you costs health', () => {
+  const L = levels.find((l) => l.archetype === 'chase');
+  const sim = new LevelSim(generateLevel(L.index));
+  sim.teleport(6, 0);
+  sim.step(idle());
+  assert.ok(sim.chaser.active);
+  const x0 = sim.chaser.x;
+  for (let i = 0; i < 200; i++) sim.step(idle());
+  assert.ok(sim.chaser.x > x0 + 5, 'advanced');
+  for (let i = 0; i < 800; i++) sim.step(idle());
+  assert.ok(sim.health < MAX_HEALTH, 'caught the idle robot');
+});
+test('tide levels: the floor rises over time', () => {
+  const L = levels.find((l) => l.archetype === 'tide');
+  const sim = new LevelSim(generateLevel(L.index));
+  const y0 = sim.floorY;
+  for (let i = 0; i < 1200; i++) sim.step(idle());
+  assert.ok(sim.floorY > y0 + 2, `rose ${sim.floorY - y0}`);
+});
 test('all movers/vehicles produce finite positions over time', () => {
-  for (const n of [5, 160, 175, 210, 260, 360, 560, 660, 690]) {
+  for (const n of [5, 100, 110, 130, 160, 220, 340, 400, 410]) {
     const sim = new LevelSim(generateLevel(n));
     for (let i = 0; i < 1200; i++) sim.step(idle());
     for (const m of sim.moverState) assert.ok(Number.isFinite(m.x) && Number.isFinite(m.y), `L${n} mover ${m.id}`);

@@ -19,6 +19,7 @@ export function createPlayer(x, y) {
     facing: 1, state: 'idle',
     hang: null, climb: null, swing: null,
     regrab: 0, vineCooldown: 0, dropT: 0,
+    wall: 0, wallLock: 0,
     airTime: 0,
   };
 }
@@ -44,6 +45,7 @@ export function stepPlayer(p, input, world, env, dt) {
   p.regrab = Math.max(0, p.regrab - dt);
   p.vineCooldown = Math.max(0, p.vineCooldown - dt);
   p.dropT = Math.max(0, p.dropT - dt);
+  p.wallLock = Math.max(0, p.wallLock - dt);
 
   // ---- Climbing up a ledge (short scripted tween) ----
   if (p.climb) {
@@ -137,6 +139,7 @@ export function stepPlayer(p, input, world, env, dt) {
   else accel = PHYS.accelAir;
   // turning around on ice is also sluggish
   if (p.onGround && dir && Math.sign(p.vx) === -dir) accel = (ice ? PHYS.iceAccel : 1) * PHYS.decelGround;
+  if (p.wallLock > 0) accel *= 0.15;   // brief commitment after a wall jump
   p.vx = approach(p.vx, dir * PHYS.runSpeed, accel * dt);
 
   // external velocity: conveyors + wind (smoothed so gusts feel physical)
@@ -157,6 +160,14 @@ export function stepPlayer(p, input, world, env, dt) {
       p.coyote = 0; p.buffer = 0; p.jumpHeld = true;
       ev.push('jump');
     }
+  } else if (p.buffer > 0 && !p.onGround && p.wall) {
+    p.vx = -p.wall * PHYS.wallJumpVx;
+    p.vy = PHYS.wallJumpVy;
+    p.facing = -p.wall;
+    p.jumps = 1; p.buffer = 0; p.jumpHeld = false;
+    p.wallLock = PHYS.wallLock;
+    p.wall = 0;
+    ev.push('walljump');
   } else if (input.jumpPressed && !p.onGround && p.jumps < 2) {
     p.vy = PHYS.doubleJumpVel;
     p.jumps = 2; p.buffer = 0; p.jumpHeld = false;
@@ -171,6 +182,7 @@ export function stepPlayer(p, input, world, env, dt) {
   // ---- Gravity ----
   const gMul = env.gravAt ? env.gravAt(p.x, p.y + p.h / 2) : 1;
   p.vy = Math.max(p.vy - PHYS.gravity * env.gravityScale * gMul * dt, -PHYS.maxFall);
+  if (p.wall && p.vy < -PHYS.wallSlide) p.vy = -PHYS.wallSlide;
 
   // ---- Ride the platform we stand on ----
   if (p.onGround && p.ground) {
@@ -235,6 +247,16 @@ export function stepPlayer(p, input, world, env, dt) {
     if (p.coyote <= 0 && p.jumps === 0) p.jumps = 1; // walked off: only the air jump remains
   }
 
+  // ---- Wall contact (slide / wall jump next tick) ----
+  p.wall = 0;
+  if (!p.onGround && dir !== 0 && p.wallLock <= 0) {
+    const probe = { x: p.x + dir * 0.06, y: p.y + 0.25, w: p.w, h: p.h - 0.5 };
+    for (const c of colliders) {
+      if (c.oneWay || c.active === false || c.noWall) continue;
+      if (overlaps(probe, c)) { p.wall = dir; break; }
+    }
+  }
+
   // ---- Ledge grab ----
   if (!p.onGround && p.vy < 0 && !input.down && p.regrab <= 0) {
     const hand = p.y + p.h * 0.9;
@@ -286,6 +308,7 @@ export function stepPlayer(p, input, world, env, dt) {
 
   // ---- Animation state ----
   if (p.onGround) p.state = Math.abs(p.vx) > 0.5 ? 'run' : 'idle';
+  else if (p.wall && p.vy < 0) p.state = 'wall';
   else p.state = p.vy > 0 ? (p.jumps >= 2 ? 'flip' : 'jump') : 'fall';
   return ev;
 }

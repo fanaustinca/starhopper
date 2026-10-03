@@ -1,48 +1,50 @@
-// World backdrops: sky dome, celestial bodies, the hazard floor, and
-// 3D parallax scenery (Earth landmarks, Martian mesas, gears, crystals...).
+// World backdrops: shader skies, celestial bodies, animated hazard floors,
+// procedural terrain and 3D scenery (Earth landmarks, solar prominences,
+// Martian mesas, gears, crystals...).
 import * as THREE from 'three';
 import { makeRng } from '../core/rng.js';
 import { WORLDS } from '../core/config.js';
 import { mat, makeMoverMesh, rockGeo } from './vehicles.js';
 import { planetTexture, ringTexture, glowTexture, windowTexture } from './textures.js';
+import { skyMaterial, sunSurfaceMaterial, plasmaMaterial, liquidMaterial, flickerMaterial, starMaterial } from './shaders.js';
+import { makeTerrain, cloudSprite } from './terrain.js';
 
 const glow = (c, i = 2) => mat(c, { emissive: c, emissiveIntensity: i });
 
-function skyDome(top, horizon) {
-  const geo = new THREE.SphereGeometry(900, 32, 16);
-  const m = new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { top: { value: new THREE.Color(top) }, horizon: { value: new THREE.Color(horizon) } },
-    vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-    fragmentShader: 'uniform vec3 top; uniform vec3 horizon; varying vec3 vP; void main(){ float h = clamp(vP.y*1.6+0.25,0.0,1.0); gl_FragColor = vec4(mix(horizon, top, pow(h,0.8)),1.0); }',
-  });
-  const mesh = new THREE.Mesh(geo, m);
+// Sky look per world (see shaders.skyMaterial)
+const SKY = {
+  sun: { top: 0x0a0100, horizon: 0xc8380a, ground: 0xd0400a, stars: 0.5, corona: 0.65, sunHalo: 0, sunSize: 0.0001 },
+  mercury: { top: 0x000003, horizon: 0x18181e, stars: 1.1, neb: 0.25, nebA: 0x203060, nebB: 0x502040, sunDir: [-0.55, 0.28, -1], sunSize: 0.1, sunColor: 0xfff2dc, sunHalo: 1.6 },
+  venus: { top: 0x3a1806, horizon: 0xd88a40, clouds: 0.85, cloudColor: 0xa85a28, cloudScale: 0.5, sunSize: 0.03, sunColor: 0xffd8a0, sunHalo: 0.6 },
+  earth: { top: 0x1858c0, horizon: 0xc4e0f8, clouds: 0.75, cloudColor: 0xffffff, sunSize: 0.022, sunColor: 0xfff4d8, sunHalo: 1 },
+  mars: { top: 0x5a3020, horizon: 0xd8a070, clouds: 0.25, cloudColor: 0xd09060, sunDir: [0.4, 0.22, -1], sunSize: 0.012, sunColor: 0xdfeaff, sunHalo: 1.3 },
+  asteroids: { top: 0x000002, horizon: 0x04040a, stars: 1.3, neb: 0.9, nebA: 0x2a1060, nebB: 0x0e5a8a, sunSize: 0.008, sunHalo: 0.8 },
+  jupiter: { top: 0x24160c, horizon: 0xe0b888, clouds: 0.45, cloudColor: 0xf0d8b0, stars: 0.2, sunSize: 0.006, sunHalo: 0.5 },
+  saturn: { top: 0x241c0e, horizon: 0xf0e0b8, clouds: 0.35, cloudColor: 0xfff0d0, stars: 0.2, sunSize: 0.005, sunHalo: 0.5 },
+  uranus: { top: 0x062c3c, horizon: 0x6ac4d4, clouds: 0.3, cloudColor: 0xe8ffff, aurora: 0.35, sunSize: 0.004, sunHalo: 0.4 },
+  neptune: { top: 0x020722, horizon: 0x3a6ae0, clouds: 0.55, cloudColor: 0x24348a, stars: 0.3, sunSize: 0.003, sunHalo: 0.3 },
+  prismara: { top: 0x08031c, horizon: 0xb07ae0, neb: 1.0, nebA: 0xff40c0, nebB: 0x4080ff, stars: 0.9, sunSize: 0.015, sunColor: 0xffe0ff },
+  mechanus: { top: 0x160e05, horizon: 0x9a7040, clouds: 0.55, cloudColor: 0x6a4a28, cloudScale: 0.7, sunSize: 0.02, sunColor: 0xffc070, sunHalo: 0.8 },
+  biolumina: { top: 0x010308, horizon: 0x0a3a34, stars: 0.9, aurora: 1.0, neb: 0.2, nebA: 0x104060, nebB: 0x30a080, sunSize: 0.0001, sunHalo: 0 },
+  chronos: { top: 0x04020d, horizon: 0x3a2a70, neb: 1.0, nebA: 0xffc040, nebB: 0x6030c0, stars: 1.0, sunSize: 0.01, sunColor: 0xffe8a0 },
+};
+
+const TERRAIN = {
+  mercury: ['craters', -30], venus: ['volcanic', -45], earth: ['hills', -210], mars: ['mesa', -40],
+  uranus: ['ice', -40], prismara: ['crystal', -70], mechanus: ['brass', -70], biolumina: ['jungle', -45],
+};
+
+function skyDome(worldId) {
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 24), skyMaterial(SKY[worldId]));
   mesh.renderOrder = -10;
   mesh.frustumCulled = false;
   return mesh;
 }
-
-function stars(count, radius, color = 0xffffff, size = 1.6, rng) {
-  const pos = new Float32Array(count * 3);
-  for (let i = 0; i < count; i++) {
-    const u = rng.next() * 2 - 1, a = rng.next() * Math.PI * 2;
-    const r = Math.sqrt(1 - u * u);
-    pos[i * 3] = Math.cos(a) * r * radius;
-    pos[i * 3 + 1] = Math.abs(u) * radius * 0.9 + 20;
-    pos[i * 3 + 2] = Math.sin(a) * r * radius - radius * 0.3;
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const p = new THREE.Points(geo, new THREE.PointsMaterial({ color, size, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.9, depthWrite: false }));
-  p.frustumCulled = false;
-  return p;
-}
-
 function planetMesh(world, radius, seed) {
   const g = new THREE.Group();
   const tex = planetTexture(world, seed);
   const m = world.planet.emissive
-    ? new THREE.MeshBasicMaterial({ map: tex, fog: false })
+    ? starMaterial()
     : new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, fog: false });
   const sphere = new THREE.Mesh(new THREE.SphereGeometry(radius, 48, 32), m);
   g.add(sphere);
@@ -79,41 +81,57 @@ function sunGlow(size, color = 0xfff2d0) {
   return g;
 }
 
+
 // ---------------------------------------------------------------- floors
-function floorMesh(type, y, x0, x1, worldDef) {
-  if (type === 'void') return null;
-  const w = x1 - x0 + 600;
-  const geo = new THREE.PlaneGeometry(w, 400, 1, 1);
-  geo.rotateX(-Math.PI / 2);
-  let m;
-  let animated = false;
-  if (type === 'lava' || type === 'acid' || type === 'swamp') {
-    const c1 = { lava: [0xd02800, 0xffb030], acid: [0x3a6a10, 0xb8e030], swamp: [0x06302a, 0x20d8a0] }[type];
-    m = new THREE.ShaderMaterial({
-      fog: true,
-      uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { t: { value: 0 }, k: { value: { lava: 1.25, acid: 0.75, swamp: 0.55 }[type] }, a: { value: new THREE.Color(c1[0]) }, b: { value: new THREE.Color(c1[1]) } }]),
-      vertexShader: '#include <fog_pars_vertex>\nvarying vec2 vW; void main(){ vec4 wp = modelMatrix*vec4(position,1.0); vW = wp.xz; vec4 mvPosition = viewMatrix*wp; gl_Position = projectionMatrix*mvPosition;\n#include <fog_vertex>\n}',
-      fragmentShader: '#include <fog_pars_fragment>\nuniform float t; uniform vec3 a; uniform vec3 b; varying vec2 vW;\nfloat n(vec2 p){ return sin(p.x*0.35+t*0.8)*sin(p.y*0.5-t*0.6)+sin((p.x+p.y)*0.21+t*1.3)*0.6; }\nuniform float k; void main(){ float v = n(vW)*0.5+0.5; v = pow(v, 2.0); vec3 c = mix(a*0.35, b, v); gl_FragColor = vec4(c*k,1.0);\n#include <fog_fragment>\n}',
-    });
-    animated = true;
-  } else {
-    const params = {
-      mercury: { color: 0xd8dde4, metalness: 1, roughness: 0.12 },
-      street: { color: 0x3a4048, roughness: 0.9 },
-      gas: { color: worldDef.fog, roughness: 1, transparent: true, opacity: 0.85 },
-      ice: { color: 0xc8f4ff, roughness: 0.15, metalness: 0.2 },
-      water: { color: 0x10306a, roughness: 0.1, metalness: 0.6, transparent: true, opacity: 0.9 },
-      crystal: { color: 0x7a5ad0, roughness: 0.08, metalness: 0.5, emissive: 0x2a1060 },
-    }[type] || { color: 0x333333 };
-    m = new THREE.MeshStandardMaterial(params);
+export function floorMaterial(type, W, level) {
+  switch (type) {
+    case 'sun': return sunSurfaceMaterial();
+    case 'lava': return liquidMaterial('lava', { a: 0xc82400, b: 0xffb030 });
+    case 'acid': return liquidMaterial('acid', { a: 0x3a3a06, b: 0xc8d030, sky: 0xb07038, sun: 0xffd8a0 });
+    case 'water': return liquidMaterial('water', { a: 0x041640, b: 0x16409a, sky: 0x4a78e0, sun: 0xd0e0ff });
+    case 'swamp': return liquidMaterial('swamp', { a: 0x02140f, b: 0x30ffc0 });
+    case 'rift': return liquidMaterial('rift', { a: 0x3a18b0, b: 0xffc860 });
+    case 'gas': {
+      const cols = { jupiter: [0xc89868, 0xf0dcc0, 0xfff4e4], saturn: [0xd8c088, 0xf6ead0, 0xfffaf0], uranus: [0x8ad8e0, 0xc8f4f4, 0xffffff], neptune: [0x2a48c0, 0x5a80f0, 0x9ab8ff] }[W.id] || [0xc89868, 0xf0dcc0, 0xffffff];
+      const red = level && level.redSpot;
+      return liquidMaterial('gas', { a: cols[0], b: cols[1], sky: cols[2], swirl: red ? [(level.bounds.minX + level.bounds.maxX) / 2, -160] : [0, 0], swirlR: red ? 140 : 0 });
+    }
+    case 'mercury': return new THREE.MeshStandardMaterial({ color: 0x9aa2ac, metalness: 1, roughness: 0.1, envMapIntensity: 0.35 });
+    case 'street': return new THREE.MeshStandardMaterial({ color: 0x2e3238, roughness: 0.92 });
+    case 'ice': return new THREE.MeshStandardMaterial({ color: 0xbff0ff, roughness: 0.12, metalness: 0.25 });
+    case 'crystal': return new THREE.MeshStandardMaterial({ color: 0x6a4ac8, roughness: 0.06, metalness: 0.6, emissive: 0x24104a });
+    default: return null;
   }
+}
+
+function floorMesh(level, W, x0, x1) {
+  let type = level.floor.type;
+  if (W.id === 'sun') type = 'sun';
+  const m = floorMaterial(type, W, level);
+  if (!m) return null;
+  const geo = new THREE.PlaneGeometry(x1 - x0 + 900, 700, 1, 1);
+  geo.rotateX(-Math.PI / 2);
   const mesh = new THREE.Mesh(geo, m);
-  mesh.position.set((x0 + x1) / 2, y, -150);
-  mesh.receiveShadow = type !== 'gas';
-  mesh.userData.animated = animated;
+  mesh.position.set((x0 + x1) / 2, level.floor.y, -320);
+  mesh.receiveShadow = !(m instanceof THREE.ShaderMaterial);
+  mesh.userData.isFloor = true;
   return mesh;
 }
 
+// Solar prominence: a twisted tube of flowing plasma between two foot-points.
+function prominence(rng, x, y, z, span, height, thick) {
+  const pts = [];
+  const tilt = rng.range(-0.5, 0.5), twist = rng.range(-0.25, 0.25);
+  for (let i = 0; i <= 14; i++) {
+    const u = i / 14, a = u * Math.PI;
+    pts.push(new THREE.Vector3(
+      x + (u - 0.5) * span + Math.sin(a * 3 + span) * span * 0.04,
+      y + Math.sin(a) * height * (1 + Math.sin(a * 2.3) * 0.08),
+      z + Math.sin(a) * span * tilt + (u - 0.5) * span * twist));
+  }
+  const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 90, thick, 12, false);
+  return new THREE.Mesh(geo, plasmaMaterial(rng.next() < 0.2 ? 0.4 : 0));
+}
 // ---------------------------------------------------------------- Earth landmarks
 function bigBen(g) {
   const stone = mat(0xc8b088, { roughness: 0.8 });
@@ -341,131 +359,120 @@ function skyline(group, x0, x1, baseY, rng, z0 = -40, z1 = -110, tint = '#2a3140
   group.add(inst);
 }
 
+
 // ---------------------------------------------------------------- main
 export function buildBackdrop(level) {
   const W = WORLDS[level.worldIndex];
   const rng = makeRng(level.index * 31 + 7);
   const group = new THREE.Group();
   const animated = [];
-  const x0 = level.bounds.minX - 40, x1 = level.bounds.maxX + 40;
+  const x0 = level.bounds.minX - 60, x1 = level.bounds.maxX + 60;
   const fy = level.floor.y;
-
-  group.add(skyDome(W.sky[0], W.sky[1]));
-  const dark = ['asteroids', 'mercury', 'chronos', 'prismara', 'biolumina', 'neptune', 'sun'].includes(W.id);
-  if (dark) group.add(stars(1600, 700, 0xffffff, 1.5, rng));
-
-  // celestial objects (fixed relative to camera horizontally, see update)
-  const sky = new THREE.Group();
-  group.add(sky);
-  const sunSizes = { mercury: 160, venus: 110, earth: 70, mars: 55, asteroids: 40, jupiter: 30, saturn: 24, uranus: 16, neptune: 12 };
-  if (sunSizes[W.id]) {
-    const s = sunGlow(sunSizes[W.id]);
-    s.position.set(-180, 260, -700);
-    sky.add(s);
-  }
-  if (W.id === 'sun') {
-    const next = planetMesh(WORLDS[1], 22, 2);
-    next.position.set(200, 220, -650);
-    sky.add(next);
-  } else if (W.alien) {
-    // alien systems: a big ringed host world + a moon
-    const host = planetMesh({ ...W, planet: { ...W.planet, rings: W.id !== 'biolumina', size: 2 } }, 120, level.worldIndex);
-    host.position.set(220, 180, -720);
-    sky.add(host);
-    animated.push((t) => { host.userData.sphere.rotation.y = t * 0.02; });
-    const moon = planetMesh({ ...WORLDS[1], planet: { color: W.accent, size: 0.3 } }, 26, 9);
-    moon.position.set(-260, 300, -680);
-    sky.add(moon);
-  } else if (['jupiter', 'saturn', 'uranus', 'neptune'].includes(W.id)) {
-    // you're in the clouds: the planet's moons and rings hang overhead
-    if (W.planet.rings) {
-      const rings = planetMesh(W, 160, 4);
-      rings.userData.sphere.visible = false;
-      rings.position.set(0, 120, -800);
-      rings.rotation.z = W.planet.tilt ? 1.0 : 0.12;
-      sky.add(rings);
-    }
-    const moon = planetMesh(WORLDS[5], 30, 3);
-    moon.position.set(240, 260, -700);
-    sky.add(moon);
-  } else if (W.id === 'earth') {
-    const moon = planetMesh(WORLDS[1], 18, 5);
-    moon.position.set(260, 280, -700);
-    sky.add(moon);
-  } else if (W.id === 'mars') {
-    const ph = planetMesh(WORLDS[5], 12, 6);
-    ph.position.set(200, 240, -700);
-    sky.add(ph);
-  } else if (W.id === 'asteroids') {
-    const jup = planetMesh(WORLDS[6], 90, 7);
-    jup.position.set(260, 120, -760);
-    sky.add(jup);
-  }
-
-  const floor = floorMesh(level.floor.type, fy, x0, x1, W);
-  if (floor) {
-    group.add(floor);
-    if (floor.userData.animated) animated.push((t) => { floor.material.uniforms.t.value = t; });
-  }
-
-  // ---- scenery per world ----
-  const scen = new THREE.Group();
-  group.add(scen);
   const span = x1 - x0;
   const spread = (n, fn) => { for (let i = 0; i < n; i++) fn(x0 + (i + rng.next() * 0.8) * (span / n), i); };
 
+  group.add(skyDome(W.id));
+
+  // celestial objects, parallax-locked to the camera
+  const sky = new THREE.Group();
+  group.add(sky);
+  if (W.id === 'sun') {
+    const next = planetMesh(WORLDS[1], 26, 2);
+    next.position.set(240, 260, -900);
+    sky.add(next);
+  } else if (W.alien) {
+    const host = planetMesh({ ...W, planet: { ...W.planet, rings: W.id !== 'biolumina', size: 2 } }, 150, level.worldIndex);
+    host.position.set(280, 210, -1000);
+    sky.add(host);
+    animated.push((t) => { host.userData.sphere.rotation.y = t * 0.02; });
+    const moon = planetMesh({ ...WORLDS[1], planet: { color: W.accent, size: 0.3 } }, 30, 9);
+    moon.position.set(-330, 360, -950);
+    sky.add(moon);
+  } else if (['jupiter', 'saturn', 'uranus', 'neptune'].includes(W.id)) {
+    if (W.planet.rings) {
+      const rings = planetMesh(W, 220, 4);
+      rings.userData.sphere.visible = false;
+      rings.position.set(0, 160, -1100);
+      rings.rotation.z = W.planet.tilt ? 1.0 : 0.12;
+      sky.add(rings);
+    }
+    const moon = planetMesh(WORLDS[5], 36, 3);
+    moon.position.set(320, 330, -1000);
+    sky.add(moon);
+  } else if (W.id === 'earth') {
+    const moon = planetMesh(WORLDS[1], 20, 5);
+    moon.position.set(330, 380, -1000);
+    sky.add(moon);
+  } else if (W.id === 'mars') {
+    const ph = planetMesh(WORLDS[5], 14, 6);
+    ph.position.set(260, 300, -1000);
+    sky.add(ph);
+  } else if (W.id === 'asteroids') {
+    const jup = planetMesh(WORLDS[6], 130, 7);
+    jup.position.set(360, 160, -1100);
+    sky.add(jup);
+  }
+
+  const floor = floorMesh(level, W, x0, x1);
+  if (floor) group.add(floor);
+
+  const ter = TERRAIN[W.id];
+  if (ter) group.add(makeTerrain(ter[0], x0 - 150, x1 + 150, fy, level.worldIndex * 13 + 5, { zNear: ter[1], emissive: W.id === 'prismara' ? 0x140830 : W.id === 'biolumina' ? 0x01100a : 0x000000, roughness: W.id === 'uranus' || W.id === 'prismara' ? 0.35 : 0.95 }));
+
+  const scen = new THREE.Group();
+  group.add(scen);
+  const clouds = (n, cols, y0, y1, z0, z1, s0, s1, op = 0.85) => spread(n, (x) => {
+    const c = cloudSprite(cols[Math.floor(rng.next() * cols.length)], rng.range(s0, s1), op);
+    c.position.set(x, rng.range(y0, y1), rng.range(z0, z1));
+    scen.add(c);
+    const sp = rng.range(0.3, 1.2);
+    animated.push((t) => { c.position.x = x + Math.sin(t * 0.02 * sp + x) * 10 + t * 0.4 * sp % 1; });
+  });
+
   switch (W.id) {
     case 'sun': {
-      spread(Math.ceil(span / 60), (x) => {
-        const r = rng.range(15, 35);
-        const arc = new THREE.Mesh(new THREE.TorusGeometry(r, rng.range(1.2, 2.6), 10, 40, Math.PI), glow(rng.chance(0.5) ? 0xff5a10 : 0xff8a20, 1.1));
-        arc.position.set(x, fy, rng.range(-60, -140));
-        arc.rotation.y = rng.range(-0.4, 0.4);
-        scen.add(arc);
-        animated.push((t) => { arc.scale.setScalar(1 + Math.sin(t * 0.7 + x) * 0.05); });
+      // giant plasma loops at every depth, plus a few colossal far ones
+      spread(Math.ceil(span / 40) + 4, (x) => {
+        const z = rng.range(-45, -300);
+        const s = rng.range(18, 70) * (1 - z / 400);
+        scen.add(prominence(rng, x, fy - 2, z, s, s * rng.range(0.45, 0.9), rng.range(0.8, 2.6) * (s / 40)));
+      });
+      for (let i = 0; i < 2; i++) scen.add(prominence(rng, x0 + rng.next() * span, fy - 30, -900, rng.range(300, 450), rng.range(120, 200), rng.range(10, 16)));
+      // spicules: flickering jets dancing on the surface near the play area
+      const spMat = flickerMaterial(0xffa040);
+      spread(Math.ceil(span / 3), (x) => {
+        const h = rng.range(2, 9);
+        const m = new THREE.Mesh(new THREE.ConeGeometry(rng.range(0.25, 0.7), h, 6, 1, true), spMat);
+        m.position.set(x, fy + h / 2 - 0.2, rng.range(-8, -70));
+        scen.add(m);
+        const ph = rng.range(0, 6), sp = rng.range(0.8, 2.2);
+        animated.push((t) => { m.scale.y = 0.4 + Math.abs(Math.sin(t * sp + ph)) * 0.9; m.position.y = fy + h * m.scale.y / 2 - 0.2; });
+      });
+      // hot glow pooled on the surface
+      spread(Math.ceil(span / 30), (x) => {
+        const g = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(0xffb040), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.5 }));
+        g.position.set(x, fy + 2, rng.range(-20, -120));
+        g.scale.set(40, 14, 1);
+        scen.add(g);
       });
       break;
     }
-    case 'mercury': case 'mars': case 'venus': {
-      const col = { mercury: 0x6b6862, mars: 0x9a4a2a, venus: 0x8a4a2a }[W.id];
-      spread(Math.ceil(span / 22), (x) => {
-        const h = rng.range(8, W.id === 'mars' ? 40 : 22);
-        let geo;
-        if (W.id === 'mars') geo = new THREE.CylinderGeometry(rng.range(8, 16), rng.range(14, 24), h, 7);
-        else if (W.id === 'venus' && rng.chance(0.4)) geo = new THREE.ConeGeometry(rng.range(14, 26), h * 1.6, 9);
-        else geo = new THREE.ConeGeometry(rng.range(10, 22), h, 6);
-        const m = new THREE.Mesh(geo, mat(col, { roughness: 1, flatShading: true }));
-        m.position.set(x, fy + h / 2 - 1, rng.range(-30, -120));
-        m.rotation.y = rng.next() * 3;
+    case 'mercury': {
+      spread(Math.ceil(span / 30), (x) => {
+        const s = rng.range(1, 4);
+        const m = new THREE.Mesh(rockGeo(s * 2, s, s * 2, rng.int(1, 99)), mat(0x6e6a64, { roughness: 1, flatShading: true }));
+        m.position.set(x, fy + s * 0.2, rng.range(-12, -40));
         scen.add(m);
       });
-      if (W.id === 'mercury') {
-        spread(Math.ceil(span / 40), (x) => {
-          const ring = new THREE.Mesh(new THREE.TorusGeometry(rng.range(6, 12), 1.4, 6, 18), mat(0x7a766e, { roughness: 1, flatShading: true }));
-          ring.rotation.x = Math.PI / 2; ring.position.set(x, fy + 0.5, rng.range(-20, -60));
-          scen.add(ring);
-        });
-      }
-      if (W.id === 'mars') {
-        // background rovers trundling along
-        for (let i = 0; i < 3; i++) {
-          const rv = makeMoverMesh({ kind: 'rover', w: 5, h: 2 }, W, null, i);
-          rv.scale.setScalar(1.4);
-          const z = -28 - i * 14, speed = rng.range(1, 2.5) * (rng.chance(0.5) ? 1 : -1), off = rng.range(0, span);
-          rv.position.set(0, fy, z);
-          if (speed < 0) rv.rotation.y = Math.PI;
-          scen.add(rv);
-          animated.push((t) => { rv.position.x = x0 + ((((off + t * speed) % span) + span) % span); });
-        }
-      }
-      if (W.id === 'venus') {
-        spread(Math.ceil(span / 30), (x) => {
-          const cl = new THREE.Mesh(new THREE.SphereGeometry(rng.range(8, 16), 12, 8), mat(0xe8a060, { roughness: 1, transparent: true, opacity: 0.55 }));
-          cl.scale.y = 0.35; cl.position.set(x, rng.range(14, 30), rng.range(-40, -90));
-          scen.add(cl);
-          animated.push((t) => { cl.position.x = x + Math.sin(t * 0.1 + x) * 6; });
-        });
-      }
+      break;
+    }
+    case 'venus': {
+      clouds(Math.ceil(span / 14), [0xe8a060, 0xd08a48, 0xf0b878], fy + 8, fy + 40, -40, -200, 20, 50, 0.7);
+      // occasional lightning glow inside the clouds
+      const flash = new THREE.PointLight(0xffe0a0, 0, 300, 1.5);
+      flash.position.set(0, fy + 40, -80);
+      scen.add(flash);
+      animated.push((t, camX) => { const k = Math.sin(t * 0.7) > 0.985 ? 1 : 0; flash.intensity = k * 4000; flash.position.x = camX + 20; });
       break;
     }
     case 'earth': {
@@ -473,35 +480,56 @@ export function buildBackdrop(level) {
       skyline(scen, x0, x1, fy, rng, -75, -150, city === 'Tokyo' || city === 'Shanghai' ? '#1a2440' : '#2a3140');
       skyline(scen, x0, x1, fy, rng, -170, -260, '#3a4250');
       const lm = LANDMARKS[city];
-      for (let x = x0 + 60; x < x1; x += 150) {
+      for (let x = x0 + 80; x < x1; x += 160) {
         const g = new THREE.Group();
         lm(g);
         g.position.set(x + rng.range(-20, 20), fy, -95);
         scen.add(g);
         if (g.userData.spinner) animated.push((t) => { g.userData.spinner.rotation.z = t * 0.05; });
       }
-      // street trees / lamp posts in the near background
       spread(Math.ceil(span / 9), (x) => {
         if (rng.chance(0.5)) {
           add(scen, new THREE.CylinderGeometry(0.3, 0.4, 5, 6), mat(0x6a4a2a), x, fy + 2.5, -20);
-          add(scen, new THREE.SphereGeometry(2.0, 8, 6), mat(0x3a8a3a, { flatShading: true }), x, fy + 5.6, -20);
+          add(scen, new THREE.SphereGeometry(2.0, 10, 8), mat(0x3a8a3a, { flatShading: true }), x, fy + 5.6, -20);
         } else {
           add(scen, new THREE.CylinderGeometry(0.12, 0.15, 7, 6), mat(0x30343a, { metalness: 0.7 }), x, fy + 3.5, -16);
           add(scen, new THREE.SphereGeometry(0.4, 8, 6), glow(0xfff0c0, 1.5), x, fy + 7.1, -16);
         }
       });
-      // a plane cruising far away
       const pl = makeMoverMesh({ kind: 'plane', w: 11, h: 1.6 }, W, city, 1);
       pl.scale.setScalar(1.5);
       scen.add(pl);
-      animated.push((t) => { pl.position.set(x0 + ((t * 8) % span), 55, -160); });
+      animated.push((t) => { pl.position.set(x0 + ((t * 8) % span), 60, -170); });
+      break;
+    }
+    case 'mars': {
+      for (let i = 0; i < 3; i++) {
+        const rv = makeMoverMesh({ kind: 'rover', w: 5, h: 2 }, W, null, i);
+        rv.scale.setScalar(1.4);
+        const z = -24 - i * 10, speed = rng.range(1, 2.5) * (rng.chance(0.5) ? 1 : -1), off = rng.range(0, span);
+        rv.position.set(0, fy, z);
+        if (speed < 0) rv.rotation.y = Math.PI;
+        scen.add(rv);
+        animated.push((t) => { rv.position.x = x0 + ((((off + t * speed) % span) + span) % span); });
+      }
+      // dust devils
+      const dMat = flickerMaterial(0xc88050);
+      spread(Math.ceil(span / 60), (x) => {
+        const h = rng.range(15, 35);
+        const dv = new THREE.Mesh(new THREE.CylinderGeometry(h * 0.18, 0.6, h, 12, 1, true), dMat);
+        const z = rng.range(-50, -140);
+        dv.position.set(x, fy + h / 2, z);
+        scen.add(dv);
+        const sp = rng.range(-2, 2);
+        animated.push((t) => { dv.rotation.y = t * 3; dv.position.x = x + Math.sin(t * 0.1 + x) * 25 + t * sp % 1; });
+      });
       break;
     }
     case 'asteroids': {
-      spread(Math.ceil(span / 6), (x) => {
-        const s = rng.range(1, 6);
+      spread(Math.ceil(span / 5), (x) => {
+        const s = rng.range(1, 7);
         const m = new THREE.Mesh(rockGeo(s, s * rng.range(0.6, 1), s, rng.int(1, 99)), mat(rng.chance(0.5) ? 0x5a5048 : 0x7a6a5a, { roughness: 1, flatShading: true }));
-        m.position.set(x, rng.range(fy, 40), rng.range(-12, -150));
+        m.position.set(x, rng.range(fy - 10, 45), rng.range(-12, -220));
         const sp = rng.range(-0.5, 0.5), sp2 = rng.range(-0.3, 0.3);
         scen.add(m);
         animated.push((t) => { m.rotation.set(t * sp, t * sp2, 0); });
@@ -509,35 +537,19 @@ export function buildBackdrop(level) {
       break;
     }
     case 'jupiter': case 'saturn': case 'neptune': case 'uranus': {
-      const cols = { jupiter: [0xe8c090, 0xc08050, 0xf0e0c0], saturn: [0xf0e0b0, 0xd8c088, 0xfff0d0], neptune: [0x3a5ee0, 0x2a40a0, 0x6a8af0], uranus: [0xb0f0f0, 0x80d8e0, 0xe0ffff] }[W.id];
-      for (let i = 0; i < 6; i++) {
-        const band = new THREE.Mesh(new THREE.PlaneGeometry(span + 800, 60), mat(cols[i % 3], { roughness: 1, transparent: true, opacity: 0.55, side: THREE.DoubleSide }));
-        band.rotation.x = -Math.PI / 2;
-        band.position.set((x0 + x1) / 2, fy - 2 + i * 1.2, -40 - i * 55);
-        scen.add(band);
-        animated.push((t) => { band.position.x = (x0 + x1) / 2 + Math.sin(t * 0.05 + i) * 20; });
-      }
-      spread(Math.ceil(span / 25), (x) => {
-        const cl = new THREE.Group();
-        for (let k = 0; k < 4; k++) add(cl, new THREE.SphereGeometry(rng.range(3, 7), 12, 8), mat(cols[k % 3], { roughness: 1, transparent: true, opacity: 0.6 }), k * 4, rng.range(-1, 1), rng.range(-2, 2)).scale.y = 0.6;
-        cl.position.set(x, fy + rng.range(-2, 14), rng.range(-45, -130));
-        scen.add(cl);
-        const sp = rng.range(0.5, 2);
-        animated.push((t) => { cl.position.x = x + Math.sin(t * 0.1 * sp) * 8; });
-      });
+      const cols = { jupiter: [0xf0dcc0, 0xd8b088, 0xfff0e0], saturn: [0xfff0d0, 0xe8d8a8, 0xffffff], neptune: [0x5a78e0, 0x2a40a0, 0x8aa0f0], uranus: [0xe8ffff, 0xb0eef0, 0xffffff] }[W.id];
+      clouds(Math.ceil(span / 10), cols, fy - 2, fy + 24, -30, -220, 14, 40, 0.9);
       if (W.id === 'uranus') {
         spread(Math.ceil(span / 12), (x) => {
           const h = rng.range(8, 30);
-          const sp = add(scen, new THREE.ConeGeometry(rng.range(1.5, 4), h, 5), mat(0xd8ffff, { roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.85, emissive: 0x206070 }), x, fy + h / 2, rng.range(-15, -70));
+          const sp = add(scen, new THREE.ConeGeometry(rng.range(1.5, 4), h, 5), mat(0xd8ffff, { roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.85, emissive: 0x206070 }), x, fy + h / 2, rng.range(-35, -90));
           sp.rotation.z = 0.25;
-          sp.position.z -= 20;
         });
       }
-      if (level.redSpot) {
-        const vortex = new THREE.Mesh(new THREE.TorusGeometry(80, 18, 12, 48), mat(0xc0402a, { roughness: 1, transparent: true, opacity: 0.6 }));
-        vortex.rotation.x = Math.PI / 2; vortex.position.set((x0 + x1) / 2, fy + 2, -160);
-        scen.add(vortex);
-        animated.push((t) => { vortex.rotation.z = t * 0.3; });
+      if (W.id === 'neptune' || level.redSpot) {
+        const flash = new THREE.PointLight(0xc8d8ff, 0, 400, 1.2);
+        scen.add(flash);
+        animated.push((t, camX) => { const k = Math.sin(t * 1.3) > 0.97 ? 1 : 0; flash.intensity = k * 6000; flash.position.set(camX + Math.sin(t) * 40, fy + 30, -90); });
       }
       break;
     }
@@ -545,7 +557,7 @@ export function buildBackdrop(level) {
       spread(Math.ceil(span / 8), (x) => {
         const s = rng.range(2, 9);
         const c = [0xff7af0, 0x8ab0ff, 0xb08aff, 0x7affe0][rng.int(0, 3)];
-        const m = add(scen, new THREE.OctahedronGeometry(s, 0), mat(c, { roughness: 0.05, metalness: 0.4, emissive: c, emissiveIntensity: 0.35, transparent: true, opacity: 0.8 }), x, fy + rng.range(0, 25), rng.range(-40, -140));
+        const m = add(scen, new THREE.OctahedronGeometry(s, 0), mat(c, { roughness: 0.03, metalness: 0.6, emissive: c, emissiveIntensity: 0.3, transparent: true, opacity: 0.82 }), x, fy + rng.range(0, 25), rng.range(-40, -150));
         m.scale.y = rng.range(1.5, 3);
         const sp = rng.range(-0.3, 0.3);
         animated.push((t) => { m.rotation.y = t * sp; });
@@ -553,17 +565,18 @@ export function buildBackdrop(level) {
       break;
     }
     case 'mechanus': {
-      spread(Math.ceil(span / 26), (x) => {
-        const r = rng.range(6, 20);
-        const gear = gearMesh(r, mat(0x8a6a3a, { metalness: 0.8, roughness: 0.35 }));
-        gear.position.set(x, fy + rng.range(0, 30), rng.range(-35, -110));
+      spread(Math.ceil(span / 24), (x) => {
+        const r = rng.range(6, 22);
+        const gear = gearMesh(r, mat(0x8a6a3a, { metalness: 0.85, roughness: 0.3 }));
+        gear.position.set(x, fy + rng.range(0, 30), rng.range(-35, -120));
         const sp = rng.range(0.1, 0.4) * (rng.chance(0.5) ? 1 : -1);
         scen.add(gear);
         animated.push((t) => { gear.rotation.z = t * sp; });
       });
       spread(Math.ceil(span / 30), (x) => {
-        add(scen, new THREE.CylinderGeometry(rng.range(2, 5), rng.range(3, 6), 60, 8), mat(0x5a4020, { metalness: 0.7 }), x, fy + 30, rng.range(-40, -120));
+        add(scen, new THREE.CylinderGeometry(rng.range(2, 5), rng.range(3, 6), 70, 12), mat(0x5a4020, { metalness: 0.8, roughness: 0.35 }), x, fy + 35, rng.range(-40, -120));
       });
+      clouds(Math.ceil(span / 25), [0x8a6a40, 0x6a5030], fy + 10, fy + 40, -60, -200, 20, 50, 0.5);
       break;
     }
     case 'biolumina': {
@@ -572,7 +585,7 @@ export function buildBackdrop(level) {
         const z = rng.range(-25, -100);
         add(scen, new THREE.CylinderGeometry(0.6, 1.2, h, 8), mat(0x1a4a3a), x, fy + h / 2, z);
         const c = [0x3affc0, 0xff5ad0, 0x5ab0ff, 0xc0ff5a][rng.int(0, 3)];
-        const cap = add(scen, new THREE.SphereGeometry(rng.range(3, 8), 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat(c, { emissive: c, emissiveIntensity: 0.9, roughness: 0.5 }), x, fy + h, z);
+        const cap = add(scen, new THREE.SphereGeometry(rng.range(3, 8), 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), mat(c, { emissive: c, emissiveIntensity: 0.9, roughness: 0.5 }), x, fy + h, z);
         cap.scale.y = 0.6;
       });
       spread(Math.ceil(span / 14), (x) => {
@@ -604,9 +617,10 @@ export function buildBackdrop(level) {
   return {
     group,
     sky,
+    floor,
     update(t, camX, camY) {
-      sky.position.set(camX * 0.92, camY * 0.5, 0);
-      for (const f of animated) f(t);
+      sky.position.set(camX * 0.95, camY * 0.6, 0);
+      for (const f of animated) f(t, camX, camY);
     },
   };
 }

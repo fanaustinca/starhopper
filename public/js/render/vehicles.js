@@ -207,8 +207,19 @@ export function makeShip() {
   hull.rotation.z = -Math.PI / 2; hull.castShadow = true; g.add(hull);
   const nose = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.6, 24), white);
   nose.rotation.z = -Math.PI / 2; nose.position.x = 2.6; g.add(nose);
-  const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.75, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x66ccff, { physical: true, transmission: 0.5, roughness: 0.05, transparent: true, opacity: 0.7 }));
-  canopy.position.set(0.7, 0.6, 0); canopy.scale.set(1.4, 0.9, 0.9); g.add(canopy);
+  // canopy on a hinge at its rear edge so it can swing open
+  const hinge = new THREE.Group();
+  hinge.position.set(-0.35, 0.6, 0);
+  g.add(hinge);
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(0.75, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x66ccff, { physical: true, transmission: 0.5, roughness: 0.05, transparent: true, opacity: 0.7 }));
+  canopy.position.set(1.05, 0, 0); canopy.scale.set(1.4, 0.9, 0.9); hinge.add(canopy);
+  g.userData.hinge = hinge;
+  for (const s of [-1, 1]) {           // landing legs
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.0, 8), mat(0x9aa0aa, { metalness: 0.8 }));
+    leg.position.set(s * 1.2 - 0.3, -0.95, 0); leg.rotation.z = s * 0.25; g.add(leg);
+    const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.08, 16), mat(0x9aa0aa, { metalness: 0.8 }));
+    foot.position.set(s * 1.32 - 0.3, -1.42, 0); g.add(foot);
+  }
   for (const s of [-1, 1]) {
     const wing = new THREE.Mesh(new RoundedBoxGeometry(1.8, 0.14, 2.2, 2, 0.06), white);
     wing.position.set(-0.8, -0.2, s * 1.4); wing.rotation.y = s * 0.3; g.add(wing);

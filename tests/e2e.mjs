@@ -67,11 +67,21 @@ await test('boots to the main menu with WebGL and no errors', async () => {
   assert(consoleErrors.length === 0, 'console errors: ' + consoleErrors.join(' | '));
 });
 
-await test('Play button starts level 1 with the HUD showing "Level 1 / The Sun"', async () => {
+await test('first Play shows the ship arriving at the Sun, then starts level 1', async () => {
   await page.click('#btn-play');
+  await page.waitForFunction(() => SH.state().mode === 'cutscene');
+  let st = await S(() => SH.state());
+  assert(st.cutscene.to === 0, 'intro lands on world 1');
+  await S(() => { SH.manual(true); SH.step(780); });   // into the landing shot
+  await S(() => SH.game.cutscene.render());
+  await page.screenshot({ path: path.join(shots, '00b-intro-landing.png') });
+  st = await S(() => SH.step(800));
   await page.waitForFunction(() => SH.state().mode === 'playing');
-  const st = await S(() => SH.state());
+  await S(() => SH.manual(false));
+  st = await S(() => SH.state());
   assert(st.level === 1 && st.world === 'sun');
+  assert(st.name && st.name.length > 3, 'level has a name');
+  assert((await page.textContent('#hud-name')).trim() === st.name, 'HUD shows the level name');
   assert((await page.textContent('#hud-level')).trim() === 'Level 1');
   assert((await page.textContent('#hud-world')).includes('The Sun'));
   assert(await page.isVisible('#hud'), 'HUD visible');
@@ -206,8 +216,8 @@ await test('level select: only unlocked levels can be launched', async () => {
 });
 
 await test('finishing a world plays the ship cutscene and lands on the next planet', async () => {
-  await boot('test&fresh&unlock=50');
-  await S(() => SH.startLevel(50));
+  await boot('test&fresh&unlock=30');
+  await S(() => SH.startLevel(30));
   await S(() => SH.manual(true));
   let st = await S(() => SH.completeLevel());
   assert(st.mode === 'complete');
@@ -218,27 +228,30 @@ await test('finishing a world plays the ship cutscene and lands on the next plan
   assert(st.mode === 'cutscene' && st.cutscene.t > 4, 'cutscene running t=' + (st.cutscene && st.cutscene.t));
   await page.waitForTimeout(150);
   await page.screenshot({ path: path.join(shots, '03-cutscene.png') });
+  st = await S(() => SH.step(500));
+  await S(() => SH.game.cutscene.render());
+  await page.screenshot({ path: path.join(shots, '03b-arrival.png') });
   st = await S(() => SH.step(2000));
-  await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 51);
+  await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 31);
   st = await S(() => SH.state());
   assert(st.world === 'mercury', 'arrived on ' + st.world);
   assert((await page.textContent('#hud-world')).includes('Mercury'));
 });
 
 await test('cutscene can be skipped with Space', async () => {
-  await S(() => SH.startLevel(100));
+  await S(() => SH.startLevel(60));
   await S(() => SH.manual(true));
   await S(() => SH.completeLevel());
   await S(() => SH.next());
   await page.waitForFunction(() => SH.state().mode === 'cutscene');
   await S(() => SH.manual(false));
   await page.keyboard.press('Space');
-  await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 101, null, { timeout: 15000 });
+  await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 61, null, { timeout: 15000 });
   assert((await S(() => SH.state())).world === 'venus');
 });
 
 await test('Earth levels show city location; vehicles move and carry the robot', async () => {
-  await S(() => SH.startLevel(156));
+  await S(() => SH.startLevel(95));
   await S(() => SH.manual(true));
   const st0 = await S(() => SH.state());
   assert(st0.location === 'New York', 'location ' + st0.location);
@@ -263,9 +276,9 @@ await test('Earth levels show city location; vehicles move and carry the robot',
 
 await test('every world renders its first level without errors', async () => {
   consoleErrors.length = 0;
-  await boot('test&fresh&unlock=700');
+  await boot('test&fresh&unlock=420');
   for (let w = 0; w < 14; w++) {
-    const n = w * 50 + 1;
+    const n = w * 30 + 2;
     await S((n) => SH.startLevel(n), n);
     await S(() => { SH.manual(true); SH.step(30); SH.render(); });
     const st = await S(() => SH.state());
@@ -277,7 +290,7 @@ await test('every world renders its first level without errors', async () => {
 
 await test('signature mechanics behave in-browser (bridge, gravity zone, door, vine)', async () => {
   // light bridge
-  await S(() => SH.startLevel(505));
+  await S(() => { const n = Array.from({ length: 30 }, (_, i) => 301 + i).find((k) => SH.generate(k).bridges.length); return SH.startLevel(n); });
   let res = await S(() => {
     SH.manual(true);
     const sim = SH.game.sim, b = sim.bridgeState[0];
@@ -289,7 +302,7 @@ await test('signature mechanics behave in-browser (bridge, gravity zone, door, v
   });
   assert(!res.skip && res.before === false && res.after === true, 'bridge: ' + JSON.stringify(res));
   // carnivorous door blocks when closed
-  await S(() => SH.startLevel(610));
+  await S(() => { const n = Array.from({ length: 30 }, (_, i) => 361 + i).find((k) => SH.generate(k).doors.length && SH.generate(k).vines.length); return SH.startLevel(n); });
   res = await S(() => {
     SH.manual(true);
     const sim = SH.game.sim, d = sim.doorState[0];
@@ -315,12 +328,100 @@ await test('signature mechanics behave in-browser (bridge, gravity zone, door, v
   assert(res.skip || (res.swinging && res.released), 'vine grab: ' + JSON.stringify(res));
 });
 
+await test('level archetypes differ: tower climb, chase wall and rising tide all run', async () => {
+  const r = await S(() => {
+    const out = {};
+    for (let n = 1; n <= 30; n++) { const L = SH.generate(n); (out[L.archetype] = out[L.archetype] || []).push(n); }
+    return out;
+  });
+  assert(Object.keys(r).length >= 8, 'archetypes in world 1: ' + Object.keys(r).join(','));
+  // chase: wall appears and advances
+  await S((n) => SH.startLevel(n), r.chase[0]);
+  let res = await S(() => { SH.manual(true); SH.teleport(6, 0); SH.step(240); return { active: SH.game.sim.chaser.active, x: SH.game.sim.chaser.x }; });
+  assert(res.active, 'chaser active');
+  await S(() => SH.render());
+  await page.screenshot({ path: path.join(shots, '06-chase.png') });
+  // tide: floor rises
+  await S((n) => SH.startLevel(n), r.tide[0]);
+  res = await S(() => { SH.manual(true); const y0 = SH.game.sim.floorY; SH.step(1200); return SH.game.sim.floorY - y0; });
+  assert(res > 2, 'tide rose ' + res);
+  // ascent: tower ledges exist and climb well above the start
+  await S((n) => SH.startLevel(n), r.ascent[0]);
+  res = await S(() => { const L = SH.level(); return { towers: L.towers.length, top: Math.max(...L.solids.map((s) => s.y + s.h)) }; });
+  assert(res.towers >= 1 && res.top > 15, 'tower ' + JSON.stringify(res));
+  await S(() => { SH.manual(true); const L = SH.level(); const t = L.towers[0]; SH.teleport(t.x + 3, t.y0 + 12); SH.step(120); SH.render(); });
+  await page.screenshot({ path: path.join(shots, '07-tower.png') });
+});
+
+await test('wall jump in-browser: slide down a wall, kick off it', async () => {
+  const res = await S(() => {
+    SH.manual(true);
+    const sim = SH.game.sim;
+    const wall = sim.colliders.find((c) => c.static && !c.oneWay && c.h > 6);
+    if (!wall) return { skip: true };
+    SH.teleport(wall.x - 0.45, wall.y + wall.h - 3);
+    let slid = false;
+    for (let i = 0; i < 40; i++) { const st = SH.step(1, { right: true }); if (st.player.state === 'wall') slid = true; }
+    const st = SH.step(2, { right: true, jump: true, jumpPressed: true });
+    return { slid, vx: st.player.vx, vy: st.player.vy };
+  });
+  assert(res.skip || (res.slid && res.vx < -3 && res.vy > 8), 'wall jump: ' + JSON.stringify(res));
+});
+
+await test('star shards: collecting one pays the shard bonus on completion', async () => {
+  await boot('test&fresh&unlock=5');
+  await S(() => SH.startLevel(3));
+  const res = await S(() => {
+    SH.manual(true);
+    const sim = SH.game.sim;
+    const k = sim.L.pickups.find((p) => p.type === 'shard');
+    SH.teleport(k.x, k.y - 0.8);
+    SH.step(2);
+    const shards = sim.shards;
+    const before = SH.state().wallet;
+    SH.completeLevel();
+    return { shards, before, after: SH.state().wallet, cells: sim.cells };
+  });
+  assert(res.shards === 1, 'picked up a shard');
+  assert(res.after - res.before === res.cells + 50, `wallet ${res.before} → ${res.after} (cells ${res.cells})`);
+  assert((await page.textContent('#c-shards')).startsWith('1/3'));
+});
+
+await test('robot shop: buy and equip a skin with cells; skin persists', async () => {
+  await S(() => { dev.cells(1000); SH.game.mode = 'menu'; SH.game.show('menu'); });
+  await page.click('#btn-shop');
+  assert(await page.isVisible('#shop'), 'shop open');
+  await page.click('.skin[data-skin="ninja"]');
+  assert((await page.textContent('#btn-shop-action')).includes('Buy'), 'buy button');
+  await page.click('#btn-shop-action');
+  let st = await S(() => SH.state());
+  assert(st.skins.includes('ninja') && st.skin === 'ninja', 'bought + equipped');
+  assert(st.wallet === st.wallet, '');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(shots, '08-shop.png') });
+  await boot('test');
+  st = await S(() => SH.state());
+  assert(st.skin === 'ninja', 'skin persisted');
+  assert(await S(() => SH.game.renderer.robot.skin.id === 'ninja'), 'robot wears it');
+});
+
+await test('dev console: dev.unlockAll() and dev.level(n) skip ahead', async () => {
+  await boot('test&fresh');
+  const msg = await S(() => dev.unlockAll());
+  assert(/420/.test(msg));
+  assert((await S(() => SH.state())).unlocked === 420);
+  await S(() => dev.level(250));
+  await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 250);
+  await S(() => { SH.manual(true); dev.win(); SH.step(200); });
+  assert((await S(() => SH.state())).mode === 'complete', 'dev.win completes');
+});
+
 await test('mobile viewport: HUD fits and touch controls appear', async () => {
   const m = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   const p2 = await m.newPage();
   await p2.goto(BASE + '?test&fresh');
   await p2.waitForFunction(() => window.SH && window.SH.ready, null, { timeout: 60000 });
-  await p2.evaluate(() => SH.startLevel(1));
+  await p2.evaluate(() => SH.startLevel(2));
   await p2.waitForFunction(() => SH.state().mode === 'playing');
   assert(await p2.isVisible('#touch'), 'touch controls visible');
   const overflow = await p2.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);

@@ -13,6 +13,15 @@ import { FX, Weather } from './fx.js';
 import { mat, makeMoverMesh, rockGeo } from './vehicles.js';
 import { buildBackdrop, gearMesh } from './decor.js';
 import { glowTexture, stripeTexture, windowTexture } from './textures.js';
+import { tickShaders, releaseShader, chaserMaterial } from './shaders.js';
+import { phaseOf } from '../core/sim.js';
+
+const CHASER_COLORS = {
+  sun: [0xff3a00, 0xffd060], mercury: [0xffffff, 0xffe8b0], venus: [0x7aff20, 0xe0ff80], earth: [0xff3030, 0xffd040],
+  mars: [0xb04a20, 0xffa060], asteroids: [0x8a6a50, 0xffa060], jupiter: [0xc06030, 0xffd0a0], saturn: [0xe0c080, 0xffffff],
+  uranus: [0x60e0ff, 0xffffff], neptune: [0x3060ff, 0xb0e0ff], prismara: [0xff40d0, 0x80c0ff], mechanus: [0xff8a20, 0xffe0a0],
+  biolumina: [0x30ffa0, 0xff60e0], chronos: [0x8040ff, 0xffd060],
+};
 
 const DEPTH = 3;
 const WARP_COLORS = [0xffffff, 0x5aff8a, 0x6ad8ff, 0xff5ad8];
@@ -44,6 +53,7 @@ export class Renderer {
     // soft studio reflections so glossy/metal surfaces (robot, mercury, ice) read well
     const pmrem = new THREE.PMREMGenerator(r);
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    r.__env = this.scene.environment;   // shared with cutscene scenes
     this.scene.environmentIntensity = 0.45;
     this.camera = new THREE.PerspectiveCamera(38, 16 / 9, 0.5, 2500);
     this.hemi = new THREE.HemisphereLight(0xffffff, 0x404040, 1.1);
@@ -56,6 +66,10 @@ export class Renderer {
     this.sun.shadow.bias = -0.0004;
     this.sun.shadow.normalBias = 0.03;
     this.scene.add(this.sun, this.sun.target);
+    // under-light: the glow of lava / plasma below lighting platforms from beneath
+    this.under = new THREE.DirectionalLight(0xff7a20, 0);
+    this.under.position.set(0, -1, 0.4);
+    this.scene.add(this.under);
     this.rim = new THREE.DirectionalLight(0x88aaff, 0.8);
     this.rim.position.set(-20, 10, -20);
     this.scene.add(this.rim);
@@ -63,7 +77,7 @@ export class Renderer {
     this.heroLight = new THREE.PointLight(0xffffff, 6, 9, 2);
     this.scene.add(this.heroLight);
 
-    this.robot = new Robot();
+    this.robot = new Robot(opts.skin || 'classic');
     this.scene.add(this.robot.root);
     this.fx = new FX(this.scene);
     this.weather = new Weather(this.scene);
@@ -118,6 +132,7 @@ export class Renderer {
       if (o.geometry) o.geometry.dispose();
       const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
       for (const m of mats) {
+        releaseShader(m);
         if (m.userData.shared) continue;
         if (m.map) m.map.dispose();
         if (m.emissiveMap && m.emissiveMap !== m.map) m.emissiveMap.dispose();
@@ -140,7 +155,11 @@ export class Renderer {
     this.sun.color.setHex(W.light);
     this.sun.intensity = W.id === 'biolumina' ? 1.4 : 2.6;
     this.hemi.intensity = W.id === 'biolumina' || W.id === 'chronos' ? 0.8 : 1.1;
-    this.bloom.strength = ['biolumina', 'sun', 'prismara', 'chronos'].includes(W.id) ? 0.75 : 0.45;
+    this.bloom.strength = W.id === 'sun' ? 0.6 : ['biolumina', 'prismara', 'chronos'].includes(W.id) ? 0.75 : 0.45;
+    const underLight = { sun: [0xff8a30, 2.4], mars: [0xff6a20, 0.5], venus: [0xa0ff40, 0.4], biolumina: [0x30ffc0, 0.8], mercury: [0xd0d8e0, 0.4] }[W.id];
+    this.under.color.setHex(underLight ? underLight[0] : 0xffffff);
+    this.under.intensity = underLight ? underLight[1] : 0;
+    if (W.id === 'sun') { this.hemi.groundColor.setHex(0xff5a10); this.hemi.intensity = 1.3; this.sun.intensity = 2.0; }
 
     this.backdrop = buildBackdrop(level);
     G.add(this.backdrop.group);
@@ -178,6 +197,36 @@ export class Renderer {
       return g;
     });
 
+    // tower backdrops: a tall themed wall behind zig-zag climbs
+    for (const tw of level.towers) {
+      // open scaffold: two pillars + cross beams + a faint tinted glass panel
+      const h = tw.y1 - tw.y0;
+      const beam = mat(W.plat, { roughness: 0.4, metalness: 0.6 });
+      for (const px of [tw.x, tw.x + tw.w]) addMesh(G, new RoundedBoxGeometry(0.6, h, 0.6, 2, 0.2), beam, px, tw.y0 + h / 2, -2.4);
+      for (let y = tw.y0 + 3; y < tw.y1; y += 3.2) {
+        addMesh(G, new THREE.BoxGeometry(tw.w, 0.18, 0.25), beam, tw.x + tw.w / 2, y, -2.4, false);
+        addMesh(G, new THREE.BoxGeometry(tw.w, 0.05, 0.05), glowMat(W.accent, 1.4), tw.x + tw.w / 2, y + 0.12, -2.25, false);
+      }
+      addMesh(G, new THREE.PlaneGeometry(tw.w, h), new THREE.MeshBasicMaterial({ color: W.accent, transparent: true, opacity: 0.06, depthWrite: false }), tw.x + tw.w / 2, tw.y0 + h / 2, -2.6, false);
+    }
+    // chaser wall
+    if (level.chaser) {
+      const [a, b] = CHASER_COLORS[W.id];
+      const g = new THREE.Group();
+      const H = level.bounds.maxY - level.floor.y + 40;
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(26, H, 1, 1), chaserMaterial(a, b));
+      plane.position.set(-13, H / 2 - 10, 0.5);
+      g.add(plane);
+      const plane2 = plane.clone(); plane2.position.z = -3; plane2.scale.x = 1.2; g.add(plane2);
+      const light = new THREE.PointLight(b, 30, 30, 1.6);
+      light.position.set(-2, 0, 3);
+      g.add(light);
+      g.userData = { light };
+      g.position.y = level.floor.y;
+      g.visible = false;
+      G.add(g);
+      this.chaserMesh = g;
+    } else this.chaserMesh = null;
     this.hazardMeshes = level.hazards.map((h) => {
       const m = this.makeHazard(h, W);
       if (m) G.add(m);
@@ -185,11 +234,15 @@ export class Renderer {
     });
     this.meteorMeshes = level.meteors.map((md) => {
       const g = new THREE.Group();
-      const rock = addMesh(g, rockGeo(md.r * 2, md.r * 2, md.r * 2, 3), mat(0x5a3a2a, { emissive: 0xff4010, emissiveIntensity: 0.6, flatShading: true }));
-      const trail = addMesh(g, new THREE.ConeGeometry(md.r * 0.9, 5, 12, 1, true), additive(0xff8030, 0.7), 0, 0, 0, false);
+      const drip = md.style === 'drip';
+      const rock = drip
+        ? addMesh(g, new THREE.SphereGeometry(md.r, 16, 12), mat(0x9aff30, { emissive: 0x6ac010, emissiveIntensity: 1.5, transparent: true, opacity: 0.85 }))
+        : addMesh(g, rockGeo(md.r * 2, md.r * 2, md.r * 2, 3), mat(0x5a3a2a, { emissive: 0xff4010, emissiveIntensity: 0.6, flatShading: true }));
+      if (drip) rock.scale.y = 1.5;
+      const trail = addMesh(g, new THREE.ConeGeometry(md.r * 0.9, drip ? 2 : 5, 12, 1, true), additive(drip ? 0x9aff30 : 0xff8030, drip ? 0.4 : 0.7), 0, 0, 0, false);
       trail.geometry.translate(0, 2.5, 0);
       trail.rotation.z = Math.atan2(md.drift, md.y0 - md.y1);
-      const marker = addMesh(G, new THREE.RingGeometry(0.6, 0.9, 24), additive(0xff3020, 0.8), md.x, md.y1 + 0.03, 0, false);
+      const marker = addMesh(G, new THREE.RingGeometry(0.6, 0.9, 24), additive(drip ? 0x9aff30 : 0xff3020, 0.8), md.x, md.y1 + 0.03, 0, false);
       marker.rotation.x = -Math.PI / 2;
       g.userData = { rock, marker };
       G.add(g);
@@ -247,7 +300,19 @@ export class Renderer {
     for (const p of level.pickups) {
       const g = new THREE.Group();
       g.position.set(p.x, p.y, 0);
-      if (p.type === 'cell') {
+      if (p.type === 'shard') {
+        const star = new THREE.Shape();
+        for (let k = 0; k < 10; k++) {
+          const a = (k / 10) * Math.PI * 2 + Math.PI / 2, r = k % 2 ? 0.22 : 0.5;
+          if (k === 0) star.moveTo(Math.cos(a) * r, Math.sin(a) * r); else star.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        const geo = new THREE.ExtrudeGeometry(star, { depth: 0.16, bevelEnabled: true, bevelSize: 0.05, bevelThickness: 0.05, bevelSegments: 2 });
+        geo.center();
+        addMesh(g, geo, mat(0xffd84a, { metalness: 0.9, roughness: 0.15, emissive: 0xffa010, emissiveIntensity: 0.8 }), 0, 0, 0);
+        const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(0xffd84a), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8 }));
+        s.scale.setScalar(2.4); g.add(s);
+        g.userData.shard = true;
+      } else if (p.type === 'cell') {
         const m = addMesh(g, cellGeo, cellMat, 0, 0, 0);
         m.scale.y = 1.5;
         const s = new THREE.Sprite(halo); s.scale.setScalar(1.6); g.add(s);
@@ -313,6 +378,19 @@ export class Renderer {
       g.userData.bouncy = cap;
       return g;
     }
+    if (s.style === 'spring') {
+      addMesh(g, new THREE.CylinderGeometry(s.w * 0.42, s.w * 0.48, 0.18, 24), mat(0x8a909a, { metalness: 0.8, roughness: 0.3 }), cx, s.y + 0.09, 0);
+      const coil = addMesh(g, new THREE.TorusGeometry(s.w * 0.3, 0.05, 8, 24), mat(0xc0c6d0, { metalness: 0.9 }), cx, s.y + 0.25, 0);
+      coil.rotation.x = Math.PI / 2;
+      const pad = addMesh(g, new THREE.CylinderGeometry(s.w * 0.45, s.w * 0.45, 0.14, 24), glowMat(W.accent, 1.6), cx, top - 0.07, 0);
+      g.userData.spring = pad;
+      return g;
+    }
+    if (s.style === 'wall') {
+      addMesh(g, new RoundedBoxGeometry(s.w, s.h, DEPTH, 2, 0.12), mat(W.plat, { roughness: 0.5, metalness: 0.4 }), cx, s.y + s.h / 2, 0);
+      addMesh(g, new THREE.BoxGeometry(0.06, s.h * 0.9, 0.04), glowMat(0xffd84a, 1.4), cx, s.y + s.h / 2, DEPTH / 2 + 0.02, false);
+      return g;
+    }
     if (s.style === 'basin') {
       addMesh(g, new THREE.BoxGeometry(s.w, s.h, DEPTH), mat(0x2a2a30, { roughness: 0.8 }), cx, s.y + s.h / 2, 0);
       return g;
@@ -327,7 +405,10 @@ export class Renderer {
     const slab = s.slab;
     const bodyH = s.h;
     let bodyMat;
-    if (s.ice) bodyMat = mat(0xa8ecff, { physical: true, roughness: 0.08, transmission: 0.35, thickness: 1, transparent: true, opacity: 0.9, emissive: 0x104050 });
+    if (s.crumble) bodyMat = mat(0x8a7a6a, { roughness: 0.9, flatShading: true });
+    else if (s.heat) bodyMat = new THREE.MeshStandardMaterial({ color: 0x2a1a14, roughness: 0.7, emissive: 0xff3a00, emissiveIntensity: 0 });
+    else if (s.style === 'bonus') bodyMat = mat(W.accent, { roughness: 0.15, metalness: 0.4, transparent: true, opacity: 0.85, emissive: W.accent, emissiveIntensity: 0.25 });
+    else if (s.ice) bodyMat = mat(0xa8ecff, { physical: true, roughness: 0.08, transmission: 0.35, thickness: 1, transparent: true, opacity: 0.9, emissive: 0x104050 });
     else if (W.id === 'earth' && !slab && bodyH > 3) {
       const tex = windowTexture('#ffe7a0', '#3a4252', Math.round(s.x));
       tex.repeat.set(Math.max(1, Math.round(s.w / 3)), Math.max(1, Math.round(bodyH / 6)));
@@ -356,7 +437,13 @@ export class Renderer {
     if (s.style === 'helipad') {
       addMesh(g, new THREE.RingGeometry(1.0, 1.25, 32), glowMat(0xffd23a, 1.2), cx, top + 0.01, 0, false).rotation.x = -Math.PI / 2;
     }
-    if (slab) {
+    if (s.crumble) {
+      // cracks across the face so the danger reads instantly
+      for (let k = 0; k < 3; k++) addMesh(g, new THREE.BoxGeometry(0.05, s.h * 0.7, 0.03), mat(0x2a2018), s.x + s.w * (0.25 + k * 0.25), s.y + s.h * 0.45, DEPTH / 2 + 0.02, false).rotation.z = (k - 1) * 0.5;
+      g.userData.crumble = true;
+    }
+    if (s.heat) g.userData.heatMat = bodyMat;
+    if (slab && !s.noPillar) {
       // support pillars behind the vehicle lane
       const floorY = level.floor.y;
       for (const px of [s.x + 0.6, s.x + s.w - 0.6]) {
@@ -385,6 +472,15 @@ export class Renderer {
         }
         g.userData.flames = flames;
       }
+      return g;
+    }
+    if (h.pulse && h.type === 'piston') {
+      const rod = addMesh(g, new THREE.CylinderGeometry(0.25, 0.25, h.h, 12), mat(0x9a8a6a, { metalness: 0.9, roughness: 0.25 }), cx, h.y + h.h * 1.5, -0.4);
+      const head = addMesh(g, new RoundedBoxGeometry(h.w, 1.2, DEPTH - 0.2, 2, 0.15), mat(0x6a5030, { metalness: 0.8, roughness: 0.35 }), cx, h.y + h.h, 0);
+      addMesh(head, new THREE.BoxGeometry(h.w * 0.9, 0.14, 0.05), additive(0xff6020, 0.9), 0, -0.45, (DEPTH - 0.2) / 2 + 0.02, false);
+      const mark = addMesh(g, new THREE.RingGeometry(h.w * 0.35, h.w * 0.5, 24), additive(0xff6020, 0.7), cx, h.y + 0.03, 0, false);
+      mark.rotation.x = -Math.PI / 2;
+      g.userData = { piston: head, rod, mark, h };
       return g;
     }
     if (h.pulse) {
@@ -521,6 +617,14 @@ export class Renderer {
         case 'jump': this.robot.trigger('jump'); this.fx.burst('dust', p.x, p.y); break;
         case 'doublejump': this.robot.trigger('doublejump'); this.fx.burst('ring', p.x, p.y); break;
         case 'land': this.robot.trigger('land'); this.fx.burst('dust', p.x, p.y); break;
+        case 'shard': {
+          const m = this.pickupMeshes.get(e.id);
+          if (m) this.fx.burst('flash', m.position.x, m.position.y, 0xffd84a);
+          this.shake = 0.15;
+          break;
+        }
+        case 'walljump': this.robot.trigger('walljump'); this.fx.burst('dust', p.x + p.facing * -0.4, p.y + 0.8); break;
+        case 'crumble': this.fx.burst('dust', p.x, p.y); break;
         case 'cell': {
           const m = this.pickupMeshes.get(e.id);
           if (m) { this.fx.burst('sparkle', m.position.x, m.position.y, 0x7affd8); }
@@ -564,6 +668,26 @@ export class Renderer {
       for (let k = 1; k < g.children.length; k++) g.children[k].rotation.z = a0 + a + g.children[k].userData.base;
     });
     // solids
+    this.time = (this.time || 0) + dt;
+    tickShaders(this.time);
+    for (let i = 0; i < this.solidMeshes.length; i++) {
+      const sm = this.solidMeshes[i], col = sim.colliders[i];
+      if (sm.userData.crumble) {
+        if (col.fallT >= 0) {
+          const k = t - col.fallT;
+          sm.position.set(0, -k * k * 7, 0);
+          sm.visible = k < 1.1;
+        } else {
+          sm.visible = true;
+          sm.position.set(col.crumbleStart >= 0 ? (Math.random() - 0.5) * 0.1 : 0, 0, 0);
+        }
+      }
+      if (sm.userData.heatMat) {
+        const ph = phaseOf(col.heat, t);
+        sm.userData.heatMat.emissiveIntensity = ph === 'on' ? 2.6 : ph === 'warn' ? 0.4 + 0.5 * Math.abs(Math.sin(t * 18)) : 0.04;
+      }
+      if (sm.userData.spring) sm.userData.spring.position.y = col.y + col.h - 0.07 + Math.sin(t * 6) * 0.02;
+    }
     for (const sm of this.solidMeshes) {
       if (sm.userData.belt) sm.userData.belt.offset.x -= sm.userData.beltSpeed * dt * 0.5;
       if (sm.userData.bouncy) sm.userData.bouncy.scale.y = 0.7 + Math.sin(t * 4) * 0.04;
@@ -573,6 +697,18 @@ export class Renderer {
       const m = this.hazardMeshes[i];
       if (!m) return;
       const u = m.userData;
+      if (u.piston) {
+        const H = u.h;
+        const target = h.state === 'on' ? H.y + 0.6 : H.y + H.h - 0.6;
+        const cur = u.piston.position.y;
+        u.piston.position.y = cur + (target - cur) * Math.min(1, dt * (h.state === 'on' ? 30 : 4));
+        u.piston.position.x = H.x + H.w / 2 + (h.state === 'warn' ? (Math.random() - 0.5) * 0.12 : 0);
+        u.rod.position.y = u.piston.position.y + H.h / 2 + 0.5;
+        u.mark.material.opacity = h.state === 'idle' ? 0.2 : 0.5 + 0.5 * Math.abs(Math.sin(t * 20));
+        if (h.state === 'on' && !u.slammed) { u.slammed = true; this.fx.burst('dust', H.x + H.w / 2, H.y); }
+        if (h.state !== 'on') u.slammed = false;
+        return;
+      }
       if (u.flames) u.flames.forEach((f, k) => { f.scale.y = 0.7 + Math.abs(Math.sin(t * 9 + k * 1.7)) * 0.8; });
       if (u.beam) {
         const on = h.state === 'on', warn = h.state === 'warn';
@@ -668,9 +804,19 @@ export class Renderer {
     gu.ringG.rotation.y = Math.sin(t) * 0.3;
     gu.beam.material.opacity = 0.08 + 0.05 * Math.sin(t * 2);
 
+    if (this.chaserMesh) {
+      const ch = sim.chaser;
+      this.chaserMesh.visible = !!(ch && ch.active);
+      if (ch && ch.active) {
+        this.chaserMesh.position.x = ch.x;
+        this.chaserMesh.userData.light.intensity = 25 + Math.sin(t * 13) * 8;
+      }
+    }
+    if (L.tide && this.backdrop.floor) this.backdrop.floor.position.y = sim.floorY;
+
     // hero
     this.robot.root.position.set(p.x, p.y, 0);
-    this.robot.update(p, dt, t, { invuln: sim.invuln, win: sim.complete });
+    this.robot.update(p, dt, t, { invuln: sim.invuln, win: sim.complete, showcase: this.showcase });
     this.heroLight.position.set(p.x + 1, p.y + 2.5, 3);
     // blob shadow on whatever is below
     let below = L.floor.y;
@@ -693,8 +839,17 @@ export class Renderer {
     this.shake = Math.max(0, this.shake - dt);
     const sx = this.shake > 0 ? (Math.random() - 0.5) * this.shake : 0;
     const sy = this.shake > 0 ? (Math.random() - 0.5) * this.shake : 0;
-    this.camera.position.set(this.cam.x + sx, this.cam.y + 3.2 + sy, this.camDist || 18.5);
-    this.camera.lookAt(this.cam.x, this.cam.y + 0.7, 0);
+    if (this.showcase) {
+      // shop close-up: slow orbit around the robot, framed to the left of the panel
+      const a = Math.sin(this.time * 0.4) * 0.5;
+      const narrow = this.camera.aspect < 1;
+      const r = narrow ? 7 : 5.2;
+      this.camera.position.set(p.x + Math.sin(a) * r + (narrow ? 0 : 1.6), p.y + 1.6, Math.cos(a) * r);
+      this.camera.lookAt(p.x + (narrow ? 0 : 1.6), p.y + (narrow ? 1.6 : 0.85), 0);
+    } else {
+      this.camera.position.set(this.cam.x + sx, this.cam.y + 3.2 + sy, this.camDist || 18.5);
+      this.camera.lookAt(this.cam.x, this.cam.y + 0.7, 0);
+    }
 
     this.sun.position.set(this.cam.x + 12, this.cam.y + 30, 18);
     this.sun.target.position.set(this.cam.x, this.cam.y, 0);

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>Starhopper</title>
-  <meta name="description" content="A 2.5D robot platformer across the solar system and beyond: 14 worlds, 700 levels.">
+  <meta name="description" content="A 2.5D robot platformer across the solar system and beyond: 14 worlds, 420 levels.">
   <meta name="theme-color" content="#05070f">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='10' y='12' width='44' height='34' rx='14' fill='%23f4f6fa'/%3E%3Crect x='16' y='19' width='32' height='18' rx='8' fill='%2305070c'/%3E%3Ccircle cx='26' cy='28' r='4' fill='%235fd8ff'/%3E%3Ccircle cx='38' cy='28' r='4' fill='%235fd8ff'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,12 +25,14 @@
       <div class="hud-world-dot" id="hud-dot"></div>
       <div>
         <div class="hud-title"><span id="hud-level">Level 1</span> <span class="hud-sep">/</span> <span id="hud-world">The Sun</span></div>
-        <div class="hud-sub" id="hud-sub">World 1 · Stage 1 of 50</div>
+        <div class="hud-sub" id="hud-sub">World 1 · Stage 1 of 30</div>
+        <div class="hud-name" id="hud-name"></div>
       </div>
     </div>
     <div class="hud-card hud-stats">
       <div class="hud-hearts" id="hud-hearts"></div>
       <div class="hud-stat"><span class="cell-icon"></span><span id="hud-cells">0/0</span></div>
+      <div class="hud-shards" id="hud-shards"></div>
       <div class="hud-stat"><span class="lbl">TIME</span><span id="hud-time">0:00</span></div>
       <div class="hud-stat"><span class="lbl">SCORE</span><span id="hud-score">0</span></div>
       <div class="hud-stat"><span class="lbl">BEST</span><span id="hud-best">—</span></div>
@@ -55,10 +57,11 @@
   <section id="menu" class="screen">
     <div class="menu-inner">
       <div class="logo">STAR<span>HOPPER</span></div>
-      <div class="tagline">A robot's journey across 14 worlds · 700 levels</div>
+      <div class="tagline">A robot's journey across 14 worlds · 420 levels</div>
       <div class="menu-buttons">
         <button class="btn primary" id="btn-play">Play</button>
         <button class="btn" id="btn-select">Level Select</button>
+        <button class="btn" id="btn-shop">Robot Shop <span class="wallet-pill" id="menu-wallet"></span></button>
         <button class="btn" id="btn-settings">Settings</button>
         <button class="btn ghost" id="btn-help">How to Play</button>
       </div>
@@ -77,6 +80,23 @@
       <div class="world-tabs" id="world-tabs"></div>
       <div class="world-banner" id="world-banner"></div>
       <div class="level-grid" id="level-grid"></div>
+    </div>
+  </section>
+
+  <!-- shop -->
+  <section id="shop" class="screen hidden">
+    <div class="panel shop-panel">
+      <div class="panel-head">
+        <button class="btn icon" data-back>←</button>
+        <h2>Robot Shop</h2>
+        <div class="panel-meta wallet"><span class="cell-icon"></span><b id="shop-wallet">0</b></div>
+      </div>
+      <p class="shop-hint">Spend energy cells on new looks. Every cell you collect is banked when you finish a level, and each new Star Shard pays a 50-cell bonus.</p>
+      <div class="skin-grid" id="skin-grid"></div>
+      <div class="shop-actions">
+        <div class="shop-sel"><b id="shop-name">Classic</b><span id="shop-price"></span></div>
+        <button class="btn primary" id="btn-shop-action">Equipped</button>
+      </div>
     </div>
   </section>
 
@@ -102,10 +122,11 @@
         <div><kbd>Space</kbd> / <kbd>W</kbd> / <kbd>↑</kbd></div><div>Jump — press again in mid-air to double-jump</div>
         <div>Fall short?</div><div>Push toward a ledge to grab it, then jump or ↑ to climb</div>
         <div><kbd>↓</kbd> + <kbd>Space</kbd></div><div>Drop through vehicle decks &amp; thin platforms</div>
+        <div>Against a wall</div><div>Slide down it, jump to wall-jump away and up</div>
         <div><kbd>Esc</kbd> / <kbd>P</kbd></div><div>Pause</div>
         <div>Gamepad</div><div>Stick / D-pad to move, A to jump, Start to pause</div>
       </div>
-      <p class="help-note">Collect energy cells, avoid hazards, and reach the golden portal. Finish a world to fly your ship to the next planet.</p>
+      <p class="help-note">Every level hides 3 golden Star Shards — look above, behind the start and in risky spots. Collect energy cells, avoid hazards, and reach the golden portal. Finish a world to fly your ship to the next planet.</p>
     </div>
   </section>
 
@@ -132,6 +153,8 @@
         <div><span>Cells</span><b id="c-cells">0/0</b></div>
         <div><span>Time</span><b id="c-time">0:00</b></div>
         <div><span>Best</span><b id="c-best">0</b></div>
+        <div><span>Star Shards</span><b id="c-shards">0/3</b></div>
+        <div><span>Earned</span><b id="c-earned">+0</b></div>
       </div>
       <div class="new-best hidden" id="c-newbest">NEW HIGH SCORE</div>
       <div class="menu-buttons row">

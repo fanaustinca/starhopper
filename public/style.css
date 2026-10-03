@@ -153,3 +153,38 @@ kbd { display: inline-block; min-width: 26px; padding: 3px 7px; margin: 0 2px; b
 @media (orientation: portrait) and (max-width: 760px) {
   body.touch #hud::after { content: 'Tip: rotate to landscape for the best view'; position: absolute; left: 0; right: 0; bottom: 120px; text-align: center; color: rgba(255,255,255,0.55); font-size: 12px; letter-spacing: 0.06em; }
 }
+
+/* ---------- level name, shards, shop ---------- */
+.hud-name { color: var(--accent-2); font-size: 12px; font-weight: 800; letter-spacing: 0.06em; margin-top: 3px; }
+.hud-shards { display: flex; gap: 3px; }
+.shard { width: 16px; height: 16px; background: rgba(255,255,255,0.15); clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+.shard.on { background: linear-gradient(#fff3b0, #ffc020); filter: drop-shadow(0 0 4px #ffc020); }
+.shard.pop { animation: pop 0.4s ease; }
+.lvl .stars { display: flex; gap: 2px; }
+.lvl .stars .shard { width: 9px; height: 9px; }
+.wallet-pill { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: rgba(58,255,192,0.15); color: #7affd8; font-size: 13px; }
+.wallet { display: flex; align-items: center; gap: 6px; font-size: 18px; color: var(--text); }
+#shop { justify-content: flex-end; padding-right: max(16px, 4vw); }
+.shop-panel { width: min(520px, 100%); }
+.shop-hint { color: var(--muted); font-size: 13px; margin: 0 0 14px; line-height: 1.5; }
+.skin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.skin { position: relative; border-radius: 16px; border: 1px solid var(--line); background: rgba(255,255,255,0.04); padding: 12px 8px 10px; cursor: pointer; text-align: center; transition: transform 0.12s, border-color 0.2s, background 0.2s; }
+.skin:hover { transform: translateY(-2px); border-color: rgba(95,216,255,0.5); }
+.skin.sel { border-color: var(--accent); background: rgba(95,216,255,0.12); box-shadow: 0 0 0 1px var(--accent) inset; }
+.skin .swatch { width: 54px; height: 54px; margin: 0 auto 8px; border-radius: 50%; box-shadow: inset -8px -8px 16px rgba(0,0,0,0.35), inset 6px 6px 12px rgba(255,255,255,0.35); position: relative; }
+.skin .swatch i { position: absolute; left: 50%; top: 32%; width: 34px; height: 16px; transform: translateX(-50%); border-radius: 10px; background: #05070c; }
+.skin .swatch i::before, .skin .swatch i::after { content: ''; position: absolute; top: 4px; width: 6px; height: 8px; border-radius: 4px; background: var(--eye); box-shadow: 0 0 6px var(--eye); }
+.skin .swatch i::before { left: 8px; } .skin .swatch i::after { right: 8px; }
+.skin .nm { font-size: 13px; font-weight: 700; }
+.skin .pr { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.skin .pr.owned { color: #7aff9a; }
+.skin .pr.eq { color: var(--accent-2); }
+.skin.locked .pr { color: #ff9aa8; }
+.shop-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.shop-sel { display: flex; flex-direction: column; }
+.shop-sel span { color: var(--muted); font-size: 13px; }
+@media (max-width: 760px) {
+  #shop { align-items: flex-end; justify-content: center; padding: 16px; }
+  .shop-panel { max-height: 58vh; }
+  .skin-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
+}

@@ -9,7 +9,7 @@ export const WARP_PERIOD = 2.4;
 
 const TAU = Math.PI * 2;
 
-function phaseOf(pulse, t) {
+export function phaseOf(pulse, t) {
   // returns 'idle' | 'warn' | 'on'
   const u = ((t + pulse.off) % pulse.P + pulse.P) % pulse.P;
   if (u < pulse.warn) return 'warn';
@@ -60,6 +60,7 @@ export class LevelSim {
     this.events = [];
     this.health = MAX_HEALTH;
     this.cells = 0;
+    this.shards = 0;
     this.collected = new Set();
     this.checkpointReached = false;
     this.complete = false;
@@ -73,7 +74,8 @@ export class LevelSim {
     this.byId = new Map();
 
     for (const s of level.solids) {
-      const c = { ...s, active: true, oneWay: false, dx: 0, dy: 0, static: true };
+      const c = { ...s, active: true, oneWay: !!s.oneWay, dx: 0, dy: 0, static: true };
+      if (s.crumble) { c.crumbleStart = -1; c.fallT = -1; }
       this.colliders.push(c);
       this.byId.set(s.id, c);
     }
@@ -105,6 +107,10 @@ export class LevelSim {
     this.windState = level.winds.map((w) => ({ def: w, state: 'idle' }));
     this.gravState = level.gravZones.map((z) => ({ def: z, low: true }));
     this.world = { colliders: this.colliders, vines: this.vines };
+    this.crumbles = this.colliders.filter((c) => c.crumble);
+    this.heats = this.colliders.filter((c) => c.heat);
+    this.floorY = level.floor.y;
+    this.chaser = level.chaser ? { ...level.chaser, active: false, x: -1e9 } : null;
     this.env = {
       gravityScale: level.gravity,
       windAt: (x, y) => this.windAt(x, y),
@@ -221,17 +227,25 @@ export class LevelSim {
       const cp = this.checkpointReached ? this.L.checkpoint : this.L.spawn;
       this.placePlayer(cp.x, cp.y);
       this.lastSafe = { x: cp.x, y: cp.y };
+      this.relieve(cp.x, cp.y);
       this.emit('fail', {});
       return;
     }
     if (respawn) {
       this.placePlayer(this.lastSafe.x, this.lastSafe.y);
+      this.relieve(this.lastSafe.x, this.lastSafe.y);
       this.emit('respawn', {});
     } else if (damage) {
       p.vy = 9; p.vx = -p.facing * 7; p.onGround = false;
       p.hang = null; p.climb = null;
       if (p.swing) { p.swing.vine.grabbed = false; p.swing = null; p.vineCooldown = 0.5; }
     }
+  }
+
+  // after a respawn push the chaser / tide back so the player gets a fair restart
+  relieve(x, y) {
+    if (this.chaser && this.chaser.active) this.chaser.x = Math.min(this.chaser.x, x - 12);
+    if (this.L.tide) this.floorY = Math.min(this.floorY, y - 5);
   }
 
   placePlayer(x, y) {
@@ -255,11 +269,33 @@ export class LevelSim {
     this.invuln = Math.max(0, this.invuln - dt);
     this.updateEntities(dt);
     const p = this.player;
+    // crumbling platforms: shake 0.55s after first touch, fall, then re-form
+    for (const c of this.crumbles) {
+      if (c.fallT >= 0) {
+        if (this.t - c.fallT > 2.6 && !(p.x + p.w / 2 > c.x && p.x - p.w / 2 < c.x + c.w && p.y < c.y + c.h + 0.1 && p.y + p.h > c.y)) {
+          c.active = true; c.fallT = -1; c.crumbleStart = -1;
+        }
+      } else if (c.crumbleStart >= 0 && this.t - c.crumbleStart > 0.55) {
+        c.active = false; c.fallT = this.t;
+        if (p.ground === c) { p.onGround = false; p.ground = null; }
+        this.emit('crumble', { id: c.id });
+      }
+    }
+    // rising tide
+    if (this.L.tide && this.t > this.L.tide.delay) {
+      this.floorY = Math.min(this.L.goal.y - 3, this.floorY + this.L.tide.rate * dt);
+    }
     const evs = stepPlayer(p, input, this.world, this.env, dt);
     for (const e of evs) this.emit(e, {});
 
+    if (p.onGround && p.ground && p.ground.crumble && p.ground.crumbleStart < 0) {
+      p.ground.crumbleStart = this.t;
+      this.emit('crumbling', { id: p.ground.id });
+    }
+    if (p.onGround && p.ground && p.ground.heat && phaseOf(p.ground.heat, this.t) === 'on') this.hurt(false, 'heat');
+
     // remember the last solid, safe footing for respawns
-    if (p.onGround && p.ground && p.ground.static && !p.ground.bounce) {
+    if (p.onGround && p.ground && p.ground.static && !p.ground.bounce && !p.ground.crumble && !p.ground.heat && !p.ground.oneWay) {
       const g = p.ground;
       this.lastSafe = { x: Math.min(Math.max(p.x, g.x + 0.7), g.x + g.w - 0.7), y: g.y + g.h };
     }
@@ -310,7 +346,18 @@ export class LevelSim {
 
     // falling into the world floor / out of the level
     const F = this.L.floor;
-    if ((F.lethal && p.y < F.y + 0.15) || p.y < this.L.killY) this.hurt(true, 'fall');
+    if ((F.lethal && p.y < this.floorY + 0.15) || p.y < this.L.killY) this.hurt(true, 'fall');
+
+    // the chaser: a wall that sweeps in from the left
+    const ch = this.chaser;
+    if (ch) {
+      if (!ch.active && p.x > ch.trigger) { ch.active = true; ch.x = ch.trigger - ch.behind; this.emit('chaser', {}); }
+      if (ch.active) {
+        const lead = p.x - ch.x;
+        ch.x += ch.speed * (1 + Math.max(0, (lead - 30) / 25)) * dt;   // rubber-band so it stays a threat
+        if (p.x - p.w / 2 < ch.x) this.hurt(true, 'chaser');
+      }
+    }
 
     // pickups
     for (const k of this.L.pickups) {
@@ -319,6 +366,7 @@ export class LevelSim {
       if (dx * dx + dy * dy < 1.0) {
         this.collected.add(k.id);
         if (k.type === 'cell') { this.cells++; this.emit('cell', { id: k.id }); }
+        else if (k.type === 'shard') { this.shards++; this.emit('shard', { id: k.id }); }
         else if (k.type === 'heart') { this.health = Math.min(MAX_HEALTH, this.health + 1); this.emit('heart', { id: k.id }); }
       }
     }
@@ -341,6 +389,6 @@ export class LevelSim {
   score() {
     const par = 20 + this.L.goal.x / 7;
     const timeBonus = Math.max(0, Math.round((par - this.t) * 25));
-    return this.cells * 100 + this.health * 250 + timeBonus + Math.round(this.L.diff * 500) - this.deaths * 300;
+    return this.cells * 100 + this.shards * 500 + this.health * 250 + timeBonus + Math.round(this.L.diff * 500) - this.deaths * 300;
   }
 }
