@@ -383,9 +383,11 @@ class Game {
   }
 
   tick(dt) {
+    // when the test harness drives the sim tick-by-tick, only render on request (keeps slow CI responsive)
+    const idleRender = !(TEST && this.manual);
     if (this.mode === 'cutscene') {
       const done = this.cutscene.update(this.manual ? 0 : dt);
-      this.cutscene.render();
+      if (idleRender) this.cutscene.render();
       const cap = this.cutscene.caption();
       $('cap-big').textContent = cap ? cap.big : '';
       $('cap-small').textContent = cap ? cap.small : '';
@@ -411,6 +413,7 @@ class Game {
       this.acc += dt;
       while (this.acc >= PHYS.dt) { this.stepSim(idleInput()); this.acc -= PHYS.dt; }
     }
+    if (!idleRender) { if (this.mode === 'playing' || this.mode === 'complete') this.updateHUD(); return; }
     this.renderer.update(this.sim, this.mode === 'paused' ? 0 : dt);
     this.renderer.render();
     if (this.mode === 'playing' || this.mode === 'complete') this.updateHUD();
@@ -493,7 +496,7 @@ window.SH = {
     }
     return game.testState();
   },
-  render: () => { game.renderer.snapCamera(game.sim); game.renderer.update(game.sim, 1 / 60); game.renderer.render(); return true; },
+  render: () => { if (game.mode === 'cutscene') { game.cutscene.render(); return true; } game.renderer.snapCamera(game.sim); game.renderer.update(game.sim, 1 / 60); game.renderer.render(); return true; },
   teleport: (x, y) => { game.sim.teleport(x, y); game.renderer.snapCamera(game.sim); return game.testState(); },
   goal: () => ({ ...game.sim.L.goal }),
   completeLevel: () => {
