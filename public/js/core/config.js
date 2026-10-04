@@ -180,9 +180,21 @@ export const WORLDS = [
     pool: { gap: 2, warp: 4, gravity: 3, moverV: 1, crumble: 2 },
     signature: 'warp',
   },
+  {
+    id: 'blackhole', name: 'The Black Hole', short: 'Black Hole', alien: true, bonus: true,
+    blurb: 'The End: everything you have ever jumped on, falling into the dark.',
+    gravity: 1.0, floor: 'horizon', floating: true,
+    sky: [0x020008, 0x2a0a3a], fog: 0x0a0414, fogDensity: 0.004,
+    plat: 0x2a2440, platTop: 0xc8c0e8, accent: 0xffa040, light: 0xffe0c0, ambient: 0x2a1a48,
+    planet: { color: 0x000000, size: 2, blackhole: true },
+    pool: {}, signature: null,
+  },
 ];
 
-export const TOTAL_LEVELS = WORLDS.length * LEVELS_PER_WORLD;
+// 14 worlds × 30, plus the single bonus level inside the black hole (421)
+export const TOTAL_LEVELS = 14 * LEVELS_PER_WORLD + 1;
+export const levelsInWorld = (wi) => (WORLDS[wi].bonus ? 1 : LEVELS_PER_WORLD);
+export const lastLevelOfWorld = (wi) => Math.min(TOTAL_LEVELS, wi * LEVELS_PER_WORLD + levelsInWorld(wi));
 export const RED_SPOT_FROM = 25;        // Jupiter levels 25-30 are inside the Great Red Spot
 export const SATURN_RINGS_UNTIL = 15;   // Saturn 1-15 rings, 16-30 gas surface
 
@@ -202,6 +214,7 @@ export const WORLD_FLAVOR = {
   mechanus: { words: ['Cog', 'Piston', 'Escapement', 'Gear', 'Boiler', 'Spring', 'Ratchet', 'Brass'], chaser: 'Crusher Wall' },
   biolumina: { words: ['Glowcap', 'Spore', 'Canopy', 'Fungal', 'Luminous', 'Tangle', 'Bloom', 'Vine'], chaser: 'Spore Swarm' },
   chronos: { words: ['Tick', 'Paradox', 'Epoch', 'Hourglass', 'Rewind', 'Moment', 'Eon', 'Clockwork'], chaser: 'Time Rift' },
+  blackhole: { words: ['Singularity', 'Horizon', 'Spaghetti', 'Accretion'], chaser: 'Event Horizon' },
 };
 
 export function worldIndexOf(level) {

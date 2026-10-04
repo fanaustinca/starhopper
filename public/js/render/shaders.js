@@ -325,3 +325,30 @@ export function starMaterial() {
       }`,
   });
 }
+
+// Accretion disk around a black hole: hot swirling plasma, white-hot inner edge.
+export function accretionMaterial() {
+  const u = timed({ t: { value: 0 } });
+  return new THREE.ShaderMaterial({
+    uniforms: u, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
+    vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader: /* glsl */`
+      ${NOISE}
+      uniform float t; varying vec3 vP;
+      void main(){
+        float r = length(vP.xy);
+        float a = atan(vP.y, vP.x);
+        // normalised radius 0 (inner) → 1 (outer), from the ring geometry's 1.25R..3.4R span
+        float rr = r;
+        float swirl = a + t * 0.6 + 6.0 / (0.15 + rr * 0.004);
+        float n = fbm(vec3(cos(swirl) * 2.0, sin(swirl) * 2.0, rr * 0.01 + t * 0.05));
+        float bands = 0.6 + 0.4 * sin(rr * 0.08 - t * 2.0 + n * 3.0);
+        float inner = exp(-pow(rr * 0.0045, 2.0));
+        vec3 hot = vec3(1.0, 0.95, 0.85), mid = vec3(1.0, 0.55, 0.15), cool = vec3(0.6, 0.12, 0.25);
+        vec3 c = mix(cool, mid, smoothstep(0.2, 0.8, inner + n * 0.3));
+        c = mix(c, hot, smoothstep(0.75, 1.0, inner));
+        float alpha = clamp((0.35 + 0.65 * n) * bands * (0.4 + inner), 0.0, 1.0);
+        gl_FragColor = vec4(c * 1.8 * alpha, alpha);
+      }`,
+  });
+}

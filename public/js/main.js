@@ -1,5 +1,5 @@
 // Game controller: state machine, main loop, UI wiring and the test API.
-import { WORLDS, LEVELS_PER_WORLD, TOTAL_LEVELS, PHYS, MAX_HEALTH, worldIndexOf, subLevelOf, locationOf } from './core/config.js';
+import { WORLDS, LEVELS_PER_WORLD, TOTAL_LEVELS, PHYS, MAX_HEALTH, worldIndexOf, subLevelOf, locationOf, levelsInWorld, lastLevelOfWorld } from './core/config.js';
 import { getLevel as generateLevel } from './levels/index.js';
 import { LevelSim } from './core/sim.js';
 import { loadSave, writeSave, recordCompletion, defaultSave, totalScore, totalShards, SHARD_BONUS } from './core/save.js';
@@ -161,13 +161,13 @@ class Game {
     });
     const w = WORLDS[this.selectWorld];
     const first = this.selectWorld * LEVELS_PER_WORLD + 1;
-    const cleared = Array.from({ length: LEVELS_PER_WORLD }, (_, k) => s.best[first + k]).filter(Boolean).length;
+    const cleared = Array.from({ length: levelsInWorld(this.selectWorld) }, (_, k) => s.best[first + k]).filter(Boolean).length;
     $('world-banner').innerHTML = `<div class="planet" style="background:radial-gradient(circle at 35% 35%, ${hex(w.planet.color)}, ${hex(w.sky[0])});--glow:${hex(w.planet.color)}66"></div>
-      <div><h3>World ${this.selectWorld + 1} · ${w.name}${w.alien ? ' <small style="color:var(--muted);font-size:12px">(alien)</small>' : ''}</h3><p>${w.blurb} Levels ${first}–${first + LEVELS_PER_WORLD - 1} · ${cleared}/${LEVELS_PER_WORLD} cleared</p></div>`;
+      <div><h3>World ${this.selectWorld + 1} · ${w.name}${w.alien ? ' <small style="color:var(--muted);font-size:12px">(alien)</small>' : ''}</h3><p>${w.blurb} Levels ${first}–${first + levelsInWorld(this.selectWorld) - 1} · ${cleared}/${levelsInWorld(this.selectWorld)} cleared</p></div>`;
     $('select-meta').textContent = `Unlocked: ${s.unlocked} / ${TOTAL_LEVELS}`;
     const grid = $('level-grid');
     grid.innerHTML = '';
-    for (let k = 0; k < LEVELS_PER_WORLD; k++) {
+    for (let k = 0; k < levelsInWorld(this.selectWorld); k++) {
       const n = first + k;
       const best = s.best[n];
       const locked = n > s.unlocked;
@@ -302,8 +302,8 @@ class Game {
     this.mode = 'complete';
     this.completeReadyAt = performance.now() + 400;
     const n = this.levelNum;
-    const worldDone = n % LEVELS_PER_WORLD === 0;
-    $('complete-kicker').textContent = n === TOTAL_LEVELS ? 'JOURNEY COMPLETE' : worldDone ? 'WORLD COMPLETE' : 'LEVEL COMPLETE';
+    const worldDone = n === lastLevelOfWorld(worldIndexOf(n));
+    $('complete-kicker').textContent = n === TOTAL_LEVELS ? 'YOU ESCAPED THE BLACK HOLE' : worldDone ? 'WORLD COMPLETE' : 'LEVEL COMPLETE';
     $('complete-title').textContent = `Level ${n} · ${WORLDS[worldIndexOf(n)].short}`;
     $('c-score').textContent = result.score.toLocaleString();
     $('c-cells').textContent = `${result.cells}/${result.total}`;
@@ -312,7 +312,7 @@ class Game {
     $('c-newbest').classList.toggle('hidden', !newBest);
     $('c-shards').textContent = `${(this.save.shardIds[n] || []).length}/3`;
     $('c-earned').textContent = `+${earned}` + (newShards ? ` (${newShards}★)` : '');
-    $('btn-next').textContent = n === TOTAL_LEVELS ? 'Finale' : worldDone ? `Fly to ${WORLDS[worldIndexOf(n + 1)].short} 🚀` : 'Next Level';
+    $('btn-next').textContent = n === TOTAL_LEVELS ? 'Finale' : worldDone ? (worldIndexOf(n + 1) === 14 ? 'Enter the Black Hole 🕳️' : `Fly to ${WORLDS[worldIndexOf(n + 1)].short} 🚀`) : 'Next Level';
     this.show('complete');
     this.updateHUD(true);
   }
@@ -320,7 +320,7 @@ class Game {
   next() {
     if (this.mode !== 'complete') return;
     const n = this.levelNum;
-    if (n % LEVELS_PER_WORLD === 0) this.playCutscene(worldIndexOf(n), n < TOTAL_LEVELS ? worldIndexOf(n) + 1 : null);
+    if (n === lastLevelOfWorld(worldIndexOf(n))) this.playCutscene(worldIndexOf(n), n < TOTAL_LEVELS ? worldIndexOf(n) + 1 : null);
     else this.startLevel(n + 1);
   }
 
@@ -344,7 +344,7 @@ class Game {
     $('caption').classList.add('hidden');
     $('fade').style.opacity = '';
     if (this.cutsceneFrom == null) { this.save.introSeen = true; writeSave(this.save); }
-    if (to == null) { this.toMenu(); this.toast('YOU CONQUERED ALL 14 WORLDS!', 3000); return; }
+    if (to == null) { this.toMenu(); this.toast('YOU ESCAPED THE BLACK HOLE — THE END', 3500); return; }
     this.startLevel(to * LEVELS_PER_WORLD + 1);
   }
 
@@ -424,7 +424,7 @@ class Game {
     const set = (id, v) => { if (force || this.hudCache[id] !== v) { this.hudCache[id] = v; $(id).textContent = v; } };
     set('hud-level', `Level ${L.index}`);
     set('hud-world', W.name + (L.location ? ` · ${L.location}` : ''));
-    set('hud-sub', `World ${L.worldIndex + 1} · Stage ${L.sub} of ${LEVELS_PER_WORLD}`);
+    set('hud-sub', L.worldIndex === 14 ? 'Bonus · The Black Hole' : `World ${L.worldIndex + 1} · Stage ${L.sub} of ${LEVELS_PER_WORLD}`);
     set('hud-name', L.name);
     if (force || this.hudCache.sh !== sim.shards) {
       const gained = this.hudCache.sh !== undefined && sim.shards > this.hudCache.sh;

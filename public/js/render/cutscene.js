@@ -9,13 +9,13 @@
 // Kinds: 'intro' (cruise to the Sun + arrive), 'transfer' (depart → cruise →
 // arrive), 'finale' (depart → cruise to a galaxy).
 import * as THREE from 'three';
-import { WORLDS, LEVELS_PER_WORLD } from '../core/config.js';
+import { WORLDS, LEVELS_PER_WORLD, lastLevelOfWorld } from '../core/config.js';
 import { getLevel } from '../levels/index.js';
 import { Robot } from './robot.js';
 import { makeMothership, SHIP_LEG_DROP, mat } from './vehicles.js';
 import { planetTexture, ringTexture, glowTexture } from './textures.js';
 import { buildBackdrop } from './decor.js';
-import { tickShaders, plasmaMaterial, starMaterial } from './shaders.js';
+import { tickShaders, plasmaMaterial, starMaterial, accretionMaterial } from './shaders.js';
 import { makeRng } from '../core/rng.js';
 
 const ease = (x) => (x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x));
@@ -25,6 +25,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 const RAMP_OPEN = 2.03;   // radians: the ramp tip rests on the pad
 
 function planet(world, radius, seed) {
+  if (world.planet.blackhole) return blackHole(radius);
   const g = new THREE.Group();
   const m = world.planet.emissive ? starMaterial() : new THREE.MeshStandardMaterial({ map: planetTexture(world, seed), roughness: 0.85 });
   const s = new THREE.Mesh(new THREE.SphereGeometry(radius, 96, 64), m);
@@ -41,6 +42,21 @@ function planet(world, radius, seed) {
   const atm = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(world.planet.emissive ? 0xffa030 : world.sky[1]), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: world.planet.emissive ? 1 : 0.5 }));
   atm.scale.setScalar(radius * (world.planet.emissive ? 4.2 : 2.5));
   g.add(atm);
+  return g;
+}
+
+export function blackHole(radius) {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(radius, 64, 40), new THREE.MeshBasicMaterial({ color: 0x000000 })));
+  const disk = new THREE.Mesh(new THREE.RingGeometry(radius * 1.25, radius * 3.4, 128, 4), accretionMaterial());
+  disk.rotation.x = Math.PI / 2 - 0.22;
+  g.add(disk);
+  const halo = new THREE.Mesh(new THREE.TorusGeometry(radius * 1.12, radius * 0.06, 16, 128), new THREE.MeshBasicMaterial({ color: 0xffc070, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+  g.add(halo);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(0xff8a30), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.55 }));
+  glow.scale.setScalar(radius * 7);
+  g.add(glow);
+  g.userData.sphere = disk;
   return g;
 }
 
@@ -68,7 +84,7 @@ export class Cutscene {
     else if (this.kind === 'transfer') this.shots = [['depart', 0, DEPART], ['cruise', DEPART, DEPART + CRUISE], ['arrive', DEPART + CRUISE, DEPART + CRUISE + ARRIVE]];
     else this.shots = [['depart', 0, DEPART], ['cruise', DEPART, DEPART + 5.2]];
     this.duration = this.shots[this.shots.length - 1][2];
-    if (this.from) this.departScene = this.buildGround((fromIdx + 1) * LEVELS_PER_WORLD, this.from);
+    if (this.from) this.departScene = this.buildGround(lastLevelOfWorld(fromIdx), this.from);
     this.buildSpace(fromIdx, toIdx);
     if (this.to) this.arriveScene = this.buildGround(toIdx * LEVELS_PER_WORLD + 1, this.to);
     this.camera = new THREE.PerspectiveCamera(42, 16 / 9, 0.3, 40000);
@@ -183,9 +199,9 @@ export class Cutscene {
     const k = this.t - a;
     if (this.kind === 'intro' && shot === 'cruise' && k < 2.8) return { big: 'STARHOPPER', small: 'NOW APPROACHING · THE SUN' };
     if (shot === 'depart' && k < 1.8) return { big: this.from.name.toUpperCase(), small: 'WORLD COMPLETE' };
-    if (shot === 'cruise' && this.to && this.kind !== 'intro' && k > 0.6) return { big: this.to.name.toUpperCase(), small: 'NEXT STOP' };
-    if (shot === 'cruise' && !this.to && k > 2.2) return { big: 'THE END', small: 'ALL 420 LEVELS CLEARED' };
-    if (shot === 'arrive' && k > 3.8) return { big: this.to.name.toUpperCase(), small: `WORLD ${this.toIdx + 1}` };
+    if (shot === 'cruise' && this.to && this.kind !== 'intro' && k > 0.6) return { big: this.to.name.toUpperCase(), small: this.to.bonus ? 'NO TURNING BACK' : 'NEXT STOP' };
+    if (shot === 'cruise' && !this.to && k > 2.2) return { big: 'THE END', small: 'YOU ESCAPED THE BLACK HOLE · ALL 421 LEVELS' };
+    if (shot === 'arrive' && k > 3.8) return this.to.bonus ? { big: 'THE END', small: 'BONUS LEVEL · INSIDE THE BLACK HOLE' } : { big: this.to.name.toUpperCase(), small: `WORLD ${this.toIdx + 1}` };
     return null;
   }
 

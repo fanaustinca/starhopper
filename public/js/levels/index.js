@@ -15,8 +15,9 @@ import prismara from './prismara.js';
 import mechanus from './mechanus.js';
 import biolumina from './biolumina.js';
 import chronos from './chronos.js';
+import blackhole from './blackhole.js';
 
-export const CAMPAIGN = [sun, mercury, venus, earth, mars, asteroids, jupiter, saturn, uranus, neptune, prismara, mechanus, biolumina, chronos];
+export const CAMPAIGN = [sun, mercury, venus, earth, mars, asteroids, jupiter, saturn, uranus, neptune, prismara, mechanus, biolumina, chronos, blackhole];
 
 export function levelDef(n) {
   const w = worldIndexOf(n), s = subLevelOf(n);

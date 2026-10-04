@@ -20,7 +20,7 @@ const CHASER_COLORS = {
   sun: [0xff3a00, 0xffd060], mercury: [0xffffff, 0xffe8b0], venus: [0x7aff20, 0xe0ff80], earth: [0xff3030, 0xffd040],
   mars: [0xb04a20, 0xffa060], asteroids: [0x8a6a50, 0xffa060], jupiter: [0xc06030, 0xffd0a0], saturn: [0xe0c080, 0xffffff],
   uranus: [0x60e0ff, 0xffffff], neptune: [0x3060ff, 0xb0e0ff], prismara: [0xff40d0, 0x80c0ff], mechanus: [0xff8a20, 0xffe0a0],
-  biolumina: [0x30ffa0, 0xff60e0], chronos: [0x8040ff, 0xffd060],
+  biolumina: [0x30ffa0, 0xff60e0], chronos: [0x8040ff, 0xffd060], blackhole: [0x200030, 0xff7a20],
 };
 
 const DEPTH = 3;
@@ -155,7 +155,7 @@ export class Renderer {
     this.sun.color.setHex(W.light);
     this.sun.intensity = W.id === 'biolumina' ? 1.1 : 1.9;
     this.hemi.intensity = W.id === 'biolumina' || W.id === 'chronos' ? 0.65 : 0.85;
-    this.bloom.strength = W.id === 'sun' ? 0.6 : ['biolumina', 'prismara', 'chronos'].includes(W.id) ? 0.75 : 0.45;
+    this.bloom.strength = W.id === 'sun' ? 0.6 : ['biolumina', 'prismara', 'chronos', 'blackhole'].includes(W.id) ? 0.75 : 0.45;
     const underLight = { sun: [0xff8a30, 1.6], mars: [0xff6a20, 0.5], venus: [0xa0ff40, 0.4], biolumina: [0x30ffc0, 0.8], mercury: [0xd0d8e0, 0.4] }[W.id];
     this.under.color.setHex(underLight ? underLight[0] : 0xffffff);
     this.under.intensity = underLight ? underLight[1] : 0;
