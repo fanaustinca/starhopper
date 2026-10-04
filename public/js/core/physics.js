@@ -156,6 +156,8 @@ export function stepPlayer(p, input, world, env, dt) {
     } else {
       p.vy = PHYS.jumpVel;
       p.jumps = 1;
+      // jumping off a moving platform/vehicle keeps its horizontal momentum
+      if (p.onGround && p.ground && p.ground.dx) p.extVx = Math.max(-12, Math.min(12, p.ground.dx / dt));
       p.onGround = false; p.ground = null;
       p.coyote = 0; p.buffer = 0; p.jumpHeld = true;
       ev.push('jump');

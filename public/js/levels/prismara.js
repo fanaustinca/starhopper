@@ -608,14 +608,14 @@ export default [
   // 27 ── facet chimneys: the walls are refraction crystal, so you press a button to grow the wall you need
   L('Facet Chimneys', 'puzzle', (b) => {
     b.start(-6, 0, 12);
-    b.plat(6, 0, 10);
+    b.plat(6, 0, 6.8);
     b.wall(9, 2, 10); b.wall(12.8, 0, 12);               // a plain chimney to warm up
     b.cells(11.3, 3, 11.3, 10, 3);
     b.shard(9.4, 13.8);
-    b.plat(13.6, 12, 9.6); b.switch(15, 12);
+    b.plat(13.6, 12, 8.8); b.switch(15, 12);
     b.wall(18.6, 14, 10); b.blueWall(22.4, 12, 12);      // the right wall only exists in blue
     b.cells(20.9, 15, 20.9, 22, 3);
-    b.plat(23.2, 24, 9); b.switch(26.5, 24);
+    b.plat(23.2, 24, 8.8); b.switch(26.5, 24);
     b.checkpoint(24.5, 24);
     b.redWall(28.2, 26, 10); b.wall(32, 24, 12);         // and this left wall only in red
     b.cells(30.5, 27, 30.5, 34, 3);

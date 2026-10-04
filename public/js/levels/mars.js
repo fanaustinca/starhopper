@@ -488,4 +488,249 @@ export default [
     b.goal(141, 8);
     b.cells(14, 7.5, 38, 1.5, 6); b.cells(52, 0, 72, 0, 5); b.cells(90.9, 8, 90.9, 12, 3); b.cells(102, 13, 130, 10.5, 7);
   }),
+
+  // 141 ── plunge into the deepest basin on Mars: a long one-way drop of ledges, a lift under a rock lid, lava at the bottom
+  L('Hellas Plunge', 'descent', (b) => {
+    b.start(-6, 40, 12);
+    b.plat(-13, 43, 3); b.shard(-11.5, 45);
+    b.plat(10, 36, 5);
+    b.crumble(19, 32, 3);
+    b.rect(24, 33, 12, 1); b.shard(33, 35.6);                // on top of the overhang
+    b.plat(26, 28, 5);
+    b.plat(36, 24, 4);
+    b.heat(42, 21, 4, { P: 3, on: 1 });
+    b.plat(48, 18, 6);
+    b.checkpoint(51, 18);
+    b.lift(58, 18, 8, { T: 5 });                             // ride it down under the lid
+    b.rect(60, 11, 14, 2);
+    b.plat(62, 8, 5);
+    b.meteor(69, 5, { style: 'drip', h: 5.9, P: 2.2 });
+    b.crumble(71, 5, 3); b.crumble(77, 2, 3);
+    b.plat(83, -1, 5);
+    b.pool(88, -1, 6); b.shard(91, 0.6);
+    b.plat(94, -1, 10);
+    b.goal(100, -1);
+    b.cells(7, 39, 12, 37.5, 3); b.cells(20, 33.5, 28, 29.5, 3); b.cells(37, 25.5, 52, 19.5, 5); b.cells(58, 16, 58, 10, 3); b.cells(72, 6.5, 86, 0.5, 5);
+  }),
+
+  // 142 ── a strip mine: ride bucket-wheel excavators (rotating pad rings) linked by cleaning belts
+  L('Aram Chaos Mine', 'ride', (b) => {
+    b.start(-6, 0, 12);
+    b.conveyor(8, 0, 10, 3);
+    b.ferris(26, 4, 6, { n: 5, omega: 0.55 });
+    b.shard(26, 12.6);                                       // over the top of the first wheel
+    b.plat(35, 6, 4);
+    b.conveyor(42, 6, 12, -2.5);
+    b.plat(46, 1.5, 4); b.shard(48, 3);                      // ore pocket under the belt
+    b.ferris(62, 8, 7, { n: 6, omega: -0.45 });
+    b.shard(62, 8);                                          // the hub of the big wheel
+    b.plat(72, 10, 6);
+    b.checkpoint(75, 10);
+    b.conveyor(81, 10, 14, 3.5);
+    b.rect(83, 19, 14, 1);
+    b.beam('piston', 86, 10, { h: 9, P: 2.4, on: 0.8 }); b.beam('piston', 92, 10, { h: 9, P: 2.4, on: 0.8, off: 1.2 });
+    b.ferris(104, 10, 5, { n: 4, omega: 0.7 });
+    b.plat(112, 12, 8);
+    b.goal(117, 12);
+    b.cells(9, 1, 17, 1, 3); b.cells(43, 7.5, 53, 7.5, 4); b.cells(82, 11.5, 94, 11.5, 5);
+  }),
+
+  // 143 ── the polar cap: slick ice shelves, crevasses, and dry-ice geysers that blast you up the scarps
+  L('Planum Boreum', 'ice', (b) => {
+    b.start(-6, 0, 12);
+    b.ice(8, 0, 12);
+    b.shard(22.5, -0.6);                                     // dip into the first crevasse
+    b.ice(25, 1.5, 8);
+    b.plat(36, 0, 8);
+    b.vent(40, 0, 12);
+    b.rect(44, 0, 4, 10); b.ice(44, 11, 14);
+    b.checkpoint(50, 11);
+    b.plat(54, 5, 3); b.shard(55.5, 6.6);                    // a crevasse ledge under the shelf
+    b.ice(62, 9, 4); b.ice(70, 7, 4);
+    b.plat(77, 3, 6);
+    b.vent(80, 3, 13);
+    b.shard(80, 19.5);
+    b.ice(84, 17, 10);
+    b.enemy('walker', 86, 17, { range: 6 });
+    b.ice(98, 15, 3);
+    b.plat(105, 13, 8);
+    b.goal(110, 13);
+    b.cells(9, 1, 19, 1, 4); b.cells(40, 3, 40, 9, 3); b.cells(46, 12, 57, 12, 4); b.cells(63, 10.5, 82, 4.5, 5); b.cells(86, 18.5, 100, 16.5, 5);
+  }),
+
+  // 144 ── a crater in profile: tumble down the inner rim, ride up Mount Sharp in the middle, climb out the far side
+  L('Gale Crater', 'classic', (b) => {
+    b.start(-6, 14, 12);
+    b.block(9, 11, 4); b.block(16, 8, 4); b.block(23, 5, 4);
+    b.block(30, 2, 5);
+    b.pool(35, 2, 5); b.shard(37.5, 3.6);
+    b.block(40, 2, 4);
+    b.meteor(32, 2, { P: 2.4 }); b.meteor(42, 2, { P: 2.4, off: 1.2 });
+    b.block(47, 6, 4); b.block(54, 10, 3);
+    b.lift(60, 10, 20, { T: 6 });
+    b.block(64, 22, 5);
+    b.checkpoint(66, 22);
+    b.thin(65, 26.5, 2); b.shard(66, 28);                    // Mount Sharp's summit cairn
+    b.block(72, 17, 3); b.block(78, 12, 3); b.block(84, 7, 3);
+    b.block(90, 2, 5);
+    b.pool(95, 2, 5);
+    b.block(100, 2, 4);
+    b.meteor(92, 2, { P: 2.2, off: 0.6 });
+    b.crumble(107, 5.5, 2.5); b.crumble(112, 9, 2.5);
+    b.shard(110, 12.5);
+    b.plat(117, 14, 10);
+    b.goal(123, 14);
+    b.cells(8, 13, 32, 3.5, 6); b.cells(48, 7.5, 55, 11.5, 3); b.cells(60, 12, 60, 18, 3); b.cells(70, 20, 92, 3.5, 6);
+  }),
+
+  // 145 ── toll gates hang over the rover canyon: hop off at each mesa to flip the switch, or the gate sweeps you off
+  L('Kasei Toll Gates', 'puzzle', (b) => {
+    b.start(-6, 2, 12);
+    b.thin(-12, 5.5, 3); b.shard(-10.5, 7);
+    b.stream('rover', 4, 40, -1.35, { speed: 3.5, spacing: 11 });   // deck 0.65
+    b.blueWall(22, 1.65, 10);                                // a ghost gate: blue is open for now
+    b.shard(30, 5);
+    b.block(40, 1.4, 5); b.switch(42.5, 1.4);
+    b.checkpoint(40.8, 1.4);
+    b.stream('rover', 45, 80, -1.95, { speed: 4, spacing: 12 });    // deck 0.05
+    b.redWall(62, 1.05, 10);                                 // closed until you flipped the switch
+    b.block(80, 0.8, 5); b.switch(82, 0.8);
+    b.stream('rover', 85, 122, -2.55, { speed: 4.5, spacing: 13 }); // deck -0.55
+    b.blueWall(108, 0.45, 10);
+    b.plat(95, 3, 3); b.switch(95.8, 3); b.shard(96.5, 5);  // greedy: the shard sits on a switch
+    b.plat(122, 0.3, 4);
+    b.plat(129, 2, 8);
+    b.goal(134, 2);
+    b.cells(8, 2, 36, 2, 6); b.cells(48, 1.4, 76, 1.4, 6); b.cells(88, 0.8, 118, 0.8, 7);
+  }),
+
+  // 146 ── an electrified storm: lightning marches across the mesas in sequence, then strikes a rod you can climb
+  L('Static Storm', 'timing', (b) => {
+    b.start(-6, 0, 12);
+    b.plat(-14, 3, 3); b.shard(-12.5, 5);
+    for (let i = 0; i < 6; i++) {
+      b.block(9 + i * 7, (i % 3) * 1.5, 4);
+      b.beam('lightning', 11 + i * 7, (i % 3) * 1.5, { P: 3, on: 0.8, off: i * 0.5 });
+    }
+    b.shard(20.5, -1.2);
+    b.plat(52, 2, 6);
+    b.checkpoint(55, 2);
+    b.plat(62, 2, 30);
+    b.thin(62, 6, 3);
+    b.rect(66, 2, 1, 8); b.beam('lightning', 66.5, 10, { P: 2.5, on: 0.7 });   // the lightning rod
+    b.shard(66.5, 12);
+    [70, 76, 82, 88].forEach((x, i) => b.beam('lightning', x, 2, { P: 2.6, on: 0.8, off: (3 - i) * 0.5 }));
+    b.wind(68, 2, 24, 6, -6, { P: 3.6, on: 1.4, off: 1 });
+    b.plat(98, 4, 8);
+    b.goal(103, 4);
+    b.cells(10, 2, 46, 5, 8); b.cells(64, 3.5, 90, 3.5, 7);
+  }),
+
+  // 147 ── an underground drill rig: piston hammers stamp the conveyor belts to a beat; then up the shaft to the rig deck
+  L('Medusae Drill Site', 'gauntlet', (b) => {
+    b.start(-6, 0, 12);
+    b.rect(-8, 8, 78, 1);                                    // the mine roof
+    b.plat(6, -3, 10); b.shard(14, -2);                      // a pocket under the belt
+    b.conveyor(9.5, 0, 20.5, 2.5);
+    [14, 20.5, 27].forEach((x, i) => b.beam('piston', x, 0, { h: 8, P: 2.4, on: 0.8, off: i * 0.8 }));
+    b.plat(34, 1.5, 5);
+    b.heat(39, 1.5, 3, { P: 2.8, on: 1 });
+    b.conveyor(42, 1.5, 20, -2.5);
+    [47, 53, 59].forEach((x, i) => b.beam('piston', x, 1.5, { h: 6.5, P: 2.2, on: 0.7, off: (2 - i) * 0.7 }));
+    b.plat(64, 1.5, 8);
+    b.checkpoint(67, 1.5);
+    b.lift(76, 1.5, 12, { T: 4.5 });
+    b.shard(60, 10.6);                                       // walk back along the roof
+    b.plat(80, 12, 5);
+    b.conveyor(88, 12, 14, 3);
+    b.rect(90, 20, 10, 1);
+    b.beam('piston', 93, 12, { h: 8, P: 2.4, on: 0.8 }); b.shard(95.5, 13.4); b.beam('piston', 98, 12, { h: 8, P: 2.4, on: 0.8, off: 1.2 });
+    b.plat(105, 13, 8);
+    b.goal(110, 13);
+    b.cells(9, 1, 29, 1, 6); b.cells(43, 2.5, 61, 2.5, 6); b.cells(76, 4, 76, 10, 3); b.cells(89, 13, 101, 13, 5);
+  }),
+
+  // 148 ── the canyon is collapsing: a crumbling cascade under meteors, a chimney with crumbling exits, a squall, a sniper
+  L('Candor Collapse', 'precision', (b) => {
+    b.start(-6, 8, 12);
+    b.crumble(10, 6, 2); b.crumble(15, 4, 2); b.crumble(20, 2, 2); b.crumble(25, 0, 2);
+    b.meteor(16, 4, { P: 2.2 }); b.meteor(26, 0, { P: 2.2, off: 1.1 });
+    b.shard(17.5, 1.4);                                      // under the cascade
+    b.plat(30, -2, 9.6);
+    b.wall(36, 0.2, 11.8); b.rect(39.6, -2, 3, 14);          // the chimney
+    b.cells(38.2, 1, 38.2, 10, 4);
+    b.shard(38.2, 15.4);
+    b.crumble(46, 13, 2); b.crumble(51, 14.5, 2);
+    b.wind(44, 12, 13, 6, -6, { P: 3.6, on: 1.6 });
+    b.plat(57, 15, 5);
+    b.checkpoint(59, 15);
+    b.crumble(65, 14, 2); b.crumble(70, 12.5, 2);
+    b.enemy('flyer', 73, 15.5, { ax: 1.5, ay: 1.2, T: 2.4 });
+    b.crumble(75, 14, 2); b.crumble(80, 15.5, 2);
+    b.shard(80.9, 19.6);
+    b.crumble(86, 14, 2);
+    b.rect(92, 8, 2, 6); b.turret(92, 16.6, -1, { P: 2.2 }); b.turret(92, 14.8, -1, { P: 2.2, off: 1.1 });
+    b.plat(98, 12, 8);
+    b.goal(103, 12);
+    b.cells(11, 7.5, 26, 1.5, 4); b.cells(47, 14.5, 52, 16, 2); b.cells(66, 15.5, 87, 15.5, 5);
+  }),
+
+  // 149 ── overdrive: fast crane pads zip between magma geysers and meteor strikes; no room for hesitation
+  L('Tharsis Overdrive', 'ride', (b) => {
+    b.start(-6, 0, 12);
+    b.slide(11, 0, 25, 0, { T: 2.4, w: 2.6 });
+    b.beam('steam', 18, -3, { P: 2.4, on: 0.7 });
+    b.shard(18, 4.4);                                        // right over the geyser
+    b.plat(29, 1, 3);
+    b.loop([[36, 1], [44, 6], [52, 1]], { speed: 4.5, loop: false, w: 2.4 });
+    b.meteor(44, 6, { P: 2.6 });
+    b.thin(43, 10, 2); b.shard(44, 11.6);
+    b.plat(56, 1, 5);
+    b.checkpoint(58, 1);
+    b.slide(65, 1, 65, 9, { T: 2.2, w: 2.4 });
+    b.slide(71, 9, 83, 9, { T: 2.4, w: 2.4 });
+    b.beam('steam', 77, 3.5, { P: 2.2, on: 0.7, off: 1 });
+    b.plat(87, 9, 3);
+    b.slide(94, 9, 106, 3, { T: 2, w: 2.4 });
+    b.shard(100, 9.4);
+    b.meteor(103, 4.5, { P: 2.2, off: 0.8 });
+    b.plat(110, 3, 8);
+    b.goal(115, 3);
+    b.cells(12, 1.5, 24, 1.5, 4); b.cells(38, 3, 50, 3, 4); b.cells(65, 3, 65, 8, 3); b.cells(72, 10.5, 82, 10.5, 4); b.cells(95, 9, 105, 4.5, 4);
+  }),
+
+  // 150 ── FINALE: a rover canyon, a research base gate, a chimney up Olympus Mons, and the Dust Storm down from the summit
+  L('Olympus Mons', 'finale', (b) => {
+    b.start(-6, 2, 12);
+    b.stream('rover', 4, 40, -1.35, { speed: 4, spacing: 10 });     // deck 0.65
+    b.meteor(16, 0.65, { P: 2.4 }); b.meteor(30, 0.65, { P: 2.4, off: 1.2 });
+    b.shard(23, 5.2);
+    b.plat(40, 1.4, 5);
+    // the base: flip the airlock, take the blue steps
+    b.plat(46, 2, 14);
+    b.rect(46, 7.5, 14, 0.8);
+    b.switch(50, 2);
+    b.blue(52.5, 4.6, 2.5); b.shard(53.7, 6.4);
+    b.redWall(58, 2, 5.5);
+    b.blue(63, 5, 3); b.blue(68, 7, 3);
+    // the chimney up the volcano wall
+    b.plat(72, 8, 7.8);
+    b.wall(76.2, 10.2, 10); b.rect(79.8, 8, 3, 12);
+    b.cells(78.4, 11, 78.4, 18, 3);
+    b.plat(82.8, 20, 6);
+    b.checkpoint(85, 20);
+    // the summit and the storm
+    b.chase({ speed: 4.6, trigger: 86, behind: 16 });
+    b.crumble(92, 22, 2.5);
+    b.plat(98, 24, 4);
+    b.thin(99, 28.5, 2); b.shard(100, 30);
+    b.crumble(106, 21, 2.5);
+    b.plat(112, 18, 4);
+    b.pool(116, 18, 4);
+    b.plat(120, 18, 4);
+    b.crumble(127, 15, 2.5);
+    b.plat(133, 11, 12);
+    b.goal(141, 11);
+    b.cells(8, 2, 36, 2, 6); b.cells(47, 3, 57, 3, 4); b.cells(64, 6.5, 70, 8.5, 2); b.cells(93, 23.5, 130, 16.5, 9);
+  }),
 ];

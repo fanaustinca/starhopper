@@ -465,16 +465,16 @@ export default [
   // 18 ── moments drift past like a river: ride ring-chunks along stacked time-streams of different speeds and hop between lanes
   L('Stream of Moments', 'ride', (b) => {
     b.start(-6, 0, 12);
-    b.stream('ring', 8, 38, -1, { speed: 3, spacing: 9 });
+    b.stream('ring', 8, 38, -1, { speed: 3, spacing: 11 });
     b.stream('ring', 20, 52, 3.5, { speed: 4.2, spacing: 10 });
     b.thin(24, -4, 3); b.shard(25.5, -2.2);
     b.plat(41, 1, 4);
     b.cells(12, 1.4, 34, 1.4, 4); b.cells(24, 6, 48, 6, 4);
     b.plat(53, 5, 6);
     b.checkpoint(56, 5);
-    b.stream('ring', 60, 96, 3, { speed: 3.4, spacing: 10 });
+    b.stream('ring', 60, 96, 3, { speed: 3.4, spacing: 12 });
     b.stream('ring', 64, 100, 7.5, { speed: 5, spacing: 12 });
-    b.stream('ring', 70, 104, 12, { speed: 2.6, spacing: 9 });
+    b.stream('ring', 70, 104, 12, { speed: 2.6, spacing: 11 });
     b.enemy('flyer', 80, 10.6, { ax: 4, ay: 0.4, T: 3 });
     b.enemy('flyer', 90, 6.2, { ax: 3, ay: 0.3, T: 2.6 });
     b.plat(96.5, 4.8, 3); b.shard(98, 6.6);
@@ -536,5 +536,261 @@ export default [
     b.goal(128, 14);
     b.arc(8, 24, 12, 20, 2, 1); b.cells(43, 9.2, 53, 9.2, 4); b.cells(97.6, 12, 97.6, 20, 3); b.cells(66, 7.4, 82, 5.4, 5);
     b.plat(-14, 25.5, 3); b.shard(-12.5, 27.5);
+  }),
+  // 21 ── a cascade of short, fast warp pads: each one turns back on you, so jump to the next before it rewinds
+  L('Rewind Rapids', 'ride', (b) => {
+    b.start(-6, 0, 12);
+    b.slide(10, 0, 20, 0, { T: 2.4, w: 2.6, warp: true });
+    b.slide(24, 1, 34, 1, { T: 2.2, w: 2.6, warp: true, phase: 0.5 });
+    b.thin(27.5, 5, 3); b.shard(29, 6.8);
+    b.slide(38, 2, 38, 8, { T: 2, w: 2.6, warp: true });
+    b.cells(10, 1.4, 20, 1.4, 3); b.cells(24, 2.4, 34, 2.4, 3); b.cells(38, 4, 38, 8, 2);
+    b.plat(42, 8, 4);
+    b.checkpoint(44, 8);
+    b.slide(50, 8, 62, 6, { T: 2.4, w: 2.6, warp: true });
+    b.beam('lightning', 57, 6.5, { P: 3, on: 0.7 });
+    b.thin(55, 1.5, 3); b.shard(56.5, 3.3);
+    b.slide(66, 6, 78, 8, { T: 2, w: 2.6, warp: true, phase: 0.25 });
+    b.beam('lightning', 72, 7.5, { P: 2.6, on: 0.7, off: 1.3 });
+    b.enemy('flyer', 74, 12, { ax: 3, ay: 0.8, T: 2.4 });
+    b.slide(82, 8, 82, 14, { T: 2.2, w: 2.6, warp: true });
+    b.shard(82, 18.6);
+    b.cells(50, 9.4, 62, 7.4, 4); b.cells(66, 7.4, 78, 9.4, 4);
+    b.plat(86, 14, 8);
+    b.goal(91, 14);
+  }),
+
+  // 22 ── ancient geysers erupt on a timer; inside the light-gravity bands their plumes throw you twice as high
+  L('Geyser of Ages', 'ascent', (b) => {
+    b.start(-6, 0, 12);
+    b.tower(6, -2, 26, 40);
+    b.plat(8, 0, 8); b.vent(12, 0, 5, { P: 2.6, on: 1.2 });
+    b.plat(18, 9, 6);
+    b.grav(16, 9, 16, 16, { low: 0.5, high: 1.4, P: 4.4, lowFrac: 0.55 });
+    b.vent(21, 9, 6, { P: 2.4, on: 1.1, off: 1 });
+    b.thin(26.5, 18, 3); b.shard(28, 19.8);
+    b.plat(8, 22, 6);
+    b.rect(5.4, 20, 1.4, 6); b.turret(6.1, 26.6, 1, { P: 2.6 });
+    b.vent(11, 22, 7, { P: 2.6, on: 1.2, off: 0.5 });
+    b.plat(17, 31, 5);
+    b.checkpoint(19, 31);
+    b.cells(12, 3, 12, 8, 3); b.cells(21, 12, 21, 20, 3); b.cells(11, 25, 11, 30, 3);
+    // a row of geysers over the void, each one a stepping stone while it erupts
+    b.plat(26, 29, 4); b.vent(28.8, 29, 4, { P: 2.4, on: 1.2 });
+    b.plat(34, 31, 4); b.vent(36.8, 31, 4, { P: 2.4, on: 1.2, off: 0.8 });
+    b.grav(37, 26, 16, 18, { low: 0.45, high: 1.4, P: 4, lowFrac: 0.5, off: 2 });
+    b.plat(42, 33, 4); b.vent(44.8, 33, 3, { P: 2.4, on: 1.2, off: 1.6 });
+    b.shard(44.8, 41);
+    b.plat(52, 35, 8);
+    b.goal(57, 35);
+    b.arc(29, 32, 34, 33, 2, 2); b.arc(37, 34, 42, 35, 2, 2);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 23 ── your past and future selves: every gap is spanned by a mirrored pair of pads that meet in the middle only for a moment
+  L('Mirror Epoch', 'timing', (b) => {
+    b.start(-6, 0, 12);
+    b.thin(-13, -3, 3); b.shard(-11.5, -1.2);
+    let x = b.mirror(6, 0, 3, { w: 2.8, T: 4 });
+    b.plat(x + 0.3, 0, 4); x += 4.3;
+    b.cells(8, 1.4, 18, 1.4, 3);
+    x = b.mirror(x, 2, 5, { w: 2.8, T: 4.4 });
+    b.plat(x + 0.3, 2, 5);
+    b.enemy('walker', x + 0.5, 2, { range: 4 });
+    b.shard(x - 10.5, 6.2);
+    x += 5.3;
+    b.beam('flare', x + 9, 2, { P: 3, on: 0.8 });
+    x = b.mirror(x, 2, 6, { w: 2.6, T: 4 });
+    b.plat(x + 0.3, 4, 6);
+    b.checkpoint(x + 3, 4);
+    x += 6.3;
+    // a long pair inside a light-gravity zone: leap from the meeting point to a ledge above
+    b.grav(x, -2, 30, 20, { low: 0.45, high: 1.3, P: 4.6, lowFrac: 0.6 });
+    const x0 = x;
+    x = b.mirror(x, 4, 8, { w: 2.8, T: 5 });
+    b.thin((x0 + x) / 2 - 1.5, 12, 3); b.shard((x0 + x) / 2, 13.8);
+    b.plat(x + 0.3, 5, 4);
+    x += 4.3;
+    b.enemy('flyer', x + 6, 8, { ax: 3, ay: 1, T: 2.6 });
+    x = b.mirror(x, 5, 4, { w: 2.4, T: 3.2, phase: 0.5 });
+    b.plat(x + 0.3, 5, 10);
+    b.goal(x + 6, 5);
+    b.cells(x + 2, 6.2, x + 5, 6.2, 3); b.cells(58, 5.2, 61, 5.2, 2);
+  }),
+
+  // 24 ── time froze into ice: slick clock-glass ledges with urchins, warp pads that are kindest while frozen
+  L('Frozen Instant', 'precision', (b) => {
+    b.start(-6, 0, 12);
+    b.ice(10, 0, 10); b.enemy('spiker', 11, 0, { range: 7, speed: 2 });
+    b.slide(25, 0, 25, 8, { T: 3, w: 2.6, warp: true });
+    b.ice(29, 8, 6);
+    b.loop([[39, 8], [39, 14], [47, 14], [47, 8]], { speed: 3, w: 2.6, warp: true });
+    b.shard(43, 11);
+    b.ice(51, 10, 12);
+    b.enemy('walker', 52, 10, { range: 4, speed: 2 }); b.enemy('spiker', 58, 10, { range: 4, speed: 1.4 });
+    b.checkpoint(56, 10);
+    b.thin(54, 14, 4); b.shard(56, 15.8);
+    b.ice(68, 8, 2.6); b.ice(74, 6, 2.6); b.ice(80, 4, 2.6);
+    b.slide(88, 4, 102, 4, { T: 4, w: 3, warp: true });
+    b.beam('steam', 95, -2, { P: 3, on: 0.9 });
+    b.thin(93.5, 8.2, 3); b.shard(95, 10);
+    b.plat(106, 4, 8);
+    b.goal(111, 4);
+    b.cells(12, 1.4, 18, 1.4, 3); b.cells(25, 2, 25, 7, 3); b.cells(69, 9.4, 81, 5.4, 3); b.cells(90, 5.4, 100, 5.4, 4);
+  }),
+
+  // 25 ── a clock-shaft whose gravity breathes in stacked bands, each a beat behind the one below: float from band to band as each turns light
+  L('Tidal Clock', 'gravity', (b) => {
+    b.start(-6, 0, 12);
+    b.tower(8, -2, 18, 34);
+    b.wall(7.2, 4, 30); b.wall(26, 0, 34);
+    b.plat(8, 0, 8);
+    for (let i = 0; i < 4; i++) b.grav(8, i * 7, 18, 7, { low: 0.45, high: 1.6, P: 4.8, lowFrac: 0.5, off: -i * 1.2 });
+    b.thin(18, 6, 6); b.thin(8, 12, 6); b.thin(18, 18, 6); b.thin(8, 24, 6);
+    b.thin(18, 30, 8);
+    b.hazard('spark', 8, 15.5, 0.6, 3); b.hazard('spark', 25.4, 9, 0.6, 3); b.hazard('spark', 25.4, 21, 0.6, 3);
+    b.enemy('flyer', 17, 15, { ax: 4, ay: 0.4, T: 3 });
+    b.enemy('flyer', 17, 27, { ax: 4, ay: 0.4, T: 2.6 });
+    b.cells(21, 8, 21, 16, 3); b.cells(11, 14, 11, 22, 3); b.cells(21, 20, 21, 28, 3);
+    b.thin(8, 6, 2.4); b.shard(9.2, 7.8);
+    b.shard(24.6, 25);
+    b.plat(27, 34, 6);
+    b.checkpoint(29, 34);
+    // out over the void: three islands whose bands breathe out of step
+    b.grav(33, 26, 44, 20, { low: 0.45, high: 1.6, P: 4, lowFrac: 0.55, off: 0 });
+    b.plat(47, 32, 3); b.blink(60, 30, 3, { P: 4, on: 2.6, off: -1 }); b.plat(73, 31, 3);
+    b.arc(33, 34, 47, 32, 4, 4); b.arc(50, 32, 60, 30, 3, 4); b.arc(63, 30, 73, 31, 3, 4);
+    b.shard(55, 37.5);
+    b.plat(80, 31, 8);
+    b.goal(85, 31);
+  }),
+
+  // 26 ── turret volleys tick like a second hand: ticking shields and pillars are your only cover in the hall, then a crossfire climb
+  L('Second Hand Gauntlet', 'gauntlet', (b) => {
+    const shield = (x, P, off) => b.solid(x, 0, 1, 2.4, { style: 'blink', blink: { P, on: P * 0.6, warn: 0.6, off } });
+    b.start(-6, 0, 12);
+    b.plat(8, 0, 50);
+    b.rect(16, 0, 1, 2.4); shield(24, 3, 0); b.rect(32, 0, 1, 2.4); shield(40, 3, 1.5); b.rect(48, 0, 1, 2.4);
+    b.rect(58, 0, 1.6, 5.6);
+    b.turret(58.8, 0.8, -1, { P: 1.6, range: 52 }); b.turret(58.8, 3.6, -1, { P: 1.6, off: 0.8, range: 52 });
+    b.cells(12, 1.4, 52, 1.4, 6);
+    b.thin(36, 5.2, 4); b.shard(38, 7);
+    b.thin(53, 3.2, 3);
+    b.plat(62, 6, 6);
+    b.checkpoint(64, 6);
+    // crossfire climb between two cannon pillars
+    b.rect(68.6, 10.5, 1.4, 15.5); b.rect(82, 4, 1.4, 22);
+    b.turret(69.3, 11.3, 1, { P: 2, range: 12 }); b.turret(82.7, 13.8, -1, { P: 2, off: 1, range: 12 });
+    b.turret(69.3, 17.8, 1, { P: 2, off: 0.5, range: 12 }); b.turret(82.7, 21.8, -1, { P: 2, off: 1.5, range: 12 });
+    b.plat(70, 8.5, 4); b.plat(77, 12.5, 5); b.plat(70, 16.5, 4); b.plat(77, 20.5, 5); b.plat(71, 24.5, 6);
+    b.cells(72, 10, 80, 14, 3); b.cells(72, 18, 80, 22, 3);
+    b.shard(69.3, 28);
+    b.plat(86, 26, 4);
+    b.plat(93, 22, 10);
+    b.goal(99, 22);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 27 ── a carousel of warp pads circles a void; then a figure-of-eight track where two trains cross at the middle
+  L('Echo Loop', 'ride', (b) => {
+    b.start(-6, 0, 12);
+    const ring = [[10, 0], [40, 0], [40, 12], [10, 12]];
+    for (let i = 0; i < 4; i++) b.loop(ring, { speed: 3.2, w: 2.6, warp: true, phase: i * 0.25 });
+    b.plat(23.5, 6, 3); b.shard(25, 7.8);
+    b.hazard('spark', 24.6, 9.6, 0.8, 2);
+    b.enemy('flyer', 25, 2.5, { ax: 8, ay: 0.4, T: 4 });
+    b.cells(14, 1.4, 36, 1.4, 4); b.cells(14, 13.4, 36, 13.4, 4);
+    b.plat(44, 12, 5);
+    b.checkpoint(46, 12);
+    const eight = [[52, 12], [58, 18], [66, 12], [74, 6], [82, 12], [74, 18], [66, 12], [58, 6]];
+    b.loop(eight, { speed: 3, w: 2.6, warp: true });
+    b.loop(eight, { speed: 3, w: 2.6, warp: true, phase: 0.5 });
+    b.plat(72.8, 12, 2.4); b.shard(74, 13.8);
+    b.shard(58, 22.4);
+    b.cells(58, 19.4, 58, 19.4, 1); b.cells(74, 19.4, 74, 19.4, 1); b.cells(58, 7.4, 74, 7.4, 2);
+    b.plat(86, 12, 8);
+    b.goal(91, 12);
+  }),
+
+  // 28 ── orbit one colossal clock: the dial wheel turns slowly while its hands sweep through it; climb from six to the crown
+  L('Clockwork Heart', 'ride', (b) => {
+    b.start(-6, 0, 12);
+    pendulum(b, 17, 10, 8, { deg: 45 });
+    b.plat(26, 2, 4);
+    b.ferris(42, 14, 12, { n: 8, omega: 0.25, w: 2.6 });
+    b.ferris(42, 14, 7, { n: 2, omega: -0.6, w: 4 });
+    b.plat(40.5, 14, 3); b.shard(42, 15.8);                  // the arbor
+    b.thin(39, -4, 6); b.shard(42, -2.2);
+    b.plat(39, 29, 6);
+    b.checkpoint(42, 29);
+    b.shard(42, 33.2);
+    b.ferris(58, 26, 4, { n: 2, omega: 0.7, w: 3 });
+    b.ferris(70, 22, 4, { n: 2, omega: -0.7, w: 3 });
+    for (let i = 0; i < 3; i++) b.blink(78 + i * 5, 20 - i * 2, 2.4, { P: 3, on: 2, off: -i * 0.6 });
+    b.plat(94, 15, 8);
+    b.goal(99, 15);
+    b.cells(30, 3.4, 36, 5, 3); b.cells(42, 27, 42, 27, 1); b.cells(58, 31.4, 58, 31.4, 1); b.cells(70, 27.4, 70, 27.4, 1);
+  }),
+
+  // 29 ── LEAP SECOND: every trick Chronos knows on one-second timing, on ledges barely wider than your feet
+  L('Leap Second', 'precision', (b) => {
+    b.start(-6, 0, 12);
+    b.plat(10, 1, 1.6); b.plat(16, 3, 1.4);
+    b.blink(21, 4, 1.6, { P: 2, on: 1.2 });
+    b.slide(28, 4, 34, 7, { T: 3, w: 2, warp: true });
+    b.thin(38, 8, 1.5);
+    b.grav(39.5, 0, 17, 20, { low: 0.45, high: 1.6, P: 3.6, lowFrac: 0.45 });
+    b.shard(48, 13.5);
+    b.thin(56, 8, 1.5);
+    b.plat(62, 8, 3);
+    b.checkpoint(63.5, 8);
+    b.crumble(68, 9, 1.6); b.crumble(72, 10, 1.6);
+    b.rect(76, 4, 1.4, 6.6); b.turret(76.7, 11.2, -1, { P: 1.5, range: 14 });
+    b.spring(80, 6, 6, 1.4); b.plat(79.6, 6, 2.2);
+    b.thin(85, 14, 1.5);
+    b.loop([[91, 14], [97, 18], [103, 14], [97, 10]], { speed: 4, w: 2, warp: true });
+    b.hazard('spark', 96.6, 13.4, 0.8, 1.2);
+    b.shard(97, 14);
+    for (let i = 0; i < 4; i++) b.blink(107 + i * 4, 13 - i * 2, 1.6, { P: 2, on: 1.1, off: -i * 0.5 });
+    b.plat(124, 5, 1.8); b.shard(125, 1.5); b.thin(123.8, -0.5, 2);
+    b.plat(129, 6, 8);
+    b.goal(134, 6);
+    b.cells(10.8, 2.6, 16.7, 4.6, 2); b.cells(42, 12, 54, 12, 4); b.cells(68.8, 10.6, 72.8, 11.6, 2);
+  }),
+
+  // 30 ── FINALE: past/future bridges, a light-gravity chasm, the clock hands, the bell chimney — then the Time Rift, all the way home
+  L('End of Time', 'finale', (b) => {
+    b.start(-6, 0, 12);
+    b.slide(12, 0, 22, 0, { T: 4, w: 3, warp: true });
+    b.plat(26, 0, 6); b.switch(28, 0);
+    b.blue(35, 2, 3); b.blue(41, 4, 3);
+    b.red(38, 8, 3); b.shard(39.5, 9.8);
+    b.plat(47, 4, 6); b.switch(51, 4);
+    b.red(57, 6, 3);
+    b.plat(62, 7, 5);
+    b.grav(67, 0, 16, 20, { low: 0.45, high: 1.4, P: 4, lowFrac: 0.55 });
+    b.plat(83, 8, 4);
+    b.ferris(96, 12, 7, { n: 2, omega: 0.5, w: 4 });
+    b.enemy('flyer', 96, 4, { ax: 2, ay: 0.6, T: 2.4 });
+    b.shard(96, 23);
+    b.plat(106, 18, 10);
+    b.wall(110, 21, 10); b.wall(113.6, 18, 13);
+    b.plat(115, 30, 6);
+    b.checkpoint(117, 30);
+    b.shard(112.2, 34.6);
+    // the Time Rift: no waiting from here to the end
+    b.chase({ speed: 4.6, trigger: 120, behind: 16 });
+    b.crumble(124, 28, 2.6); b.crumble(129, 26, 2.6);
+    b.plat(134, 24, 5); b.enemy('walker', 134.5, 24, { range: 2 });
+    b.spring(137.2, 24, 6);
+    b.plat(141, 31, 5);
+    b.thin(150, 29, 6); b.thin(160, 27, 6);
+    b.crumble(170, 25, 2.4); b.crumble(175, 24, 2.4);
+    b.plat(180, 22, 5); b.spring(183, 22, 6);
+    b.plat(188, 28, 4);
+    b.plat(196, 26, 14);
+    b.goal(205, 26);
+    b.cells(13, 1.4, 21, 1.4, 3); b.cells(36, 3.4, 42, 5.4, 2); b.arc(67, 7, 83, 8, 5, 5); b.cells(112.2, 21, 112.2, 29, 3);
+    b.cells(125, 29.4, 130, 27.4, 2); b.cells(151, 30.4, 165, 28.4, 4); b.cells(171, 26.4, 176, 25.4, 2);
   }),
 ];

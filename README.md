@@ -21,20 +21,26 @@ A 2.5D robot platformer for the browser, built with Three.js. You play a small g
 | 13 | Bio-Lumina | 361–390 | bouncy mushrooms, swinging vines, carnivorous plant doors |
 | 14 | Chronos | 391–420 | platforms that run fast-forward, freeze or reverse; erratic gravity zones |
 
-When you first press Play, the ship flies in to the Sun, lands, and the robot hops out. When you finish a world, the robot jumps into its ship, flies to the next planet and lands there.
+Every jump plays a random air trick: flips, cartwheels, corkscrews, star jumps and more.
 
-### Level variety
+When you first press Play, a multi-deck mothership flies in to the Sun, lands, lowers its ramp, and the robot walks out. When you finish a world, the robot boards the ship, it lifts off, banks through space to the next planet and lands there.
 
-Each world schedules its 30 levels from a set of **archetypes**, and the same archetype never appears twice in a row:
+### Hand-written levels
 
-- **Arrival / Finale**: the opening level of each world teaches its mechanic. The last level is a long gauntlet that ends in a chase.
-- **Tower climbs** (zig-zag ascents) and **descents** (dropping through the level).
-- **Chase**: a world-themed wall (a solar wave, a dust storm, a time rift) sweeps in from the left.
-- **Rising tide**: lava, acid or a rift floods upward while you climb.
-- **Ride**: long trips on vehicles, rovers, ring streams, gears or vines while dodging hazards.
-- **Gauntlet**, **precision** (small platforms that crumble) and **branch** (secret upper routes).
+All 420 levels are **hand-written** as explicit layouts in `public/js/levels/<world>.js`, using a small authoring DSL (`public/js/levels/dsl.js`, documented in `public/js/levels/README.md`). There's no procedural generation and no randomness. Each level is built around its own idea, for example *Sunspot Checkers*, *Hop-On at the Back*, *Paradox Stair*, *Facet Chimneys* or *Heart of the Machine*. Each world has an intro, two chase levels, a rising-tide climb, a hard level 29 and a finale.
 
-Every level has a name (for example *Prominence Escape* or *Helios Tower*) and hides **3 Star Shards**: one on an upper route reached by a spring, one behind the start (sometimes at the top of a wall-jump shaft), and one in a risky spot.
+Mechanics include stompable walker enemies, spiky enemies you can't stomp, hovering drones, turrets, floor switches that swap red/blue blocks, blinking platforms, crumbling platforms, multi-point looping rides, ferris wheels, vehicles, vines, light bridges, gravity zones, time-warp platforms, wall-jump chimneys and ceilings/tunnels.
+
+Every level hides **3 Star Shards**.
+
+**Solver bot.** `tools/solver.mjs` plays every level with the real player controller. From each reachable surface it tries runs, jumps, double jumps, springs, vents, vine swings, wall-climbs and rides on moving platforms, breadth-first, until it reaches the goal. The unit tests require all 420 levels to be solved.
+
+What the solver does not check: enemy, turret and hazard timing, and the chase/tide pacing. Those were designed by hand.
+
+```bash
+node tools/validate.mjs <world|level…>   # solve levels, warn about unreachable shards
+node tools/preview.mjs world <world>      # side-view map PNGs in tools/previews/
+```
 
 ### Robot Shop
 
@@ -68,12 +74,12 @@ npm run serve        # http://localhost:8000
 
 ```bash
 npm test             # unit + e2e
-npm run test:unit    # Node: physics, all 420 levels, every jump simulated
+npm run test:unit    # Node: physics, mechanics, solver bot over all 420 levels
 npm run test:e2e     # Playwright + headless Chromium against ./public
 npm run test:live    # e2e against the deployed GitHub Pages build
 ```
 
-- **Unit tests** (`tests/unit.mjs`) cover the controller physics: jump heights, double jump, ledge grab, one-way platforms, moving-platform carry, and no tunnelling. They also generate all 420 levels and check that **every static jump on every level can be made**, by running the real player controller with a steering bot.
+- **Unit tests** (`tests/unit.mjs`) cover the controller physics: jump heights, double jump, ledge grab, one-way platforms, moving-platform carry, and no tunnelling. They also build all 420 hand-written levels and run the **solver bot on every one**. They check that each level has 3 shards and a checkpoint, that no two layouts repeat within a world, and that the level files contain no randomness.
 - **E2E tests** (`tests/e2e.mjs`) drive the real game in a headless browser through `window.SH`, a small test API that steps the fixed-timestep simulation deterministically. They cover boot, menus, movement by input, collision, hazards and respawn, level completion and unlocking, save persistence, pause, the level selector, world-transition cutscenes (including skipping), Earth vehicles carrying the robot, each world's signature mechanic, a render of every world, and the mobile layout. Screenshots go to `tests/screenshots/`.
 
 CI (`.github/workflows/deploy.yml`) runs both suites on every push and deploys `public/` to GitHub Pages only if they pass.
@@ -85,7 +91,6 @@ public/js/
   core/        DOM-free, runs in Node too
     config.js    physics constants + the 14 world definitions
     physics.js   player controller, swept AABB collision, jump envelope
-    levelgen.js  deterministic procedural generator (seeded per level)
     sim.js       LevelSim: movers, vehicles, hazards, pickups, goal (fixed 120 Hz step)
     save.js / input.js / audio.js
   render/      Three.js
@@ -100,4 +105,4 @@ public/js/
   main.js      state machine, UI, main loop, window.SH test API
 ```
 
-Levels are generated from a seed, so the 420 levels are identical on every machine. Gap sizes come from the player's real jump envelope (`maxGapFor`), and difficulty ramps up within each world and across the campaign.
+Levels are authored data, so what you play is exactly what was written.

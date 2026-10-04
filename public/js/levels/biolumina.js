@@ -498,7 +498,7 @@ export default [
     b.door(21, 32, { P: 3.2, open: 0.5, off: 0.8 });
     b.plat(29, 32, 6);
     b.vine(40, 39, 6);
-    b.shard(40, 40.5);
+    b.shard(43.5, 35);
     b.plat(46, 30, 4);
     b.plat(54, 28, 10);
     b.goal(60, 28);
@@ -584,7 +584,7 @@ export default [
     b.loop([[53, 3], [53, 17], [58, 17], [58, 3]], { speed: 3.4, w: 3 });
     b.loop([[64, 17], [78, 17]], { speed: 3, loop: false, w: 3 });
     b.loop([[84, 17], [92, 9], [84, 1]], { speed: 3, loop: false, w: 3 });
-    b.thin(64, 22, 3); b.shard(65.5, 23.5);
+    b.thin(64, 21, 3); b.shard(65.5, 22.5);
     b.plat(96, 9, 10);
     b.goal(102, 9);
     b.cells(15, 11.5, 15, 11.5, 1); b.cells(48, 10.5, 48, 10.5, 1); b.cells(55.5, 6, 55.5, 15, 3); b.cells(66, 18.5, 76, 18.5, 4);
@@ -682,7 +682,7 @@ export default [
     b.plat(126, 12, 10);
     b.goal(132, 12);
     b.shard(24.2, 3.5);                                    // low between the first vines
-    b.shard(60, 23.5);                                     // at the top of the mushroom launch
+    b.shard(57, 15.5);                                     // at the top of the mushroom launch
     b.shard(100.2, 6.5);
     b.cells(8, 1.5, 13, 2.5, 2); b.arc(14, 1, 34, 2, 5, 3); b.cells(41, 4.5, 46, 5.5, 2); b.arc(57, 10, 66, 12, 3, 4); b.arc(90, 9, 110, 10, 5, 3);
   }),
@@ -721,6 +721,5 @@ export default [
     b.cells(9, 1, 14, 1, 3); b.cells(28, 1, 41, 1, 5); b.cells(44.1, 4, 44.1, 8, 2); b.cells(29, 9, 38, 9, 4);
     b.cells(28.6, 12, 28.6, 16, 2); b.cells(34, 17, 42, 17, 4); b.cells(28, 25, 39, 25, 4);
     b.arc(51, 31, 74, 29, 6, 3); b.cells(82, 28.5, 87, 26.5, 2); b.arc(106, 24, 118, 22, 3, 4); b.cells(126, 21.5, 131, 19.5, 2);
-    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 ];

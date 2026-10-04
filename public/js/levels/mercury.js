@@ -536,8 +536,7 @@ export default [
 
   // 53 ── inside a crashed probe: two decks, bulkheads and buttons that open one and shut another
   L("Messenger's Wreck", 'puzzle', (b) => {
-    b.start(-6, 0, 12);
-    b.pool(6, 0, 4);
+    b.start(-6, 0, 16);
     b.plat(10, 0, 56);                        // lower deck
     b.plat(10, 6, 10); b.plat(24, 6, 10); b.plat(38, 6, 16); b.plat(58, 6, 8);   // upper deck with hatches
     b.rect(9, 12, 58, 1);                     // hull roof
@@ -587,7 +586,7 @@ export default [
     b.enemy('flyer', 35.5, 6, { ax: 1, ay: 2.5, T: 2.2 });
     b.enemy('flyer', 44.5, 7, { ax: 2, ay: 1.5, T: 3.4 });
     b.arc(14, 1, 21, 3, 2, 2.5); b.arc(23, 3, 30, 2, 2, 2.5); b.arc(32, 2, 39, 4, 2, 2.5); b.arc(41, 4, 48, 2, 2, 2.5);
-    b.shard(35.5, 12);                        // above the moth's orbit
+    b.shard(35.5, 10.5);                      // above the moth's orbit
     b.shard(44.5, -1.2);                      // under it, skimming the surface
     b.plat(54, 3, 6);
     b.checkpoint(57, 3);
