@@ -276,26 +276,26 @@ export default [
   L('Cryo Switchyard', 'puzzle', (b) => {
     b.start(-6, 0, 12);
     b.plat(6, 0, 16);
-    b.switch(12, 0);
-    b.vent(19, 0, 3.5);
-    b.red(17.5, 6, 3);                                      // red lid over the first geyser
+    b.switch(11, 0);
+    b.vent(17, 0, 5.5);
+    b.red(14, 10, 7);                                       // red lid caps the first geyser
     b.red(24, 4, 3); b.shard(25.5, 5.5);                    // grab it before the switch erases it
-    b.plat(21, 9, 6);
-    b.blue(30, 9, 4); b.blue(36, 9, 4);
-    b.blue(33, 13, 3); b.shard(34.5, 14.8);
-    b.cells(30, 10.2, 40, 10.2, 4);
-    b.plat(42, 9, 8);
-    b.checkpoint(44, 9);
-    b.switch(47, 9);
-    b.red(53, 9, 4); b.red(59, 9, 4);
-    b.cells(53, 10.2, 63, 10.2, 4);
-    b.plat(65, 3, 12);
-    b.switch(69, 3);                                        // the trap: stepping on it shuts the lid
-    b.vent(74, 3, 5);
-    b.blue(72.5, 9.5, 3);
-    b.cells(74, 6, 74, 12, 3);
-    b.plat(78, 15, 8);
-    b.goal(82, 15);
+    b.plat(21, 12, 6);
+    b.blue(30, 12, 4); b.blue(36, 12, 4);
+    b.blue(33, 16, 3); b.shard(34.5, 17.8);
+    b.cells(30, 13.2, 40, 13.2, 4);
+    b.plat(42, 12, 8);
+    b.checkpoint(44, 12);
+    b.switch(47, 12);
+    b.red(53, 12, 4); b.red(59, 12, 4);
+    b.cells(53, 13.2, 63, 13.2, 4);
+    b.plat(65, 6, 12);
+    b.switch(69, 6);                                        // the trap: stepping on it shuts the lid
+    b.vent(74, 6, 5);
+    b.blue(72.5, 12.5, 3);
+    b.cells(74, 9, 74, 15, 3);
+    b.plat(78, 18, 8);
+    b.goal(82, 18);
     b.plat(-13, -2, 3); b.shard(-11.5, -0.5);
   }),
 
@@ -332,7 +332,7 @@ export default [
     b.checkpoint(48, 0);
     for (let i = 0; i < 9; i++) b.crumble(52 + i * 2, 0, 2);
     b.meteor(57, 0, { P: 2.6 }); b.meteor(63, 0, { P: 2.6, off: 0.9 }); b.meteor(69, 0, { P: 2.6, off: 1.8 });
-    b.plat(60, -4, 3); b.shard(61.5, -2.5);                 // under the collapsing span
+    b.plat(72, -3, 3); b.shard(73.5, -1.5);                 // tucked under the far end of the span
     b.ice(73, 2, 5); b.ice(80, 4, 5);
     for (let i = 0; i < 4; i++) b.crumble(87 + i * 2, 6, 2);
     b.plat(97, 6, 10);
@@ -468,5 +468,235 @@ export default [
     b.goal(130, 4);
     b.cells(13, 23.4, 19, 23.4, 3); b.cells(34, 17.4, 40, 17.4, 3); b.cells(67, 7.4, 75, 7.4, 4);
     b.plat(-14, 25.5, 3); b.shard(-12.5, 27.5);
+  }),
+  // 261 ── up one side of an ice needle and down the other, ice moths circling every perch
+  L('Moth Spire', 'enemies', (b) => {
+    b.sideWind(2.2, 7);
+    b.start(-6, 0, 12);
+    b.tower(6, -2, 12, 26);
+    const up = [[13, 3], [8, 6], [13, 9], [8, 12], [13, 15], [8, 18], [13, 21]];
+    for (const [x, t] of up) b.plat(x, t, 3);
+    b.enemy('flyer', 11, 8, { ax: 1.2, ay: 1, T: 2.6 });
+    b.enemy('flyer', 11.5, 14, { ax: 1.5, ay: 0.8, T: 3 });
+    b.enemy('flyer', 11, 20, { ax: 1, ay: 1.2, T: 2.4 });
+    b.plat(2, 14, 2.5); b.shard(3.2, 15.6);                 // an outlying perch in the wind
+    b.block(17, 24, 5);                                     // the needle
+    b.checkpoint(19.5, 24);
+    b.shard(19.5, 28.5);
+    const down = [[26, 20], [31, 16], [26, 12], [31, 8], [36, 4]];
+    for (const [x, t] of down) b.plat(x, t, 3);
+    b.enemy('flyer', 29.5, 18, { ax: 1.5, ay: 1, T: 2.8 }); b.enemy('flyer', 29.5, 10, { ax: 1.5, ay: 1, T: 2.2 });
+    b.plat(29, 1, 2.5); b.shard(30.2, 2.6);
+    b.cells(10, 4.5, 10, 22, 6); b.cells(28, 21.5, 37, 5.5, 5);
+    b.plat(42, 2, 10);
+    b.goal(48, 2);
+  }),
+
+  // 262 ── a geyser relay: every pad is too high or walled off to jump to, so each spout hands you to the next
+  L('Geyser Relay', 'geyser', (b) => {
+    b.sideWind(2, 6);
+    b.start(-6, 0, 12);
+    b.ice(8, 0, 3); b.vent(9.5, 0, 2.5, { P: 2.4, on: 1.2 });
+    b.ice(15, 5, 3); b.vent(16.5, 5, 2.5, { P: 2.4, on: 1.2, off: 0.6 });
+    b.ice(22, 10, 3); b.vent(23.5, 10, 2.5, { P: 2.4, on: 1.2, off: 1.2 });
+    b.ice(29, 15, 3); b.vent(30.5, 15, 3.5, { P: 2.4, on: 1.2, off: 1.8 });
+    b.shard(30.5, 27);                                      // top of the tallest spout
+    b.cells(9.5, 4, 30.5, 19, 5);
+    b.plat(36, 18, 6);
+    b.checkpoint(39, 18);
+    for (let i = 0; i < 3; i++) {
+      b.ice(46 + i * 9, 13, 3); b.vent(47.5 + i * 9, 13, 2.8, { P: 2.6, on: 1.2, off: i * 0.8 });
+      b.rect(51 + i * 9, 11, 1.2, 9);
+      b.cell(51.6 + i * 9, 22);
+    }
+    b.shard(69.6, 21.6);                                    // balanced on the last wall
+    b.plat(74, 13, 9);
+    b.goal(80, 13);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 263 ── the twin moons: lift up Miranda's face, ferry across the sky, then pick down Ariel's far side
+  L('Twin Moons', 'ascent', (b) => {
+    b.sideWind(2, 8);
+    b.start(-6, 0, 12);
+    b.block(10, 26, 8);                                     // Miranda
+    b.lift(7.5, 1, 12, { T: 5 });
+    b.plat(1, 13, 4); b.plat(-4, 16, 3); b.plat(1, 19, 4);
+    b.lift(7.5, 19, 27, { T: 4.4 });
+    b.cells(7.5, 4, 7.5, 11, 3); b.cells(2, 20.4, 5, 20.4, 2);
+    b.checkpoint(14, 26);
+    b.shard(11, 30.5);
+    b.slide(23, 26, 37, 26, { T: 5, w: 3 });
+    b.shard(30, 30.4);
+    b.cells(24, 27.4, 36, 27.4, 4);
+    b.block(41, 24, 8);                                     // Ariel
+    b.plat(51, 20, 3); b.crumble(56, 16, 2.6); b.plat(51, 12, 3); b.crumble(56, 8, 2.6); b.plat(51, 4, 3);
+    b.enemy('flyer', 54.5, 14, { ax: 1.6, ay: 0.6, T: 2.4 });
+    b.cells(52.5, 21.4, 52.5, 5.4, 5);
+    b.plat(60, 1, 10);
+    b.goal(66, 1);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 264 ── hitch rides on drifting chunks of the epsilon ring, two lanes at two speeds
+  L('Epsilon Drift', 'ride', (b) => {
+    b.sideWind(1.6, 9);
+    b.start(-6, 2.35, 14);
+    b.plat(-14, 4, 3); b.shard(-12.5, 6);
+    b.stream('ring', 8, 40, 0, { speed: 3, spacing: 6 });
+    b.cells(12, 2.2, 36, 2.2, 6);
+    b.thin(22, 5.6, 4); b.shard(24, 7.2);                   // hop off the chunk mid-drift
+    b.plat(41, 1.9, 6);
+    b.checkpoint(44, 1.9);
+    b.plat(46, 5.35, 3);
+    b.stream('ring', 49, 82, 4, { speed: 4.2, spacing: 7 });
+    b.meteor(60, 5, { style: 'drip', P: 2.6 }); b.meteor(72, 5, { style: 'drip', P: 2.6, off: 1.3 });
+    b.cells(52, 6.2, 80, 6.2, 7);
+    b.plat(64, -1, 3); b.shard(65.5, 0.6);                  // drop under the fast lane
+    b.plat(83, 5.9, 10);
+    b.goal(89, 5.9);
+  }),
+
+  // 265 ── a frost tube: the roof dips and rises, so every hop over a pit or urchin has to stay low
+  L('Frostbite Tube', 'tunnel', (b) => {
+    b.sideWind(1.4, 6);
+    b.start(-6, 0, 12);
+    b.rect(4, 3.6, 22, 1); b.rect(26, 4.4, 4, 1); b.rect(34, 4.4, 6, 1); b.rect(40, 3.6, 10, 1);
+    b.plat(6, 0, 10); b.plat(19, 0, 8); b.crumble(29.5, 0, 3); b.plat(35, 0, 15);
+    b.enemy('spiker', 21, 0, { range: 4, speed: 1.4 });
+    b.enemy('spiker', 37, 0, { range: 10, speed: 2 });
+    b.rect(30, 5.4, 0.8, 3); b.rect(33.2, 5.4, 0.8, 3); b.rect(30, 8.4, 4, 0.8);
+    b.thin(30.8, 4.4, 2.4); b.shard(32, 6.2);               // an alcove punched up through the roof
+    b.cells(7, 1, 48, 1, 10);
+    b.plat(50, 2, 6);                                       // the tube steps up
+    b.checkpoint(52, 2);
+    b.rect(50, 5.6, 34, 1);
+    b.plat(59, 2, 6); b.crumble(68, 2, 2.4); b.plat(73, 2, 11);
+    b.enemy('walker', 61, 2, { range: 3 }); b.enemy('spiker', 75, 2, { range: 7, speed: 2.4 });
+    b.plat(65, -2, 2.4); b.shard(66.2, -0.6);               // down in a pit
+    b.meteor(78, 2, { style: 'drip', h: 3.6, P: 2 });
+    b.cells(52, 3, 82, 3, 8);
+    b.plat(87, 4, 10);
+    b.goal(93, 4);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 266 ── climb an aurora curtain: rungs of light flicker in a rising wave while the wind sways you
+  L('Aurora Ladder', 'timing', (b) => {
+    b.sideWind(2.4, 7);
+    b.start(-6, 0, 12);
+    b.tower(6, -2, 14, 40);
+    for (let i = 0; i < 6; i++) b.blink(i % 2 ? 14 : 8, 2.6 + i * 2.6, 4, { P: 3.2, on: 2, off: -i * 0.4 });
+    b.plat(9, 18, 8);
+    b.checkpoint(13, 18);
+    b.blink(1, 17, 3, { P: 3.2, on: 2, off: 1.6 }); b.shard(2.5, 18.8);
+    for (let i = 0; i < 6; i++) b.blink(i % 2 ? 8 : 14, 20.6 + i * 2.6, 4, { P: 3, on: 1.8, off: -i * 0.4 });
+    b.plat(9, 36, 6);
+    b.shard(12, 40.5);
+    b.cells(10, 3.6, 16, 16.6, 5); b.cells(10, 21.6, 16, 34.6, 5);
+    for (let i = 0; i < 4; i++) b.blink(20 + i * 5.5, 34 - i * 2.5, 3, { P: 3, on: 1.8, off: -i * 0.45 });
+    b.plat(43, 24, 10);
+    b.goal(49, 24);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 267 ── a three-storey switchback through the glacier: right along the bottom, back left above, right again on top
+  L('Switchback Glacier', 'maze', (b) => {
+    b.start(-6, 0, 12);
+    b.ice(6, 0, 46);                                        // storey 1: slick floor, mites
+    b.enemy('walker', 14, 0, { range: 10, speed: 2 }); b.enemy('walker', 30, 0, { range: 10, speed: 2.4 });
+    b.cells(8, 1, 40, 1, 7);
+    b.thin(46, 2.6, 3);
+    b.plat(50.5, 0.01, 1.5); b.shard(51.2, 1.4);           // the far corner of the bottom storey
+    b.plat(6, 5, 38);                                       // storey 2: icicles, walking back left
+    b.checkpoint(40, 5);
+    for (let i = 0; i < 5; i++) b.meteor(14 + i * 6, 5, { style: 'drip', h: 4.6, P: 2.4, off: i * 0.5 });
+    b.cells(10, 6, 38, 6, 6);
+    b.thin(7, 7.6, 3);
+    b.plat(12, 10, 40);                                     // storey 3: a sentry fires down the hall
+    b.rect(52, 10, 1.4, 4); b.turret(52, 10.8, -1, { P: 2.4 });
+    b.enemy('spiker', 24, 10, { range: 10, speed: 2 });
+    b.cells(14, 11, 50, 11, 8);
+    b.shard(52.7, 15.6);                                    // on the sentry's roof
+    b.plat(56, 12, 8);
+    b.goal(61, 12);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 268 ── a crevasse labyrinth of red and blue ice: three switches, one chimney, and an exit through the roof
+  L('Crevasse Labyrinth', 'puzzle', (b) => {
+    b.start(-6, 0, 12);
+    b.plat(6, 0, 14); b.plat(20, 0, 10); b.plat(30, 0, 6); b.plat(36, 0, 8);   // floor split at each ice wall
+    b.rect(6, 14, 58, 1);
+    b.switch(10, 0);
+    b.blue(13, 4, 3); b.shard(14.5, 5.6);
+    b.redWall(20, 0, 14);
+    b.wall(25, 2.2, 9); b.wall(28.6, 0, 9);                 // the chimney
+    b.cells(27.2, 3, 27.2, 8, 3);
+    b.shard(25.4, 12.6);
+    b.plat(28.6, 9, 6); b.switch(32, 9);
+    b.blueWall(36, 0, 14);
+    b.checkpoint(40, 0);
+    b.red(44, 0, 8);
+    b.plat(52, 0, 7.5); b.plat(59.5, 0, 4.5);
+    b.switch(55, 0);
+    b.redWall(59.5, 0, 14);
+    b.blue(60.5, 3, 3); b.blue(63, 7, 3);
+    b.cells(45, 1.2, 51, 1.2, 3);
+    b.plat(69, 10, 8);
+    b.goal(74, 10);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 269 ── the polar night: tiny crystal footholds in a howling crosswind, icicles and sentries; the hardest stretch on Uranus
+  L('Polar Night', 'precision', (b) => {
+    b.sideWind(4, 5);
+    b.start(-6, 0, 12);
+    b.ice(9, 1, 2); b.ice(15, 3, 1.8); b.crumble(21, 4, 2); b.ice(27, 2, 1.8);
+    b.meteor(16, 3, { P: 2.4 }); b.meteor(28, 2, { P: 2.4, off: 1.2 });
+    b.blink(32, 4, 2.4, { P: 2.6, on: 1.5 }); b.blink(37, 6, 2.4, { P: 2.6, on: 1.5, off: -0.6 });
+    b.ice(42, 8, 2);
+    b.shard(43, 12.6);
+    b.plat(47, 5, 5);
+    b.checkpoint(49, 5);
+    b.rect(56, 0, 1.4, 9); b.turret(56.7, 6.6, -1, { P: 1.9 });
+    b.ice(59, 6, 1.8); b.crumble(64, 7.5, 1.8); b.ice(69, 9, 1.8);
+    b.rect(73, 2, 1.4, 12); b.turret(73.7, 10.6, -1, { P: 1.7, off: 0.8 });
+    b.shard(66, 11.5);                                      // a leap between the sentries
+    b.ice(77, 8, 1.8); b.blink(82, 6, 2.4, { P: 2.4, on: 1.4 }); b.ice(87, 4, 1.8); b.crumble(92, 3, 2);
+    b.meteor(88, 4, { P: 2.2, off: 0.5 });
+    b.plat(97, 3, 10);
+    b.goal(103, 3);
+    b.cells(10, 2.5, 38, 7.5, 7); b.cells(60, 7.5, 92, 4.5, 7);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 270 ── FINALE: a lidded geyser, aurora bridges, an ice chimney, and then the Blizzard chases you off the giant
+  L('Heart of the Ice Giant', 'finale', (b) => {
+    b.sideWind(1.8, 7);
+    b.start(-6, 0, 12);
+    b.plat(6, 0, 16); b.switch(9, 0);
+    b.vent(17, 0, 5.5);
+    b.red(14, 10, 7);                                       // the switch-lidded geyser again
+    b.plat(21, 12, 6);
+    b.blink(29, 12, 4, { P: 3.4, on: 2, off: 0 }); b.blink(36, 13, 4, { P: 3.4, on: 2, off: -0.8 });
+    b.blink(32, 17, 3, { P: 3.4, on: 2, off: 1.7 }); b.shard(33.5, 18.8);
+    b.plat(43, 12, 10);
+    b.rect(48, 14.2, 1, 10); b.rect(51.8, 12, 1, 12);      // the chimney
+    b.cells(50.4, 15, 50.4, 22, 3);
+    b.shard(48.5, 26.4);
+    b.plat(51.8, 24, 6);
+    b.checkpoint(54, 24);
+    b.chase({ speed: 4.4, trigger: 56, behind: 16 });
+    b.plat(62, 22, 4); b.ice(69, 20, 5);
+    b.crumble(78, 18, 2.6); b.crumble(83, 17, 2.6);
+    b.plat(88, 16, 5); b.vent(91.5, 16, 2.5, { always: true });
+    b.plat(95, 23, 4);
+    b.shard(97, 27.4);
+    b.ice(103, 20, 5);
+    b.crumble(111, 18, 2.4); b.crumble(116, 16, 2.4);
+    b.plat(121, 14, 12);
+    b.goal(129, 14);
+    b.cells(30, 13.2, 40, 14.2, 4); b.cells(63, 23.4, 117, 17.4, 10);
   }),
 ];

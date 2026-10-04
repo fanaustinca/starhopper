@@ -200,6 +200,7 @@ export class LevelBuilder {
       if (P.type === 'line') minTop = Math.min(minTop, P.y0 + m.h, P.y1 + m.h);
       if (P.type === 'poly') for (const [, y] of P.pts) minTop = Math.min(minTop, y);
       if (P.type === 'circle') minTop = Math.min(minTop, P.cy - P.r);
+      if (P.type === 'bob') minTop = Math.min(minTop, P.y0 + m.h - P.ay);
     }
     const floorY = minTop - (W.floating ? 7 : 4);
     for (const s of this.solids) {

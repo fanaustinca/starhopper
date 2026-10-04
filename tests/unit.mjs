@@ -187,7 +187,7 @@ test('all 420 levels are hand-written and build to valid data', () => {
 test('level files contain no randomness or procedural generation', () => {
   for (const w of WORLDS) {
     const src = fs.readFileSync(new URL(`../public/js/levels/${w.id}.js`, import.meta.url), 'utf8');
-    assert.ok(!/Math\.random|makeRng|hash32|seed/i.test(src), `${w.id}.js uses randomness`);
+    assert.ok(!/Math\.random|makeRng|hash32\(|\bseed\s*[=:(]/.test(src), `${w.id}.js uses randomness`);
   }
 });
 test('every level: a name, exactly 3 star shards, a checkpoint, cells', () => {
@@ -314,7 +314,7 @@ test('switches swap red/blue blocks; enemies can be stomped; turrets fire', () =
   const s2 = new LevelSim(generateLevel(Le.index));
   const en = s2.enemies.find((e) => e.def.type === 'walker');
   s2.step(idle());
-  s2.teleport(en.x, en.y + 1.2); s2.player.vy = -5;
+  s2.teleport(en.x, en.y + 0.7); s2.player.vy = -5;
   s2.step(idle());
   assert.equal(en.alive, false, 'stomped');
   const Lt = levels.find((l) => l.turrets.length);

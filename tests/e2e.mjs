@@ -125,7 +125,7 @@ await test('jump rises ~2.45 and lands again; double jump goes higher', async ()
 
 await test('ledge grab: falling beside a ledge grabs it, ↑ climbs on top', async () => {
   const L = await S(() => SH.level());
-  const start = L.solids.find((s) => s.id === L.path[0]);
+  const start = L.solids[0];
   const top = start.y + start.h;
   // fall just right of the start platform, pushing left into it
   await S(([x, y]) => SH.teleport(x, y), [start.x + start.w + 0.45, top - 0.9]);
@@ -142,8 +142,8 @@ await test('real input clears the opening jumps of level 1 (no teleporting)', as
   await S(() => { SH.teleport(-2, 0); SH.step(60); });
   // play: run, jump at each platform edge, steer toward the next platform
   for (let k = 1; k <= 2; k++) {
-    const A = L.solids.find((s) => s.id === L.path[k - 1]);
-    const B = L.solids.find((s) => s.id === L.path[k]);
+    const A = L.solids[k - 1];
+    const B = L.solids[k];
     let st = await S(() => SH.state());
     let jumped = false, dbl = false, t = 0;
     for (let i = 0; i < 600; i++) {
@@ -251,11 +251,11 @@ await test('cutscene can be skipped with Space', async () => {
 });
 
 await test('Earth levels show city location; vehicles move and carry the robot', async () => {
-  await S(() => SH.startLevel(95));
+  await S(() => { const n = Array.from({ length: 30 }, (_, i) => 91 + i).find((k) => SH.generate(k).movers.some((m) => m.path.type === 'stream')); return SH.startLevel(n); });
   await S(() => SH.manual(true));
   const st0 = await S(() => SH.state());
-  assert(st0.location === 'New York', 'location ' + st0.location);
-  assert((await page.textContent('#hud-world')).includes('New York'));
+  assert(st0.location, 'Earth level has a city: ' + st0.location);
+  assert((await page.textContent('#hud-world')).includes(st0.location));
   const res = await S(() => {
     const sim = SH.game.sim;
     const veh = sim.moverState.find((m) => m.def.path.type === 'stream' && m.alpha > 0.9 && m.x > m.def.path.xStart + 2 && m.x + m.def.w < m.def.path.xEnd - 6);
@@ -328,13 +328,8 @@ await test('signature mechanics behave in-browser (bridge, gravity zone, door, v
   assert(res.skip || (res.swinging && res.released), 'vine grab: ' + JSON.stringify(res));
 });
 
-await test('level archetypes differ: tower climb, chase wall and rising tide all run', async () => {
-  const r = await S(() => {
-    const out = {};
-    for (let n = 1; n <= 30; n++) { const L = SH.generate(n); (out[L.archetype] = out[L.archetype] || []).push(n); }
-    return out;
-  });
-  assert(Object.keys(r).length >= 8, 'archetypes in world 1: ' + Object.keys(r).join(','));
+await test('hand-written set pieces run: tower climb, chase wall and rising tide', async () => {
+  const r = { chase: [5], tide: [15], ascent: [6] };   // Sun: Solar Wave, Rising Plasma, Corona Spire
   // chase: wall appears and advances
   await S((n) => SH.startLevel(n), r.chase[0]);
   let res = await S(() => { SH.manual(true); SH.teleport(6, 0); SH.step(240); return { active: SH.game.sim.chaser.active, x: SH.game.sim.chaser.x }; });

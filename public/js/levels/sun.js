@@ -137,6 +137,7 @@ export default [
     b.rect(80, 0, 1, 7.2); b.plat(80, 7.2, 1);                  // pillar
     b.plat(84, 4, 14); b.enemy('walker', 85, 4, { range: 5 }); b.enemy('walker', 92, 4, { range: 4, speed: 2.2 });
     b.goal(95, 4);
+    b.cells(12, 1, 18, 1, 3); b.cells(62, 5, 68, 5, 3);
     b.shard(80.5, 10.5); b.shard(28, 7.6); b.plat(-14, 2, 3); b.shard(-12.5, 4);
   }),
 
@@ -210,6 +211,7 @@ export default [
     b.blue(76, 3, 5); b.redWall(84, 3, 6); b.plat(82, 3, 6); b.switch(83, 3);
     b.plat(90, 3, 10);
     b.goal(96, 3);
+    b.cells(10, 1.2, 24, 1.2, 4); b.cells(37, 2.5, 50, 4.5, 4); b.cells(77, 4.2, 81, 4.2, 2);
     b.thin(56.5, 6.4, 3); b.shard(66, 9.8); b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
     b.blue(36, 6, 3); b.shard(37.5, 8);
   }),
@@ -302,6 +304,7 @@ export default [
     b.plat(72, 3, 12); b.enemy('flyer', 78, 5, { ax: 4, ay: 1, T: 2 });
     b.goal(81, 3);
     b.arc(17, 0, 22, 1, 2, 2); b.arc(27, 1, 32, 2, 2, 2);
+    b.cells(52, 5.2, 66, 5.2, 4);
     b.shard(59.5, 10.5); b.shard(37, 6.5);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
@@ -319,6 +322,7 @@ export default [
     b.cells(49, 9, 67, 9, 4);
     b.plat(71, 10, 4); b.plat(78, 7, 10);
     b.goal(84, 7);
+    b.cells(10, 4, 16, 6, 3);
     b.shard(58, 18); b.shard(22.5, 13);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
@@ -335,6 +339,7 @@ export default [
     b.plat(75, 10, 10);
     b.goal(81, 10);
     b.cells(16, 9.5, 16, 9.5, 1); b.cells(42, 14.5, 42, 14.5, 1);
+    b.cells(27, 5.2, 30, 5.2, 3); b.cells(55, 9.2, 58, 9.2, 3); b.cells(76, 11.2, 84, 11.2, 4);
     b.shard(42, 5); b.shard(66, 17);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),

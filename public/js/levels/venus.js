@@ -296,13 +296,13 @@ export default [
   // 72 ── down into a caldera and out again, under the crossfire of a turret pillar in the middle
   L('Sapas Caldera', 'gauntlet', (b) => {
     b.start(-6, 12, 14);
-    b.block(10, 9, 4); b.block(16, 6, 4); b.block(22, 3, 4);
+    b.block(8, 9, 8); b.block(16, 6, 6); b.block(22, 3, 6);
     b.block(28, 0, 4); b.pool(32, 0, 3, 'acid');
     b.block(35, 4.5, 4);
     b.turret(35, 1.2, -1, { P: 2.4 }); b.turret(39, 1.2, 1, { P: 2.4, off: 1.2 });
     b.pool(39, 0, 3, 'acid'); b.block(42, 0, 4);
     b.checkpoint(37, 4.5);
-    b.block(50, 3, 4); b.block(56, 6, 4); b.block(62, 9, 4);
+    b.block(50, 3, 6); b.block(56, 6, 6); b.block(62, 9, 6);
     b.block(68, 12, 12);
     b.rect(78, 12, 1.6, 4); b.turret(78.8, 12.8, -1, { P: 2.6 }); b.turret(78.8, 14.9, -1, { P: 2.6, off: 1.3 });
     b.enemy('flyer', 47, 5, { ax: 1.5, ay: 2, T: 3 });
@@ -369,7 +369,7 @@ export default [
   // 75 ── climb Maxwell Montes: up the slope while clouds roll downhill, a crevasse chimney, then the summit
   L('Maxwell Montes', 'ascent', (b) => {
     b.start(-6, 0, 12);
-    b.block(8, 2, 5); b.block(15, 4.5, 4); b.block(21, 7, 5);
+    b.block(8, 2, 7); b.block(15, 4.5, 6); b.block(21, 7, 7);
     b.block(28, 9, 9);
     b.cloud(30, 15, 3, { dx: -20, T: 6 });
     b.meteor(18, 4.5, { style: 'drip', P: 1.8 });
@@ -380,8 +380,8 @@ export default [
     b.cells(35.5, 12, 35.5, 19, 4);
     b.shard(33.6, 21.4);
     b.checkpoint(41, 21);
-    b.block(47, 23.5, 4); b.block(53, 26, 4);
-    b.block(59, 28, 6);
+    b.block(45, 23.5, 6); b.block(51, 26, 6);
+    b.block(57, 28, 8);
     b.cloud(62, 30, 22, { dx: -18, T: 7 });
     b.cells(48, 25, 61, 29.5, 4);
     b.shard(62, 33);
@@ -524,5 +524,252 @@ export default [
     b.cells(13, 2.4, 24, 3.4, 3); b.cells(30, 3, 30, 7, 3); b.cells(45, 8.4, 55, 6.4, 4); b.cells(108, 11.4, 118, 7.4, 4);
     b.shard(36.5, 12); b.shard(80, 13.6);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+  // 81 ── counter-rising lifts with steam geysers between them: cross each geyser while it sleeps
+  L('Danu Geyser Lifts', 'timing', (b) => {
+    b.start(-6, 0, 12);
+    b.lift(10, 0, 10, { T: 5 });
+    b.beam('steam', 13.8, -2, { P: 3, on: 1, h: 16 });
+    b.lift(17.6, 10, 0, { T: 5 });
+    b.plat(23, 9, 5);
+    b.cells(10, 5, 17.6, 5, 3);
+    b.lift(32, 4, 16, { T: 6 });
+    b.beam('steam', 36, -2, { P: 3.2, on: 1.1, h: 21 });
+    b.lift(40, 16, 6, { T: 6 });
+    b.beam('steam', 44, -2, { P: 3.2, on: 1.1, off: 1.6, h: 21 });
+    b.lift(48, 6, 18, { T: 6.5 });
+    b.shard(36, 20.5);
+    b.plat(52, 16, 6);
+    b.checkpoint(55, 16);
+    b.plat(54, 8, 3); b.shard(55.5, 10);
+    b.lift(62, 14, 2, { T: 5 });
+    b.beam('steam', 66, -2, { P: 2.8, on: 1, h: 13 });
+    b.plat(69, 4, 4);
+    b.lift(77, 4, 14, { T: 5 });
+    b.beam('steam', 81, -2, { P: 2.8, on: 1, off: 1.4, h: 16 });
+    b.plat(84, 12, 10);
+    b.goal(90, 12);
+    b.cells(32, 11, 48, 11, 5); b.cells(62, 9, 77, 9, 4);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 82 ── a switchyard where every button is required: each press opens the way ahead and drops the way back
+  L('Magellan Switchyard', 'puzzle', (b) => {
+    b.start(-6, 0, 12);
+    b.plat(8, 0, 10); b.switch(14, 0);
+    b.blue(21, 0, 4); b.blue(27, 0, 4);
+    b.plat(33, 0, 12); b.switch(35, 0);
+    b.rect(33, 4.8, 14, 0.8); b.blueWall(41, 0, 4.8);
+    b.shard(39, 7.4);
+    b.red(48, 1, 4); b.red(54, 2, 4);
+    b.cloud(51, 8, 1.6, { T: 4 });
+    b.plat(60, 3, 10); b.switch(66, 3);
+    b.checkpoint(62, 3);
+    b.meteor(64, 3, { style: 'drip', P: 2 });
+    b.blue(71, 6, 3);
+    b.shard(72.5, 10.4);
+    b.rect(77, 3, 1, 7);
+    b.plat(78, 6, 6); b.switch(81, 6);
+    b.red(87, 8, 3); b.red(92, 10, 3);
+    b.cloud(91, 16, 11, { T: 3.4 });
+    b.plat(97, 10, 8);
+    b.goal(102, 10);
+    b.cells(9, 1, 30, 1, 6); b.cells(34, 1, 44, 1, 4); b.cells(49, 2.4, 57, 3.4, 3); b.cells(88, 9.4, 94, 11.4, 3);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 83 ── the batteries of Sif Mons: ride lava vents over three turret towers, each taller than the last
+  L('Sif Mons Batteries', 'gauntlet', (b) => {
+    b.start(-6, 0, 12);
+    b.block(6, 0, 42);
+    b.vent(14, 0, 8, { P: 2.4, on: 1.2 });
+    b.rect(18, 0, 3, 9); b.turret(18, 0.8, -1, { P: 2.2 }); b.turret(21, 0.8, 1, { P: 2.2, off: 1.1 });
+    b.vent(26.5, 0, 11, { P: 2.4, on: 1.2, off: 0.6 });
+    b.checkpoint(24, 0);
+    b.rect(30, 0, 3, 12); b.turret(30, 3, -1, { P: 2.6 }); b.turret(33, 0.8, 1, { P: 2.4 });
+    b.thin(30, 16, 3); b.shard(31.5, 17.6);
+    b.vent(38.5, 0, 14, { P: 2.4, on: 1.2, off: 1.2 });
+    b.rect(42, 0, 3, 15); b.turret(42, 6, -1, { P: 2.2, off: 0.5 });
+    b.spring(45.4, 0, 11); b.shard(47, 1.2);
+    b.enemy('flyer', 36, 8, { ax: 1, ay: 2, T: 3 });
+    b.plat(49, 13, 4); b.plat(56, 10, 4);
+    b.plat(63, 7, 10);
+    b.goal(69, 7);
+    b.cells(14, 4, 14, 8, 3); b.cells(26.5, 5, 26.5, 11, 3); b.cells(38.5, 6, 38.5, 14, 4); b.cells(50, 14.4, 58, 11.4, 3);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 84 ── a forest of needle pillars in a cloudburst: read the slanting clouds, then the vertical ones
+  L('Cloudburst Pillars', 'precision', (b) => {
+    b.start(-6, 0, 12);
+    [[10, 1], [15, 2.5], [20, 1.5], [25, 3], [30, 2], [35, 3.5]].forEach(([x, t]) => { b.block(x, t, 1.8); b.cell(x + 0.9, t + 1.2); });
+    b.cloud(12.5, 8, 0, { dx: 5, T: 4 });
+    b.cloud(22.5, 0, 8, { dx: -5, T: 3.6 });
+    b.cloud(32, 7, 0.5, { dx: 4, T: 3.2 });
+    b.plat(17, -2, 2); b.shard(18, -0.4);
+    b.plat(40, 3, 5);
+    b.checkpoint(42, 3);
+    [[49, 6], [54, 9], [59, 7], [64, 10], [69, 8]].forEach(([x, t]) => { b.block(x, t, 1.8); b.cell(x + 0.9, t + 1.2); });
+    b.cloud(52, 2, 12, { T: 3 }); b.cloud(57, 13, 3, { T: 3 }); b.cloud(62, 2, 12, { T: 2.6, phase: 0.3 }); b.cloud(67, 13, 3, { T: 2.6 });
+    b.meteor(54.9, 9, { style: 'drip', P: 1.8 }); b.meteor(64.9, 10, { style: 'drip', P: 1.8, off: 0.9 });
+    b.shard(64.9, 13.8);
+    b.plat(75, 6, 8);
+    b.goal(80, 6);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 85 ── a cavern of rotating carousels: ride each conveyor-loop round and leap to the next
+  L('Haze Carousel', 'ride', (b) => {
+    b.start(-6, 0, 12);
+    b.rect(8, 13, 60, 1);
+    b.loop([[10, 1], [28, 1], [28, 9], [10, 9]], { speed: 3, w: 3 });
+    b.loop([[10, 1], [28, 1], [28, 9], [10, 9]], { speed: 3, w: 3, phase: 0.5 });
+    b.meteor(19, 1, { style: 'drip', P: 2 });
+    b.cells(12, 2.4, 26, 2.4, 4); b.shard(19, 11.4);
+    b.plat(32, 9, 4);
+    b.loop([[40, 10], [58, 10], [58, 3], [40, 3]], { speed: 3.2, w: 3 });
+    b.loop([[40, 10], [58, 10], [58, 3], [40, 3]], { speed: 3.2, w: 3, phase: 0.5 });
+    b.cloud(49, 4, 6.8, { T: 4 });
+    b.cells(42, 11.4, 56, 11.4, 4);
+    b.plat(62, 3, 5);
+    b.checkpoint(64, 3);
+    b.plat(66, 7, 2); b.shard(67, 8.8);
+    b.loop([[72, 3], [80, 11], [88, 3], [80, -5]], { speed: 3.5, w: 3 });
+    b.loop([[72, 3], [80, 11], [88, 3], [80, -5]], { speed: 3.5, w: 3, phase: 0.5 });
+    b.meteor(80, 11, { style: 'drip', P: 2.4 });
+    b.cells(74, 6, 86, 6, 4);
+    b.plat(92, 4, 8);
+    b.goal(97, 4);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 86 ── a two-storey labyrinth: the lower hall is barred, so climb up, flip the gate, and drop back through the hole
+  L('Lakshmi Labyrinth', 'maze', (b) => {
+    b.start(-6, 0, 12);
+    b.plat(6, 0, 70);
+    b.rect(6, 14, 60, 1); b.rect(70, 14, 8, 1);
+    b.rect(12, 6.5, 22, 0.8); b.rect(37, 6.5, 25, 0.8);
+    b.thin(7, 3.8, 4);
+    b.redWall(40, 0, 6.5);
+    [20, 28].forEach((x, i) => b.beam('steam', x, 0, { P: 2.6, on: 0.9, off: i * 1.3, h: 6.5 }));
+    b.enemy('walker', 14, 0, { range: 10 });
+    b.switch(30, 7.3);
+    b.enemy('spiker', 14, 7.3, { range: 12, speed: 1.8 });
+    b.blueWall(45, 7.3, 6.7);
+    b.checkpoint(38, 0);
+    b.enemy('walker', 46, 0, { range: 12, speed: 2 });
+    b.beam('steam', 56, 0, { P: 2.4, on: 0.8, h: 6.5 });
+    b.thin(63, 3.8, 3);
+    b.shard(55, 9);
+    b.plat(66, 10.5, 4);
+    b.plat(78, 15, 8);
+    b.goal(83, 15);
+    b.shard(20, 16.6);
+    b.cells(8, 1, 38, 1, 6); b.cells(13, 8.5, 31, 8.5, 5); b.cells(42, 1, 62, 1, 5);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 87 ── tessera crust: a rippling wave of crumbling tiles under a ceiling of crosswind clouds, then a blinking valley
+  L('Tessera Shatter', 'precision', (b) => {
+    b.start(-6, 0, 12);
+    [[9, 1], [13, 2.5], [17, 4], [21, 2.5], [25, 1], [29, 2.5], [33, 4], [37, 5.5]].forEach(([x, t]) => { b.crumble(x, t, 2); b.cell(x + 1, t + 1.2); });
+    b.cloud(13, 6.8, 6.8, { dx: 10, T: 4 }); b.cloud(33, 8, 8, { dx: -8, T: 3.4 });
+    b.shard(38, 9.6);
+    b.plat(42, 5, 4);
+    b.checkpoint(44, 5);
+    b.blink(49, 3.5, 2.4, { P: 2.4, on: 1.5 }); b.crumble(53.5, 2, 2);
+    b.blink(58, 0.5, 2.4, { P: 2.4, on: 1.5, off: 0.8 }); b.crumble(62.5, -1, 2);
+    b.plat(60, -4, 3); b.shard(61.5, -2.2);
+    b.crumble(67, 1, 2); b.blink(71.5, 3, 2.4, { P: 2.4, on: 1.5, off: 1.6 }); b.crumble(76, 5, 2);
+    [55.5, 64.5, 73.5].forEach((x, i) => b.meteor(x, 0, { style: 'drip', P: 1.6, off: i * 0.5 }));
+    b.cells(50, 5, 77, 6.4, 7);
+    b.plat(81, 6, 8);
+    b.goal(86, 6);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 88 ── Baltis Vallis, the longest lava channel in the system: one long rhythmic run of pools, ferries and eruptions
+  L('Baltis Vallis', 'classic', (b) => {
+    b.start(-6, 0, 12);
+    b.block(6, 0, 8); b.pool(14, 0, 4, 'lava'); b.block(18, 0, 6); b.pool(24, 0, 5, 'lava'); b.block(29, 0, 5);
+    b.pool(34, 0, 6, 'lava'); b.block(40, 0, 6); b.enemy('spiker', 41, 0, { range: 4 });
+    b.pool(46, 0, 14, 'lava');
+    b.slide(49, 0.8, 57, 0.8, { T: 3, w: 3 });
+    b.thin(51, 4.6, 4); b.shard(53, 6.2);
+    b.block(60, 0, 8);
+    b.meteor(62, 0, { style: 'drip', P: 1.4 }); b.meteor(66, 0, { style: 'drip', P: 1.4, off: 0.7 });
+    b.pool(68, 0, 5, 'lava'); b.block(73, 0, 10);
+    b.checkpoint(77, 0);
+    b.vent(81, 0, 7.5, { P: 2.4, on: 1.2 });
+    b.plat(84, 7, 6);
+    b.shard(87, 11.4);
+    b.block(94, 0, 6); b.pool(100, 0, 6, 'lava'); b.block(106, 0, 4); b.pool(110, 0, 6, 'lava');
+    b.block(116, 0, 4); b.pool(120, 0, 6, 'lava'); b.block(126, 0, 6);
+    b.enemy('walker', 126.5, 0, { range: 4.5 }); b.shard(129, 4.5);
+    b.pool(132, 0, 16, 'lava');
+    b.slide(135, 0.8, 140, 0.8, { T: 2.4, w: 2.6 }); b.slide(141, 2.5, 146, 2.5, { T: 2.4, w: 2.6, phase: 0.5 });
+    b.block(148, 0, 12);
+    b.goal(156, 0);
+    b.arc(12, 0, 18, 0, 2, 2); b.arc(23, 0, 29, 0, 2, 2); b.arc(33, 0, 40, 0, 2, 2.4);
+    b.cells(61, 1, 81, 1, 5); b.arc(98, 0, 106, 0, 2, 2.4); b.arc(108, 0, 116, 0, 2, 2.4); b.arc(118, 0, 126, 0, 2, 2.4);
+  }),
+
+  // 89 ── the Alpha Regio gauntlet: chimney, steam-blink descent, turret corridor, rain ladder: no breather
+  L('Alpha Regio Gauntlet', 'gauntlet', (b) => {
+    b.start(-6, 0, 12);
+    b.plat(6, 0, 5.8);
+    b.wall(8, 2.6, 10); b.wall(11.8, 0, 14);
+    b.plat(3, 14, 5); b.shard(5, 16);
+    b.plat(12.6, 14, 5);
+    b.cloud(10, 15, 15, { dx: 6, T: 3 });
+    b.cells(10.3, 3, 10.3, 12, 4);
+    b.blink(21, 12, 2.4, { P: 2.8, on: 1.6 }); b.blink(25.5, 10, 2.4, { P: 2.8, on: 1.6, off: 0.7 });
+    b.blink(30, 8, 2.4, { P: 2.8, on: 1.6, off: 1.4 }); b.blink(34.5, 6, 2.4, { P: 2.8, on: 1.6, off: 2.1 });
+    b.beam('steam', 27.8, 0, { P: 2.4, on: 0.8, h: 10 }); b.beam('steam', 32.3, 0, { P: 2.4, on: 0.8, off: 1.2, h: 8 });
+    b.plat(29.5, 2, 2); b.shard(30.5, 3.8);
+    b.plat(38, 5, 5);
+    b.checkpoint(40, 5);
+    b.plat(46, 5, 4);
+    b.rect(44, 9.5, 28, 0.8);
+    b.crumble(51, 5, 2.4); b.crumble(56, 5, 2.4); b.crumble(61, 5, 2.4);
+    b.rect(67.2, 7, 1.4, 2.5); b.turret(67.2, 7.5, -1, { P: 1.8 });
+    b.enemy('flyer', 58, 7.6, { ax: 3, ay: 0.4, T: 2.6 });
+    b.plat(66, 5, 6);
+    b.thin(76, 8, 3); b.thin(81, 11, 3); b.thin(76, 14, 3); b.thin(81, 17, 3);
+    b.meteor(77.5, 8, { style: 'drip', P: 1.6 }); b.meteor(82.5, 11, { style: 'drip', P: 1.6, off: 0.8 });
+    b.shard(77.5, 18.6);
+    b.plat(87, 19, 8);
+    b.goal(92, 19);
+    b.cells(22, 13.4, 36, 7.4, 4); b.cells(52, 6.4, 62, 6.4, 3); b.cells(77.5, 9.4, 82.5, 18.4, 4);
+  }),
+
+  // 90 ── FINALE: steam organ, switch bridge, cloud ferry, then the Acid Fog chases you over vents and crust to the end
+  L('Heart of Venus', 'finale', (b) => {
+    b.start(-6, 0, 12);
+    b.block(8, 1, 2.4); b.beam('steam', 9.2, 1, { P: 2.6, on: 0.9, h: 3.2, w: 1.6 });
+    b.block(12.6, 3, 2.4); b.beam('steam', 13.8, 3, { P: 2.6, on: 0.9, off: 0.5, h: 3.2, w: 1.6 });
+    b.block(17.2, 5, 2.4); b.beam('steam', 18.4, 5, { P: 2.6, on: 0.9, off: 1, h: 3.2, w: 1.6 });
+    b.thin(14.5, 9.4, 3); b.shard(16, 11);
+    b.plat(22, 5, 6); b.switch(25, 5);
+    b.blue(31, 6, 3); b.blue(36, 7, 3);
+    b.plat(41, 7, 5);
+    b.pool(46, 7, 18, 'acid');
+    b.slide(49, 6.8, 61, 6.8, { T: 4.5, w: 3 });
+    b.cloud(55, 13, 7.5, { dx: 4, T: 3.6 });
+    b.shard(55, 10.4);
+    b.plat(64, 7, 6);
+    b.checkpoint(67, 7);
+    b.chase({ speed: 4.6, trigger: 69, behind: 16 });
+    b.crumble(74, 6, 2.4); b.crumble(79, 5, 2.4);
+    b.block(84, 2, 4); b.vent(86, 2, 8, { always: true });
+    b.plat(90, 11, 5);
+    b.meteor(92.5, 11, { style: 'drip', P: 1.2 });
+    b.plat(99, 8, 4); b.spring(101, 8, 6);
+    b.plat(106, 15, 5); b.shard(108.5, 19.4);
+    b.crumble(115, 13, 2.2); b.crumble(120, 11, 2.2); b.crumble(125, 9, 2.2);
+    b.block(130, 7, 4); b.pool(134, 7, 4, 'acid'); b.block(138, 7, 12);
+    b.goal(146, 7);
+    b.cells(9.2, 2.4, 18.4, 6.4, 3); b.cells(32, 7.4, 37, 8.4, 2); b.cells(50, 8.2, 60, 8.2, 4);
+    b.cells(75, 7.4, 80, 6.4, 2); b.cells(86, 5, 86, 10, 3); b.cells(116, 14.4, 126, 10.4, 3);
   }),
 ];

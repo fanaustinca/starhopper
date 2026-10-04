@@ -263,4 +263,229 @@ export default [
     b.goal(127, 3);
     b.arc(8, 0, 22, 2.5, 4, 2.5); b.cells(48.4, 6, 48.4, 10, 3); b.cells(60, 10, 104, 2, 10);
   }),
+
+  // 131 ── up the volcano's terraced flank: lava channels, flaring crust bridges and a crane lift to the upper slopes
+  L('Olympus Foothills', 'ascent', (b) => {
+    b.start(-6, 0, 12);
+    b.block(9, 2, 6);
+    b.heat(15, 2, 4, { P: 3, on: 1 });                       // cooling crust: cross while it's dark
+    b.block(19, 2, 5);
+    b.block(28, 5, 5);
+    b.pool(33, 5, 5); b.shard(35.5, 6.6);
+    b.block(38, 5, 4);
+    b.block(46, 8.5, 5);
+    b.heat(51, 8.5, 3, { P: 2.6, on: 1 }); b.heat(54, 8.5, 3, { P: 2.6, on: 1, off: 1.3 });
+    b.shard(17, 5.8);                                        // hanging over the flaring crust
+    b.block(57, 8.5, 5);
+    b.checkpoint(59, 8.5);
+    b.lift(65, 8.5, 15, { T: 5 });
+    b.thin(59.5, 18.5, 2); b.shard(60.5, 20);
+    b.block(69, 15, 5);
+    b.pool(74, 15, 6);
+    b.block(80, 15, 4);
+    b.block(88, 19, 4); b.meteor(90, 19, { P: 2.4 });
+    b.block(96, 22, 4); b.meteor(98, 22, { P: 2.4, off: 1.2 });
+    b.plat(104, 24, 10);
+    b.goal(110, 24);
+    b.arc(6, 0, 28, 5, 8, 2); b.cells(39, 6.5, 46, 9.5, 3); b.cells(65, 10, 65, 15, 3); b.arc(84, 15, 104, 24, 6, 2.4);
+  }),
+
+  // 132 ── rover-arm cranes swing pads across a lava lake in L and U paths; change cranes in mid-air
+  L('Utopia Crane Yard', 'ride', (b) => {
+    b.start(-6, 0, 12);
+    b.loop([[9, 0], [9, 6], [24, 6]], { speed: 3, loop: false, w: 3 });
+    b.shard(16, 10.5);                                       // leap off the arm at the top
+    b.plat(28, 6, 4);
+    b.plat(29, 2, 2); b.shard(30, 3.4);                      // a nook under the landing
+    b.loop([[36, 6], [48, 6], [48, 1], [58, 1]], { speed: 3.2, loop: false, w: 3 });
+    b.plat(62, 1, 6);
+    b.checkpoint(65, 1);
+    b.loop([[72, 1], [72, 9], [86, 9]], { speed: 3, loop: false, w: 2.8 });
+    b.slide(92, 9, 100, 12, { T: 4.4, w: 2.8 });
+    b.shard(79, 13.2);
+    b.plat(104, 12, 8);
+    b.goal(109, 12);
+    b.cells(9, 2, 9, 5, 2); b.cells(12, 7.5, 22, 7.5, 4); b.cells(38, 7.5, 47, 7.5, 3); b.cells(50, 2.5, 56, 2.5, 3);
+    b.cells(72, 3, 72, 8, 3); b.cells(75, 10.5, 85, 10.5, 4);
+  }),
+
+  // 133 ── a swarm of survey drones guards a slalom up and down the canyon; slip between their orbits
+  L('Nirgal Drones', 'enemies', (b) => {
+    b.start(-6, 0, 12);
+    b.thin(9, 3, 3); b.enemy('flyer', 13.5, 5, { ax: 0.5, ay: 2, T: 2.4 });
+    b.thin(16, 6, 3);
+    b.thin(23, 9, 3); b.enemy('flyer', 21, 10.5, { ax: 2, ay: 0.5, T: 2.6 });
+    b.rect(28, 12, 8, 1); b.shard(32, 14.6);                 // on top of the rock fin
+    b.thin(30, 6, 3); b.enemy('flyer', 33, 8.5, { ax: 1.5, ay: 1, T: 2.2 });
+    b.thin(37, 3, 3);
+    b.plat(40.5, -2, 2); b.shard(41.5, -0.5);
+    b.plat(43, 1, 6);
+    b.checkpoint(46, 1);
+    // drone gates: each gap has a drone sweeping up and down
+    const steps = [[54, 3], [62, 5], [70, 3], [78, 5]];
+    steps.forEach(([x, y], i) => { b.plat(x, y, 3); b.enemy('flyer', x - 2.5, 4.5, { ax: 0.3, ay: 3, T: 2.2 + i * 0.3 }); });
+    b.thin(78, 9.5, 2); b.shard(79, 11);
+    b.plat(86, 3, 10);
+    b.goal(92, 3);
+    b.cells(10, 4.5, 24, 10.5, 5); b.cells(31, 7.5, 38, 4.5, 3); b.cells(50, 4, 84, 4, 8);
+  }),
+
+  // 134 ── storm a walled outpost: climb its face between bolt volleys, find the gate switch, then a turret shaft
+  L('Outpost Kasei', 'gauntlet', (b) => {
+    b.start(-6, 0, 12);
+    b.thin(-14, 4, 3); b.shard(-12.5, 5.6);
+    b.plat(6, 0, 24);
+    b.rect(30, 0, 4, 10);                                    // the outer wall
+    b.turret(30, 0.8, -1, { P: 2.4 }); b.turret(30, 7.2, -1, { P: 2.4, off: 1.2 });
+    b.thin(26, 3.2, 3); b.thin(21, 6.4, 3);
+    // the courtyard
+    b.plat(34, 0, 20);
+    b.rect(39, 0, 3, 4); b.turret(42, 0.8, 1, { P: 2.2 });
+    b.shard(36, 1.2);
+    b.switch(48, 0);
+    b.redWall(54, 0, 3, 4); b.rect(54, 3, 4, 7);             // the gate
+    b.plat(58, 0, 14);
+    b.checkpoint(62, 0);
+    // the turret shaft
+    b.rect(70, 2.4, 2, 16);
+    b.plat(72, 0, 20);
+    b.rect(92, 0, 2, 14);
+    b.plat(75, 3.5, 4); b.plat(84, 7, 4); b.plat(75, 10.5, 4); b.plat(84, 14, 4);
+    b.turret(72, 4.3, 1, { P: 2.6 }); b.turret(72, 11.3, 1, { P: 2.6, off: 1.3 }); b.turret(92, 7.8, -1, { P: 2.4, off: 0.6 });
+    b.shard(80, 17);
+    b.plat(98, 12, 8);
+    b.goal(103, 12);
+    b.cells(8, 1, 24, 1, 5); b.cells(22, 7.8, 32, 11, 3); b.cells(44, 1, 52, 1, 3); b.cells(77, 5, 86, 15.5, 5);
+  }),
+
+  // 135 ── climb out of the great canyon: offset wall-jump chimneys, crumbling ledges and a crane to the rim
+  L('Marineris Chimneys', 'ascent', (b) => {
+    b.start(-6, 0, 20);
+    b.tower(6, 0, 20, 42);
+    b.wall(10, 2.2, 10); b.wall(13.6, 0, 12);                // chimney 1
+    b.cells(12.2, 3, 12.2, 10, 3);
+    b.plat(6.5, 13, 2.5); b.shard(7.7, 14.6);                // pocket left of the top
+    b.plat(14.4, 12, 12.2);
+    b.wall(23, 14.2, 11); b.wall(26.6, 12, 13);              // chimney 2
+    b.cells(25.2, 15, 25.2, 23, 3);
+    b.plat(27.4, 25, 4);
+    b.checkpoint(29, 25);
+    b.shard(20, 29);                                         // leap off the chimney top
+    b.crumble(34.5, 28, 2.4); b.crumble(29, 31, 2.4);
+    b.enemy('flyer', 33, 33.5, { ax: 2, ay: 1, T: 3 });
+    b.thin(34, 34.5, 3);
+    b.shard(35.5, 37);
+    b.lift(40, 34.5, 42, { T: 5 });
+    b.plat(44, 42, 10);
+    b.goal(50, 42);
+  }),
+
+  // 136 ── a three-tier labyrinth: holes link the floors, the gate's switch hides at the far end of the top tier
+  L('Noctis Labyrinthus', 'maze', (b) => {
+    b.start(-6, 0, 12);
+    b.rect(8, 2.4, 2, 14.1);                                 // entrance arch
+    b.plat(6, 0, 24);                                        // tier 0
+    b.rect(30, 0, 1, 4.6);
+    b.enemy('walker', 12, 0, { range: 12 });
+    b.rect(10, 4.6, 16, 0.9); b.rect(30, 4.6, 20, 0.9);      // tier 1 (hole at 26..30)
+    b.thin(26.5, 2.8, 3);
+    b.shard(11, 7);
+    b.enemy('spiker', 32, 5.5, { range: 8, speed: 2 });
+    b.checkpoint(40, 5.5);
+    b.plat(31, 0, 14); b.pool(45, 0, 6); b.plat(51, 0, 13);  // the lower right chamber
+    b.shard(48, 1.6);
+    b.thin(44.5, 8.3, 3);
+    b.rect(14, 10.1, 30, 0.9); b.rect(48, 10.1, 18, 0.9);    // tier 2 (hole at 44..48)
+    b.rect(14, 15.6, 52, 0.9);                               // roof
+    b.switch(17, 11); b.shard(15, 13);
+    b.redWall(58, 11, 4.6);
+    b.rect(64, 0, 2, 10.1); b.rect(64, 13.5, 2, 2.1);        // the exit door
+    b.plat(70, 9, 5); b.plat(79, 12, 4); b.plat(86, 9, 10);
+    b.goal(92, 9);
+    b.cells(12, 1, 28, 1, 5); b.cells(32, 6.5, 48, 6.5, 5); b.cells(20, 12, 40, 12, 5); b.cells(50, 12, 62, 12, 4);
+  }),
+
+  // 137 ── rising magma in a lava tube shaft: climb ledges, a chimney and a side niche before it catches you
+  L('Pavonis Magma Tube', 'tide', (b) => {
+    b.rise({ rate: 0.7, delay: 4 });
+    b.start(-6, 0, 28);
+    b.rect(4, 2.4, 2, 18.6); b.rect(4, 24.5, 2, 26);         // left tube wall (niche at 21..24.5)
+    b.rect(22, -4, 2, 54);                                   // right tube wall
+    b.plat(15, 3, 5); b.plat(8, 6, 5); b.crumble(15, 9, 3); b.thin(8, 12, 6);
+    b.plat(15, 15, 7);
+    b.checkpoint(16, 15);
+    b.thin(7, 18.4, 3); b.shard(5, 22.6);                    // the niche
+    b.wall(18.4, 17.2, 11);                                  // chimney against the right wall
+    b.cells(20.6, 18, 20.6, 27, 3);
+    b.shard(20.6, 30.5);
+    b.plat(13, 28.5, 5);
+    b.plat(8, 31.5, 4); b.plat(15, 34.5, 4); b.crumble(9, 37.5, 3);
+    b.shard(11, 40.5);
+    b.thin(14, 40.5, 6); b.plat(8, 43.5, 5);
+    b.plat(10, 46.5, 10);
+    b.goal(15, 46.5);
+    b.cells(17, 4.5, 10, 13.5, 4); b.cells(10, 33, 17, 42, 4);
+  }),
+
+  // 138 ── one long canyon express: hop forward along the convoy to dodge meteors and a gusting headwind
+  L('Ius Chasma Express', 'ride', (b) => {
+    b.start(-6, 2, 12);
+    b.stream('rover', 4, 56, -1.35, { speed: 4, spacing: 7.5 });     // deck 0.65
+    [18, 28, 38, 48].forEach((x, i) => b.meteor(x, 0.65, { P: 2.2, off: i * 0.55 }));
+    b.rect(40, 4.5, 6, 1); b.shard(43, 7);                   // on the rock arch over the lane
+    b.cells(8, 2, 52, 2, 9);
+    b.block(56, 1.4, 5);
+    b.checkpoint(58, 1.4);
+    b.stream('rover', 61, 112, -1.95, { speed: 4.5, spacing: 8 });   // deck 0.05
+    b.wind(70, 0, 20, 6, -5, { P: 4, on: 2 });               // headwind blows you toward the convoy's tail
+    b.enemy('flyer', 98, 3, { ax: 2.5, ay: 1, T: 2.6 });
+    b.meteor(104, 0.05, { P: 2 });
+    b.shard(95, 5);
+    b.cells(64, 1.4, 108, 1.4, 9);
+    b.plat(112, 0.8, 4);
+    b.plat(119, 2.5, 8);
+    b.goal(124, 2.5);
+    b.plat(-12, 6.5, 3); b.shard(-10.5, 8.5);
+  }),
+
+  // 139 ── a solar farm: cleaning belts drag you, panels tilt away on a timer, a mast hides the best view
+  L('Meridiani Array', 'timing', (b) => {
+    b.start(-6, 0, 12);
+    b.conveyor(8, 0, 12, -3);                                // belt against you, under a panel roof
+    b.rect(10, 3.4, 8, 0.6);
+    b.blink(23, 2.5, 3, { P: 3, on: 2 }); b.blink(29, 5, 3, { P: 3, on: 2, off: 1 }); b.blink(23, 7.5, 3, { P: 3, on: 2, off: 2 });
+    b.shard(14, 5.4);                                        // on the roof
+    b.plat(30, 9.5, 6);
+    b.checkpoint(33, 9.5);
+    b.thin(33, 14.5, 2); b.shard(34, 16);                    // the mast
+    for (let i = 0; i < 5; i++) b.blink(40 + i * 6, 9 + (i % 2) * 1.5, 3, { P: 2.6, on: 1.6, off: -i * 0.5 });
+    b.shard(52, 6.2);                                        // under the tilting row
+    b.conveyor(70, 9, 8, 3);                                 // a belt that helps
+    b.blink(82, 8, 3, { P: 2.4, on: 1.5 }); b.blink(88, 7, 3, { P: 2.4, on: 1.5, off: 1.2 });
+    b.plat(94, 6, 8);
+    b.goal(99, 6);
+    b.cells(9, 1, 19, 1, 4); b.cells(24, 4, 30, 10, 3); b.cells(41, 11, 67, 11, 5); b.cells(71, 10, 90, 8.5, 5);
+  }),
+
+  // 140 ── the Great Dust Storm: plunge into a canyon, catch a fast rover across it, then scramble up the far wall
+  L('Great Dust Storm', 'chase', (b) => {
+    b.chase({ speed: 4.4 });
+    b.start(-6, 6, 14);
+    b.plat(-4, 10.5, 3); b.shard(-2.5, 12);
+    b.block(13, 6, 4); b.crumble(21, 5, 3); b.block(28, 3, 4);
+    b.plat(36, 0, 4);
+    b.plat(44, 0, 6);
+    b.stream('rover', 48, 76, -3.35, { speed: 6.5, spacing: 7 });   // deck -1.35
+    b.shard(62, 2.6);
+    b.plat(76, -0.6, 4);
+    b.checkpoint(78, -0.6);
+    b.block(84, 2, 3); b.block(89, 5, 3); b.spring(90, 5, 6);
+    b.block(96, 12, 5);
+    b.crumble(105, 11, 3); b.crumble(112, 10, 3);
+    b.shard(113.5, 14);
+    b.block(119, 9, 4); b.pool(123, 9, 5); b.block(128, 9, 3);
+    b.plat(135, 8, 10);
+    b.goal(141, 8);
+    b.cells(14, 7.5, 38, 1.5, 6); b.cells(52, 0, 72, 0, 5); b.cells(90.9, 8, 90.9, 12, 3); b.cells(102, 13, 130, 10.5, 7);
+  }),
 ];

@@ -307,7 +307,7 @@ export default [
     b.plat(90, 4, 12); b.enemy('walker', 91, 4, { range: 4 }); b.enemy('walker', 96, 4, { range: 4, speed: 2.2 });
     b.goal(99, 4);
     b.cells(11, 1.2, 23, 1.2, 4); b.cells(31, 5.6, 37, 5.6, 4); b.cells(45, 3.2, 55, 3.2, 4); b.cells(72, 4.2, 84, 7.4, 5);
-    b.plat(72, -1, 3); b.shard(73.5, 0.6);       // under the fast belt
+    b.plat(66.5, -1, 3); b.shard(68, 0.6);       // in the pit before the fast belt
   }),
 
   // 14 ── paternosters: open elevator cars that loop forever, up one side and down the other
@@ -460,5 +460,244 @@ export default [
     b.cells(13, 7.2, 27, 3.2, 5); b.cells(32, 1.2, 44, 1.2, 5); b.cells(68, 12.2, 80, 17.2, 4); b.cells(99, 13.2, 120, 13.2, 6);
     b.shard(38, 5.4); b.shard(80.5, 20.4);
     b.plat(-14, 9.5, 3); b.shard(-12.5, 11.5);
+  }),
+  // 21 ── a cascade of cogs falling away down the machine: each gear lowers you onto the next
+  L('Gear Cascade', 'descent', (b) => {
+    b.start(-6, 30, 12);
+    b.ferris(13, 26, 4, { n: 4, omega: -0.5 });
+    b.ferris(21, 19, 4.5, { n: 4, omega: 0.5 });
+    b.plat(28, 14, 4);
+    b.beam('piston', 30, 14, { w: 2.4, h: 4.5, P: 3, on: 0.6 }); b.rect(28.5, 18.5, 3, 1);
+    b.ferris(38, 9, 5, { n: 6, omega: -0.45 });
+    b.shard(38, 9.6);                              // in the third cog's hub
+    b.plat(46, 5, 5);
+    b.checkpoint(48, 5);
+    b.ferris(57, 2, 4.5, { n: 4, omega: 0.55 });
+    b.beam('exhaust', 62, -12, { w: 1.6, h: 12, P: 2.8, on: 1 });
+    b.ferris(67, -4, 4, { n: 4, omega: -0.6 });
+    b.shard(67, -6.6);                             // only the lowest tooth passes it
+    b.plat(74, -6, 10);
+    b.goal(80, -6);
+    b.cells(13, 31.5, 13, 31.5, 1); b.cells(21, 25, 21, 25, 1); b.cells(29, 15.2, 31, 15.2, 2);
+    b.cells(38, 15.5, 38, 15.5, 1); b.cells(47, 6.2, 50, 6.2, 2); b.cells(57, 8, 57, 8, 1);
+    b.plat(-14, 31.5, 3); b.shard(-12.5, 33.5);
+  }),
+
+  // 22 ── an interlocking tower: every floor has a lever and a gate, and each lever opens the next floor while closing the last
+  L('Interlock', 'puzzle', (b) => {
+    b.start(-6, 0, 12);
+    b.tower(6, -2, 24, 26);
+    b.plat(6, 0, 18); b.switch(11, 0);
+    b.redWall(18, 0, 5);
+    b.lift(27, 0, 7, { T: 4.5 });
+    b.blue(7, 4, 3); b.shard(8.5, 5.8);            // a blue perch that appears after lever 1
+    b.plat(12, 7, 12); b.switch(20, 7);
+    b.blueWall(16, 7, 5);
+    b.lift(9, 7, 14, { T: 4.5 });
+    b.plat(12, 14, 12); b.switch(14.5, 14);
+    b.redWall(20, 14, 5);
+    b.lift(27, 14, 21, { T: 4.5 });
+    b.shard(27, 25.5);                             // above the third lift
+    b.plat(12, 21, 12);
+    b.checkpoint(16, 21);
+    b.blue(26, 21, 3); b.blue(31, 22, 3);
+    b.plat(36, 23, 4); b.switch(37.5, 23);
+    b.red(42, 24, 3); b.red(47, 25, 3);
+    b.red(40, 19, 3); b.shard(41.5, 20.8);         // a red ledge under the exit bridge
+    b.plat(53, 26, 8);
+    b.goal(58, 26);
+    b.cells(13, 1.2, 16, 1.2, 2); b.cells(19, 8.2, 22, 8.2, 2); b.cells(15, 15.2, 18, 15.2, 2); b.cells(27, 22.4, 49, 26.4, 6);
+  }),
+
+  // 23 ── meshing teeth: counter-rotating gears whose cogs interleave; cross at the mesh, where hammers fall
+  L('Meshing Teeth', 'ride', (b) => {
+    b.start(-6, 0, 12);
+    b.ferris(14, 2, 4, { n: 4, omega: 0.6 });
+    b.ferris(21, 2, 4, { n: 4, omega: -0.6, a0: Math.PI / 4 });
+    b.plat(28, 4, 4);
+    b.beam('piston', 30, 4, { w: 2.4, h: 5, P: 2.8, on: 0.6 }); b.rect(28.5, 9, 3, 1);
+    b.ferris(39, 3, 3.5, { n: 3, omega: -0.7 });
+    b.ferris(39, 9.5, 3.5, { n: 3, omega: 0.7, a0: 0.5 });
+    b.shard(39, 6.25);                             // between the stacked hubs
+    b.plat(45, 14, 5);
+    b.checkpoint(47, 14);
+    b.ferris(56, 12, 5, { n: 6, omega: 0.5 });
+    b.ferris(64.5, 12, 5, { n: 6, omega: -0.5, a0: 0.5 });
+    b.beam('piston', 60.25, 13, { w: 2.6, h: 7, P: 3, on: 0.7 }); b.rect(58.5, 20, 3.5, 1);
+    b.shard(60.25, 8);                             // low in the mesh
+    b.plat(72, 13, 8);
+    b.goal(77, 13);
+    b.cells(14, 7.5, 21, 7.5, 2); b.cells(29, 5.2, 31, 5.2, 2); b.cells(56, 18.5, 64.5, 18.5, 2);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 24 ── the boiler floods: scalding water rises through a two-column tower, a wall-jump chimney in the middle
+  L('Boiler Flood', 'tide', (b) => {
+    b.rise({ rate: 0.7, delay: 4 });
+    b.start(-6, 0, 12);
+    b.tower(6, -4, 18, 46);
+    b.plat(8, 3, 4);
+    b.plat(18, 6, 4); b.beam('exhaust', 20, 6, { w: 1.6, h: 3, P: 2.6, on: 0.9 });
+    b.plat(8, 9, 4);
+    b.shard(10, 12.6);
+    b.plat(13.8, 12, 8.2);
+    b.checkpoint(20, 12);
+    b.wall(13, 13, 11); b.wall(16.8, 15, 9);      // chimney
+    b.cells(15.2, 15, 15.2, 22, 3);
+    b.plat(17.6, 24, 5);
+    b.plat(8, 27, 4);
+    b.thin(17, 30, 4);
+    b.plat(25, 30, 3); b.shard(26.5, 31.8);        // out on a limb past the column
+    b.conveyor(7, 33, 6, 2);
+    b.plat(17, 36, 4);
+    b.crumble(9, 39, 3);
+    b.plat(15, 42, 10);
+    b.goal(20, 42);
+    b.cells(10, 28.2, 10, 28.2, 1); b.cells(9, 34.2, 12, 34.2, 2); b.cells(18, 37.2, 20, 37.2, 2);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 25 ── the stamping press: two belts run opposite ways, one above the other; hop between tiers to dodge the stamps
+  L('Stamping Press', 'gauntlet', (b) => {
+    b.start(-6, 0, 12);
+    b.conveyor(8, 0, 52, 2.5);                     // lower tier → right
+    b.rect(8, 9, 52, 1);                           // press roof
+    for (let i = 0; i < 4; i++) {
+      const x = 12 + i * 14;
+      b.conveyor(x, 4.5, 8, -2.5);                 // upper tier segments ← left
+      b.beam('piston', x + 2, 0, { w: 2.2, h: 3.5, P: 3, on: 0.6, off: i * 0.7 });
+      b.beam('piston', x + 6, 4.5, { w: 2.2, h: 4.5, P: 3, on: 0.6, off: i * 0.7 + 1.5 });
+    }
+    b.cells(9, 1.2, 58, 1.2, 12);
+    b.shard(56, 7.2);                              // up against the roof over the last segment
+    b.plat(64, 1, 6);
+    b.checkpoint(67, 1);
+    b.conveyor(74, 1, 24, -3);                     // a long headwind belt under big hammers
+    for (let i = 0; i < 3; i++) { b.beam('piston', 79 + i * 7, 1, { w: 3, h: 5, P: 3.4, on: 0.7, off: i * 1.1 }); b.rect(77.2 + i * 7, 6, 3.6, 1); }
+    b.cells(75, 2.2, 96, 2.2, 7);
+    b.plat(69, -3, 3); b.shard(70.5, -1.4);        // in the gap before the headwind belt
+    b.plat(102, 2, 8);
+    b.goal(106, 2);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 26 ── a balance wheel: sliders, hammers and shutters all tick on one 3-second beat; learn it and flow through
+  L('Balance Wheel', 'timing', (b) => {
+    b.start(-6, 0, 12);
+    const T = 3;
+    b.slide(12, 0, 20, 0, { T, w: 3 });
+    b.beam('piston', 20, 0, { w: 2.4, h: 6, P: T, on: 0.6, warn: 0.7, off: 1 });
+    b.blink(23, 0.5, 2, { P: T, on: 1.6, off: 0 });
+    b.slide(28, 0, 36, 0, { T, w: 3, phase: 0.5 });
+    b.beam('piston', 28, 0, { w: 2.4, h: 6, P: T, on: 0.6, warn: 0.7, off: 2.5 });
+    b.blink(39, 0.5, 2, { P: T, on: 1.6, off: 1.5 });
+    b.slide(44, 0, 52, 0, { T, w: 3 });
+    b.plat(55, 1, 5);
+    b.checkpoint(57, 1);
+    b.lift(63, 1, 9, { T }); b.lift(69, 9, 1, { T });
+    b.lift(75, 1, 9, { T });
+    b.shard(69, 12);                               // above the middle lift's top stop
+    b.slide(80, 10, 88, 14, { T, w: 3, phase: 0.5 });
+    b.beam('piston', 84, 12, { w: 2.4, h: 6, P: T, on: 0.6, off: 1 }); b.rect(82.5, 18, 3, 1);
+    b.plat(92, 14, 8);
+    b.goal(97, 14);
+    b.cells(12, 1.2, 20, 1.2, 3); b.cells(28, 1.2, 36, 1.2, 3); b.cells(44, 1.2, 52, 1.2, 3); b.cells(63, 10.4, 75, 10.4, 3);
+    b.thin(36, 4.5, 4); b.shard(38, 6.3);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  }),
+
+  // 27 ── OVERCLOCK: everything runs fast — flinging belts, a racing cog, wide leaps; momentum is the whole game
+  L('Overclock', 'speed', (b) => {
+    b.start(-6, 0, 12);
+    b.conveyor(8, 0, 12, 6);
+    b.plat(28, 0, 4);
+    b.conveyor(36, 0, 12, 7); b.rect(36, 3, 12, 1);
+    b.ferris(57, 3, 4, { n: 6, omega: 1.2 });
+    b.plat(65, 4, 5);
+    b.checkpoint(67, 4);
+    b.conveyor(74, 4, 10, 6); b.enemy('walker', 75, 4, { range: 7, speed: 3 });
+    b.conveyor(90, 6, 10, 7);
+    b.plat(108, 6, 10);
+    b.goal(114, 6);
+    b.cells(9, 1.2, 19, 1.2, 4); b.arc(20, 0, 28, 0, 3, 2.5); b.cells(37, 1.2, 47, 1.2, 4); b.arc(84, 4, 90, 6, 2, 2); b.arc(100, 6, 108, 6, 3, 3);
+    b.shard(42, 5.6);                              // on the tunnel roof
+    b.shard(57, 3.6);                              // through the spinning hub
+    b.shard(104, 10.4);                            // the top of the last leap
+  }),
+
+  // 28 ── an orrery: concentric rings turning against each other; explore the hubs, climb to the top
+  L('Orrery', 'ride', (b) => {
+    b.start(-6, 0, 12);
+    b.ferris(20, 8, 8, { n: 8, omega: 0.3 });
+    b.ferris(20, 8, 4, { n: 4, omega: -0.5 });
+    b.plat(18.5, 8, 3); b.shard(20, 9.8);
+    b.plat(30, 1, 4);
+    b.ferris(40, 14, 6, { n: 6, omega: -0.35 });
+    b.ferris(40, 14, 2.8, { n: 3, omega: 0.7 });
+    b.shard(40, 14.4);
+    b.plat(49, 6, 5);
+    b.checkpoint(51, 6);
+    b.ferris(62, 20, 7, { n: 7, omega: 0.3 });
+    b.ferris(62, 20, 3, { n: 3, omega: -0.6 });
+    b.plat(60.5, 20, 3); b.shard(62, 21.8);
+    b.plat(72, 28, 8);
+    b.goal(76, 28);
+    b.cells(9, 1.2, 12, 2, 2); b.cells(31, 2.2, 33, 2.2, 2); b.cells(50, 7.2, 53, 7.2, 2);
+    b.cells(20, 17.5, 20, 17.5, 1); b.cells(40, 21.5, 40, 21.5, 1); b.cells(62, 28.5, 62, 28.5, 1);
+  }),
+
+  // 29 ── CLOCKBREAKER: belts into hammers, jets under grates, a switch bridge, a cannon chimney and a racing cog
+  L('Clockbreaker', 'hard', (b) => {
+    b.start(-6, 0, 12);
+    b.conveyor(9, 0, 10, 4);
+    b.beam('piston', 17, 0, { w: 2.4, h: 5, P: 2.4, on: 0.5 }); b.rect(15.5, 5, 3, 1);
+    b.crumble(22, 1, 2.2); b.crumble(26.5, 2, 2.2);
+    b.beam('exhaust', 25.3, -10, { w: 1.4, h: 13, P: 2.4, on: 0.9, off: 1.2 });
+    b.ferris(36, 4, 4, { n: 3, omega: 0.8 });
+    b.plat(43, 6, 4); b.switch(44.5, 6);
+    b.blue(50, 7, 2.5); b.blue(55, 8, 2.5);
+    b.red(50, 3, 2.5); b.shard(51.25, 4.8);         // only before the lever
+    b.plat(60, 9, 9.4);
+    b.checkpoint(62, 9);
+    b.wall(65, 12, 10); b.wall(68.6, 9, 13);      // chimney
+    b.beam('exhaust', 67, 9, { w: 1.4, h: 4, P: 2.6, on: 0.9 });
+    b.rect(73.5, 19, 1.5, 3); b.turret(75, 20.2, 1, { P: 2.2 });   // sweeps the headwind belt
+    b.shard(66.8, 23.5);
+    b.plat(69.4, 22, 4);
+    b.conveyor(77, 19, 8, -4);
+    b.crumble(88, 17, 2);
+    b.ferris(96, 15, 3.5, { n: 3, omega: -0.9 });
+    b.plat(103, 14, 3); b.spring(103.6, 14, 4);
+    b.beam('piston', 104.5, 14.5, { w: 2.6, h: 6, P: 2.6, on: 0.5, off: 1.3 }); b.rect(103, 20.5, 3, 1);
+    b.plat(110, 18, 8);
+    b.goal(115, 18);
+    b.cells(10, 1.2, 18, 1.2, 3); b.cells(36, 8.5, 36, 8.5, 1); b.cells(50, 8.2, 56, 9.2, 2); b.cells(66.8, 13, 66.8, 20, 3); b.cells(78, 20.2, 84, 20.2, 3);
+    b.shard(96, 15.6);
+  }),
+
+  // 30 ── FINALE: belt under hammers, a lever stair, a pair of cogs, then the Crusher Wall chases you out of the machine
+  L('Heart of the Machine', 'finale', (b) => {
+    b.start(-6, 0, 12);
+    b.conveyor(8, 0, 13, 3); b.rect(8, 5, 13, 1);
+    b.beam('piston', 12, 0, { w: 2.4, h: 5, P: 2.8, on: 0.6 }); b.beam('piston', 17, 0, { w: 2.4, h: 5, P: 2.8, on: 0.6, off: 1.4 });
+    b.plat(24, 1, 5); b.switch(26, 1);
+    b.blue(31, 3, 3); b.blue(36, 5, 3);
+    b.red(31, 7, 3); b.shard(32.5, 8.8);           // over the lever stair: leap for it from the blue step
+    b.ferris(47, 7, 4, { n: 4, omega: 0.55 });
+    b.ferris(56, 11, 4, { n: 4, omega: -0.55 });
+    b.shard(56, 11.6);
+    b.plat(62, 15, 8);
+    b.checkpoint(65, 15);
+    b.chase({ speed: 4.6, trigger: 67, behind: 16 });
+    b.crumble(74, 14, 2.4); b.crumble(79, 13, 2.4);
+    b.conveyor(84, 12, 12, 5); b.rect(84, 15, 12, 1);
+    b.plat(100, 10, 4); b.spring(101.5, 10, 6);
+    b.plat(106, 17, 5);
+    b.thin(115, 19, 3);
+    b.crumble(122, 18, 2.4); b.crumble(127, 17, 2.4);
+    b.plat(133, 16, 12);
+    b.goal(141, 16);
+    b.cells(9, 1.2, 20, 1.2, 4); b.cells(32, 4.2, 38, 6.2, 2); b.cells(75, 15.2, 95, 13.2, 7); b.cells(107, 18.2, 128, 18.2, 6);
+    b.shard(90, 17.4);                             // on the belt roof
   }),
 ];
