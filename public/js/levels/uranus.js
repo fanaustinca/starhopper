@@ -27,28 +27,31 @@ export default [
     b.plat(82, 2, 12);
     b.goal(90, 2);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.vine(63, 11, 6); b.cells(62, 6, 66, 6, 3);                 // a first frozen rope over the gap
   }),
 
-  // 242 ── a crystal ski slope: long ice runs carry your momentum, tiny grippy rocks are the only brakes
-  L('Crystal Slalom', 'ice', (b) => {
+  // 242 ── ski-lift glacier: cable zip lines carry you down the ice, a bubble lifts you back up, and swinging chandeliers guard the last run
+  L('Ski-Lift Glacier', 'zip', (b) => {
+    b.sideWind(1.2, 8);
     b.start(-6, 14, 12);
     b.plat(-12, 17.5, 3); b.shard(-10.5, 19.5);
-    b.ice(10, 12, 12);
-    b.cells(11, 13.2, 21, 13.2, 4);
-    b.ice(26, 10, 10);
-    b.plat(40, 8, 2.5);                                     // brake rock
-    b.plat(33, 5, 3); b.shard(34.5, 6.6);                   // hidden under the second run
-    b.ice(46, 6, 14);
-    b.cells(47, 7.2, 59, 7.2, 5);
-    b.plat(64, 4, 6);
-    b.checkpoint(67, 4);
-    // back uphill on short, slick crystal steps
-    b.ice(74, 6, 4); b.ice(81, 8, 4); b.ice(88, 10, 4);
-    b.cells(76, 7.4, 90, 11.4, 3);
-    b.shard(90, 14.6);
-    b.ice(96, 8, 12);
-    b.plat(112, 6, 10);
-    b.goal(118, 6);
+    b.zip(8, 17, 28, 10);
+    b.cells(10, 15.4, 26, 10.4, 5);
+    b.plat(29, 7, 5);
+    b.plat(31, 12, 3); b.shard(32.5, 13.6);                 // hop off the cable onto this perch
+    b.zip(36, 10, 58, 4);
+    b.plat(50, 3, 3); b.shard(51.5, 4.6);                   // hop off the second cable
+    b.plat(59, 1, 6);
+    b.checkpoint(62, 1);
+    b.floater(69, 1, 3, { rise: 10, speed: 2.4 });          // a frozen gas bubble lifts you back up
+    b.cells(70.5, 3.5, 70.5, 9.5, 3);
+    b.plat(75, 11, 5);
+    b.pendulum(84, 17, 6, { amp: 35, T: 3.4 });
+    b.pendulum(91, 17, 6, { amp: 35, T: 3.4, phase: 0.5 });
+    b.plat(97, 11, 4);
+    b.zip(103, 14, 122, 6, { oneWay: true });
+    b.plat(123, 3, 10);
+    b.goal(129, 3);
   }),
 
   // 243 ── cliffs too tall to jump, each with a frozen geyser at its foot
@@ -73,6 +76,8 @@ export default [
     b.plat(78, 4, 10);
     b.goal(84, 4);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.vine(28, 11, 6);                                        // a rope over the cliff gap
+    b.wrecker(81, 11, 5.5, { amp: 50, T: 3 });               // a frozen boulder swings over the goal run
   }),
 
   // 244 ── the tilted axis: two crossing diagonals; climb one, switch at the hub, and the wind shoves every hop
@@ -96,30 +101,32 @@ export default [
     b.plat(35, 4, 3); b.shard(36.5, 5.5);                   // under the hub
     b.plat(68, 0, 12);
     b.goal(75, 0);
+    b.zip(59, 19.5, 68, 6, { oneWay: true });                 // a ski-lift line down from the last upper perch
   }),
 
-  // 245 ── scale the cliff face of Miranda: uneven terraces, a wall-jump crack, then a needle-spire descent
-  L('Miranda Cliffs', 'ascent', (b) => {
+  // 245 ── icicle chandeliers: a frozen cavern where hanging ice platforms swing in the wind over the pits, stepping up to a high shelf
+  L('Chandelier Caverns', 'pendulum', (b) => {
     b.sideWind(1.5, 9);
     b.start(-6, 0, 12);
     b.plat(-13, -2, 3); b.shard(-11.5, -0.5);
-    b.block(8, 2, 6);
-    b.block(16, 5, 4);
-    b.block(24, 6, 8);
-    // the crack: a hanging slab and the cliff face 2.8 apart
-    b.wall(26, 8.2, 9, 0.8);
-    b.block(29.6, 18, 6);
-    b.cells(28.2, 9, 28.2, 16, 4);
-    b.shard(33, 22.4);
-    b.block(39, 15, 4);
-    b.block(46, 12, 5);
-    b.checkpoint(48, 12);
-    for (const [x, t] of [[54, 9], [59, 11], [64, 8], [69, 10]]) b.block(x, t, 2);
-    b.cells(55, 10.5, 70, 11.5, 4);
-    b.block(75, 6, 4);
-    b.block(82, 4, 10);
-    b.goal(88, 4);
-    b.block(94, 8, 1.6); b.shard(94.8, 9.6);               // the needle past the goal
+    b.plat(8, 0, 5);
+    b.pendulum(18, 9, 7, { amp: 38, T: 3.4 });
+    b.pendulum(26, 9, 7, { amp: 38, T: 3.4, phase: 0.5 });
+    b.cells(14, 1.5, 28, 3.5, 6);
+    b.plat(33, 2, 6);
+    b.checkpoint(36, 2);
+    b.plat(21, -5, 3); b.shard(22.5, -3.4);                 // in the pit under the chandeliers
+    b.pendulum(44, 12, 7, { amp: 35, T: 3.6 });
+    b.pendulum(51, 14, 7, { amp: 35, T: 3.6, phase: 0.5 });
+    b.pendulum(58, 16, 7, { amp: 35, T: 3.6 });
+    b.cells(42, 6.5, 58, 10.5, 6);
+    b.plat(63, 9, 5);
+    b.thin(52.5, 10.8, 3); b.shard(54, 12.4);                // a ledge in the swing of the middle chandelier
+    b.plat(70, 9, 10);
+    b.wrecker(76, 15, 5.5, { amp: 50, T: 3 });              // a frozen boulder swings across the shelf
+    b.plat(84, 6, 4);
+    b.plat(91, 4, 12);
+    b.goal(98, 4);
   }),
 
   // 246 ── a frozen gallery: icicles drip in rhythm from the cave roof, and a geyser opens an upper hall
@@ -144,6 +151,7 @@ export default [
     b.enemy('walker', 60, 0, { range: 8 }); b.enemy('spiker', 72, 0, { range: 8, speed: 2 });
     b.plat(88, 3, 10);
     b.goal(94, 3);
+    b.zip(80, 12, 92, 6, { oneWay: true });                   // a cable from the upper hall to the exit
   }),
 
   // 247 ── aurora bands: two decks of light bridges alternate, then a curtain wave sweeps down to the goal
@@ -168,34 +176,33 @@ export default [
     b.plat(108, 2, 10);
     b.goal(114, 2);
     b.plat(-13, -2.5, 3); b.shard(-11.5, -1);
+    b.zip(18, 12, 46, 9, { oneWay: true });                   // a cable above the light decks
   }),
 
-  // 248 ── a frozen shaft climbed by wall-jumps alone, icicles falling down the cracks
-  L('Frozen Chimney', 'ascent', (b) => {
+  // 248 ── cryo-cannon spires: pods bolted to ice spires blast you up a chain into the sky, then a rocking pod fires you across the aurora
+  L('Cryo Cannon Spires', 'pods', (b) => {
+    b.sideWind(1.2, 8);
     b.start(-6, 0, 12);
-    b.tower(6, -2, 18, 46);
-    b.plat(6, 0, 8);
-    // chimney 1 (x 10 → 12.8)
-    b.rect(9, 2.2, 1, 12); b.rect(12.8, 0, 1, 14);
-    b.cells(11.4, 3, 11.4, 12, 4);
-    b.meteor(11.4, 0, { style: 'drip', h: 14, P: 4 });
-    b.plat(12.8, 14, 8);
-    // chimney 2 (x 17.8 → 20.6)
-    b.rect(16.8, 16.2, 1, 12); b.rect(20.6, 14, 1, 14);
-    b.cells(19.2, 17, 19.2, 26, 4);
-    b.plat(21.6, 22, 2.4); b.shard(22.8, 23.6);            // a notch outside the second crack
-    b.plat(8, 28.2, 9.8);
-    b.checkpoint(14.6, 28.2);
-    // chimney 3 back on the left (x 9 → 11.8), roofed by the summit ledge
-    b.rect(8, 28.2, 1, 12); b.rect(11.8, 31.2, 1, 9);
-    b.meteor(10.4, 28.2, { style: 'drip', h: 12, P: 3.4, off: 1 });
-    b.cells(10.4, 30, 10.4, 38, 3);
-    b.crumble(12.8, 40.2, 3);
-    b.plat(18, 41, 4);
-    b.plat(25, 39, 10);
-    b.goal(31, 39);
-    b.shard(10, 44.4);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.plat(8, 0, 5);
+    b.barrel(14, 2.2, { angle: 40 });                       // pod 1: hop in, press jump
+    b.plat(22, 1, 6);
+    b.barrel(30, 3, { angle: 90, power: 22 });              // the ladder: pod to pod up the spire
+    b.barrel(30, 9, { angle: 90, power: 22 });
+    b.barrel(30, 15, { angle: 90, power: 22 });
+    b.barrel(30, 21, { angle: 60, sweep: 30, spin: 100, power: 20 });
+    b.plat(40, 25, 5);
+    b.plat(25, 14, 3); b.shard(26.5, 15.6);
+    b.cells(30, 5, 30, 19, 5);
+    b.checkpoint(43, 25);
+    b.barrel(52, 27.5, { spin: 90 });                       // a spinning pod: wait for it to face the far spire
+    b.plat(63, 27, 5);
+    b.plat(66, 31, 3); b.shard(67.5, 32.6);
+    b.barrel(71, 29.5, { angle: 15 });
+    b.plat(80, 24, 5);
+    b.barrel(88, 26.5, { angle: -20 });
+    b.plat(98, 18, 10);
+    b.goal(104, 18);
   }),
 
   // 249 ── down into Ariel's rift: switchback ledges back and forth, crumbling ice and snow-mites
@@ -219,6 +226,7 @@ export default [
     b.plat(66, -3, 12);
     b.goal(73, -3);
     b.cells(11, 28.5, 16, 28.5, 3); b.cells(32, 14.5, 43, 14.5, 4);
+    b.vine(55, 8, 6);                                         // a frozen rope over the crumbling steps
   }),
 
   // 250 ── CHASE: the Blizzard rolls in across floes and a constant geyser; the gusts ebb and push
@@ -241,35 +249,29 @@ export default [
     b.arc(5, 0, 12, 1, 2, 2); b.cells(40, 4.4, 46, 4.4, 3); b.cells(81, 9.4, 93, 7.4, 4);
     b.plat(44, -2, 3); b.shard(45.5, -0.5);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.vine(104, 11, 6);                    // ropes over the crumbling floes
   }),
-  // 251 ── a honeycomb of snow-mite burrows: low tunnel, high tunnel, then pick the lower den or the hidden upper one
-  L('Snowmite Burrows', 'enemies', (b) => {
-    b.start(-6, 0, 12);
-    b.plat(6, 0, 15);
-    b.rect(8, 4.4, 12, 1);                                  // roof of the first burrow
-    b.thin(3, 3, 3);                                        // climb onto the roof for a shard
-    b.enemy('spiker', 9, 5.4, { range: 8, speed: 1.4 });
-    b.shard(18.5, 7);
-    b.enemy('walker', 9, 0, { range: 9, speed: 2 });
-    b.cells(8, 1, 20, 1, 4);
-    b.plat(22, 2.5, 3);
-    b.plat(27, 5, 23);                                      // the high burrow
-    b.rect(27, 9.4, 23, 1);
-    b.checkpoint(28.5, 5);
-    b.enemy('spiker', 31, 5, { range: 8, speed: 1.8 }); b.enemy('spiker', 41, 5, { range: 7, speed: 2.2 });
-    b.cells(30, 6, 48, 6, 6);
-    // drop down the shaft into the den, or leap across into the secret upper den
-    b.plat(47, 0, 27);
-    b.enemy('walker', 53, 0, { range: 6 }); b.enemy('walker', 62, 0, { range: 9, speed: 2.4 });
-    b.rect(53, 4.4, 21, 1);
-    b.rect(53, 9.4, 21, 1);
-    b.enemy('flyer', 63, 7.2, { ax: 4, ay: 0.5, T: 3 });
-    b.cells(55, 6.4, 72, 6.4, 6); b.cells(52, 1, 72, 1, 6);
-    b.shard(71, 6.6);
-    b.plat(77, 3, 4);
-    b.plat(84, 5, 12);
-    b.goal(90, 5);
-    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  // 251 ── frozen ropes over the crevasse: swing rope to rope into the gorge, ride a bubble back up, and swing on to the far rim
+  L('Rope Crevasse', 'swing', (b) => {
+    b.sideWind(1.5, 8);
+    b.start(-6, 6, 12);
+    b.vine(-9, 12, 5); b.plat(-17, 8, 3); b.shard(-15.5, 10);   // a rope behind the start swings to a perch
+    b.vine(11, 14, 6);
+    b.plat(16, 6, 3);
+    b.vine(24, 15, 7);
+    b.plat(31, 5, 4);
+    b.checkpoint(33, 5);
+    b.plat(26, -1, 2.6); b.shard(27.3, 0.6);                // a ledge down in the crevasse
+    b.vine(42, 16, 7); b.vine(51, 16, 7);                   // the chain: no ground between
+    b.plat(57, 4, 4);
+    b.shard(46.5, 10);                                      // mid-air between the two ropes
+    b.floater(65, -6, 3, { rise: 14, speed: 2.4 });         // a gas bubble in the gorge floats you back up
+    b.cells(66.5, -4, 66.5, 8, 5);
+    b.plat(71, 8, 4);
+    b.vine(80, 17, 6);
+    b.plat(88, 8, 10);
+    b.goal(94, 8);
+    b.cells(10, 8, 25, 8, 5);
   }),
 
   // 252 ── switches swap the ice lids that cap the geysers, and build the bridges as they do; don't step on the last one
@@ -297,6 +299,7 @@ export default [
     b.plat(78, 18, 8);
     b.goal(82, 18);
     b.plat(-13, -2, 3); b.shard(-11.5, -0.5);
+    b.sweeper(58, 17, 2.5, { omega: 50 });                    // an aurora beam turning over the bridge
   }),
 
   // 253 ── a stack of ring-wheels: climb from wheel to wheel straight up the sky while the wind leans on you
@@ -339,6 +342,7 @@ export default [
     b.goal(103, 6);
     b.cells(7, 9.2, 19, 9.2, 5); b.cells(53, 1.2, 69, 1.2, 6); b.cells(74, 3.4, 84, 5.4, 3);
     b.plat(-14, 10, 3); b.shard(-12.5, 12);
+    b.vine(91, 13, 6);                                        // a rope over the last crumbling span
   }),
 
   // 255 ── slush rises up a geyser shaft; ride the spouts between slick crystal ledges before it freezes you in
@@ -365,26 +369,32 @@ export default [
     b.goal(25, 43);
     b.cells(10, 5, 10, 12, 3); b.cells(17, 29.4, 23, 38.4, 4);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.vine(12, 25, 6);                                        // a rope across the shaft
   }),
 
-  // 256 ── frost sentries sweep the column tops; drop into the trenches between volleys
-  L('Frost Sentries', 'gauntlet', (b) => {
+  // 256 ── boulder gauntlet: frozen boulders swing across the trail and chandeliers carry you over the gaps between
+  L('Boulder Gauntlet', 'gauntlet', (b) => {
+    b.sideWind(1.6, 7);
     b.start(-6, 4, 12);
-    for (let i = 0; i < 4; i++) { b.block(8 + i * 8, 4, i ? 4 : 5); b.block(13 + i * 8, 0, 4); }
-    b.cells(9, 5.2, 35, 5.2, 7);
-    b.block(41, 8, 2.4);                                    // the sentry post
-    b.turret(41, 5.2, -1, { P: 2.2 });
-    b.shard(42.2, 12);
-    b.plat(47, 6, 20);
-    b.checkpoint(48, 6);
-    b.rect(66, 8.4, 1.4, 4); b.turret(66.7, 6.8, -1, { P: 2, off: 1 });   // hanging sentry: jump its bolts
-    b.enemy('walker', 50, 6, { range: 6 });
-    b.thin(51, 9.6, 4); b.thin(59, 9.6, 4); b.shard(61, 11.2);
-    b.cells(49, 7.2, 64, 7.2, 6);
-    b.plat(71, 3, 4);
-    b.plat(78, 1, 10);
-    b.goal(84, 1);
     b.plat(-14, 6, 3); b.shard(-12.5, 8);
+    b.plat(8, 4, 14);
+    b.wrecker(15, 11, 4.9, { amp: 55, T: 3 });              // a boulder sweeping the trail: duck through the gap
+    b.cells(9, 5.2, 21, 5.2, 5);
+    b.pendulum(28, 12, 7.5, { amp: 35, T: 3.4 });
+    b.pendulum(35, 12, 7.5, { amp: 35, T: 3.4, phase: 0.5 });
+    b.plat(41, 4, 8);
+    b.checkpoint(44, 4);
+    b.wrecker(46, 11, 4.9, { amp: 55, T: 2.8, phase: 0.4 });
+    b.plat(53, 4, 10);
+    b.wrecker(58, 11, 4.9, { amp: 55, T: 2.8 });
+    b.shard(55, 11.6);                                      // up over the boulders
+    b.plat(65, 8, 3); b.plat(70, 11, 3);
+    b.plat(76, 8, 3); b.shard(77.5, 9.6);
+    b.rect(79.5, 8, 1.4, 5); b.turret(80.2, 10.4, -1, { P: 2.2 });
+    b.pendulum(88, 14, 6.5, { amp: 35, T: 3.2 });
+    b.plat(95, 6, 12);
+    b.goal(102, 6);
+    b.cells(66, 9.4, 84, 9.4, 6);
   }),
 
   // 257 ── a whiteout gale: ferry floes across a void, landing on ice stops where the wind wants to shove you off
@@ -424,26 +434,30 @@ export default [
     b.cells(55.5, 13, 73.5, 22, 4);
     b.block(78, 18, 10);
     b.goal(84, 18);
+    b.pendulum(60, 28, 6.5, { amp: 30, T: 3.4 });             // an icicle chandelier over the top pipes
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
-  // 259 ── hail sweeps an open frozen plaza; dash shelter to shelter, or brave the roofs for the shards
-  L('Hailstorm Plaza', 'hazard', (b) => {
-    b.sideWind(2.5, 6);
+  // 259 ── aurora beams sweep an open frozen plaza: time every crossing under the turning bars, then ride a blizzard vortex to the top
+  L('Aurora Sweepers', 'hazard', (b) => {
+    b.sideWind(2.2, 6);
     b.start(-6, 0, 12);
-    b.plat(8, 0, 62);
-    const roofs = [[13, 4.2, 5], [25, 4.6, 6], [39, 4.2, 5], [53, 4.6, 6]];
-    for (const [x, y, w] of roofs) b.rect(x, y, w, 0.8);
-    for (const [x, o] of [[21, 0], [34, 0.7], [47, 1.4], [62, 0.4], [66, 1.6]]) b.meteor(x, 0, { P: 2.2, off: o });
-    for (const [x, o] of [[15.5, 1], [28, 0.2], [42, 1.7], [56, 0.9]]) b.meteor(x, 5.4, { P: 2.6, off: o });
-    b.enemy('walker', 30, 0, { range: 7 });
-    b.checkpoint(41, 0);
-    b.shard(28, 7); b.shard(56, 7);
-    b.cells(10, 1, 68, 1, 12);
-    b.plat(73, 3, 4); b.crumble(80, 6, 2.6); b.crumble(85, 9, 2.6);
-    b.meteor(81.3, 6, { P: 2.4 });
-    b.plat(90, 11, 10);
-    b.goal(96, 11);
+    b.plat(8, 0, 58);
+    b.sweeper(16, 2.8, 3.2, { omega: 55, both: true });
+    b.sweeper(28, 2.8, 3.2, { omega: -60, both: true });
+    b.sweeper(40, 3.2, 3.4, { omega: 70, both: true });
+    b.sweeper(52, 2.8, 3.2, { omega: -55, both: true });
+    b.enemy('walker', 21, 0, { range: 4 });
+    b.checkpoint(34, 0);
+    b.thin(14, 4.4, 4); b.shard(16, 6);                     // the roof of the first beam
+    b.thin(44, 4.4, 4); b.shard(46, 6);
+    b.cells(10, 1, 62, 1, 11);
+    b.plat(70, 0, 6);
+    b.tornado(79, 87, 0, { rise: 11, T: 5 });              // a blizzard vortex wanders the gap
+    b.plat(92, 10, 5);
+    b.pendulum(100, 17, 6.5, { amp: 35, T: 3.2 });
+    b.plat(106, 10, 10);
+    b.goal(112, 10);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
@@ -468,6 +482,8 @@ export default [
     b.goal(130, 4);
     b.cells(13, 23.4, 19, 23.4, 3); b.cells(34, 17.4, 40, 17.4, 3); b.cells(67, 7.4, 75, 7.4, 4);
     b.plat(-14, 25.5, 3); b.shard(-12.5, 27.5);
+    b.zip(68, 10, 79, 4, { oneWay: true });                    // ride the ski-lift down the slope
+    b.vine(115, 11, 6);
   }),
   // 261 ── up one side of an ice needle and down the other, ice moths circling every perch
   L('Moth Spire', 'enemies', (b) => {
@@ -490,6 +506,7 @@ export default [
     b.cells(10, 4.5, 10, 22, 6); b.cells(28, 21.5, 37, 5.5, 5);
     b.plat(42, 2, 10);
     b.goal(48, 2);
+    b.zip(20, 29, 40, 6, { oneWay: true });                   // a cable-car line off the needle
   }),
 
   // 262 ── a geyser relay: every pad is too high or walled off to jump to, so each spout hands you to the next
@@ -513,6 +530,7 @@ export default [
     b.plat(74, 13, 9);
     b.goal(80, 13);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.pendulum(42, 22, 6.5, { amp: 30, T: 3.4 });             // an icicle chandelier bridging to the pipes
   }),
 
   // 263 ── the twin moons: lift up Miranda's face, ferry across the sky, then pick down Ariel's far side
@@ -557,28 +575,27 @@ export default [
     b.goal(89, 5.9);
   }),
 
-  // 265 ── a frost tube: the roof dips and rises, so every hop over a pit or urchin has to stay low
-  L('Frostbite Tube', 'tunnel', (b) => {
+  // 265 ── blizzard vortices: tornado after tornado lifts you out of the pits, one tall stair of updrafts with ice beams turning at the top
+  L('Vortex Stairs', 'tornado', (b) => {
     b.sideWind(1.4, 6);
     b.start(-6, 0, 12);
-    b.rect(4, 3.6, 22, 1); b.rect(26, 4.4, 4, 1); b.rect(34, 4.4, 6, 1); b.rect(40, 3.6, 10, 1);
-    b.plat(6, 0, 10); b.plat(19, 0, 8); b.crumble(29.5, 0, 3); b.plat(35, 0, 15);
-    b.enemy('spiker', 21, 0, { range: 4, speed: 1.4 });
-    b.enemy('spiker', 37, 0, { range: 10, speed: 2 });
-    b.rect(30, 5.4, 0.8, 3); b.rect(33.2, 5.4, 0.8, 3); b.rect(30, 8.4, 4, 0.8);
-    b.thin(30.8, 4.4, 2.4); b.shard(32, 6.2);               // an alcove punched up through the roof
-    b.cells(7, 1, 48, 1, 10);
-    b.plat(50, 2, 6);                                       // the tube steps up
-    b.checkpoint(52, 2);
-    b.rect(50, 5.6, 34, 1);
-    b.plat(59, 2, 6); b.crumble(68, 2, 2.4); b.plat(73, 2, 11);
-    b.enemy('walker', 61, 2, { range: 3 }); b.enemy('spiker', 75, 2, { range: 7, speed: 2.4 });
-    b.plat(65, -2, 2.4); b.shard(66.2, -0.6);               // down in a pit
-    b.meteor(78, 2, { style: 'drip', h: 3.6, P: 2 });
-    b.cells(52, 3, 82, 3, 8);
-    b.plat(87, 4, 10);
-    b.goal(93, 4);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.plat(8, 0, 4);
+    b.tornado(16, 22, 0, { rise: 11, T: 5 });
+    b.plat(27, 6, 4);
+    b.cells(12, 1, 26, 7, 4);
+    b.tornado(34, 40, 6, { rise: 11, T: 5 });
+    b.plat(45, 11, 4);
+    b.checkpoint(46.5, 11);
+    b.tornado(51, 57, 11, { rise: 11, T: 5 });
+    b.plat(62, 17, 5);
+    b.thin(58, 19.5, 3); b.shard(59.5, 21.1);                                        // on top of the vortex, past the beam
+    b.plat(69, 13, 3); b.plat(75, 10, 3);
+    b.shard(76.5, 11.6);
+    b.floater(81, 10, 3, { rise: 8, speed: 2.2 });
+    b.plat(88, 15, 10);
+    b.goal(94, 15);
+    b.cells(63, 18.2, 76, 11.2, 5);
   }),
 
   // 266 ── climb an aurora curtain: rungs of light flicker in a rising wave while the wind sways you
@@ -598,29 +615,34 @@ export default [
     b.plat(43, 24, 10);
     b.goal(49, 24);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.zip(17, 38.5, 41, 27, { oneWay: true });                // a cable off the summit ledge
   }),
 
-  // 267 ── a three-storey switchback through the glacier: right along the bottom, back left above, right again on top
-  L('Switchback Glacier', 'maze', (b) => {
+  // 267 ── sinking floes: slush ice floes sink under your weight and frozen gas bubbles rise; cross the gorge without ever standing still
+  L('Floe Falls', 'weights', (b) => {
+    b.sideWind(1.2, 7);
     b.start(-6, 0, 12);
-    b.ice(6, 0, 46);                                        // storey 1: slick floor, mites
-    b.enemy('walker', 14, 0, { range: 10, speed: 2 }); b.enemy('walker', 30, 0, { range: 10, speed: 2.4 });
-    b.cells(8, 1, 40, 1, 7);
-    b.thin(46, 2.6, 3);
-    b.plat(50.5, 0.01, 1.5); b.shard(51.2, 1.4);           // the far corner of the bottom storey
-    b.plat(6, 5, 38);                                       // storey 2: icicles, walking back left
-    b.checkpoint(40, 5);
-    for (let i = 0; i < 5; i++) b.meteor(14 + i * 6, 5, { style: 'drip', h: 4.6, P: 2.4, off: i * 0.5 });
-    b.cells(10, 6, 38, 6, 6);
-    b.thin(7, 7.6, 3);
-    b.plat(12, 10, 40);                                     // storey 3: a sentry fires down the hall
-    b.rect(52, 10, 1.4, 4); b.turret(52, 10.8, -1, { P: 2.4 });
-    b.enemy('spiker', 24, 10, { range: 10, speed: 2 });
-    b.cells(14, 11, 50, 11, 8);
-    b.shard(52.7, 15.6);                                    // on the sentry's roof
-    b.plat(56, 12, 8);
-    b.goal(61, 12);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.sinker(9, 0, 3, { depth: 3 });
+    b.sinker(15, 0.5, 3, { depth: 3.5 });
+    b.shard(16.5, -2);                                      // ride a floe all the way under
+    b.sinker(21, 0, 3, { depth: 3 });
+    b.plat(27, 1, 5);
+    b.checkpoint(29, 1);
+    b.floater(35, 1, 3, { rise: 10, speed: 2.2 });
+    b.cells(36.5, 3.5, 36.5, 10, 3);
+    b.shard(36.5, 13);                                      // ride the bubble to the very top
+    b.plat(41, 8, 5);
+    b.sinker(48, 7, 2.6, { depth: 3, speed: 2 });
+    b.sinker(53.5, 6, 2.6, { depth: 3, speed: 2 });
+    b.sinker(59, 5, 2.6, { depth: 3, speed: 2 });
+    b.enemy('flyer', 56.5, 9.5, { ax: 2.5, ay: 0.6, T: 3 });
+    b.floater(65, 3, 3, { rise: 7, speed: 2.4 });
+    b.plat(70, 10, 4);
+    b.sinker(77, 9, 6, { depth: 5, speed: 0.9 });           // the great floe: slow, but don't dawdle
+    b.plat(87, 7, 10);
+    b.goal(93, 7);
+    b.arc(6, 0, 26, 1, 6, 1.6); b.cells(49, 8.2, 60, 6.2, 4);
   }),
 
   // 268 ── a crevasse labyrinth of red and blue ice: three switches, one chimney, and an exit through the roof
@@ -646,6 +668,7 @@ export default [
     b.plat(69, 10, 8);
     b.goal(74, 10);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.vine(50, 13.5, 6);                                      // a rope hanging from the roof
   }),
 
   // 269 ── the polar night: tiny crystal footholds in a howling crosswind, icicles and sentries; the hardest stretch on Uranus
@@ -669,6 +692,7 @@ export default [
     b.goal(103, 3);
     b.cells(10, 2.5, 38, 7.5, 7); b.cells(60, 7.5, 92, 4.5, 7);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.vine(24, 10, 5);                                        // a frayed rope over the first crumble
   }),
 
   // 270 ── FINALE: a lidded geyser, aurora bridges, an ice chimney, and then the Blizzard chases you off the giant
@@ -698,5 +722,7 @@ export default [
     b.plat(121, 14, 12);
     b.goal(129, 14);
     b.cells(30, 13.2, 40, 14.2, 4); b.cells(63, 23.4, 117, 17.4, 10);
+    b.zip(104, 24, 120, 15, { oneWay: true });                // a last cable over the crumbling floes
+    b.vine(74.5, 24, 5.5);
   }),
 ];

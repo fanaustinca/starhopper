@@ -51,6 +51,17 @@ function svgFor(L) {
     el.push(`<polyline points="${pts.map((q) => `${X(q.x + m.w / 2)},${Y(q.y + m.h)}`).join(' ')}" fill="none" stroke="#5fd8ff" stroke-dasharray="3 3"/>`);
     rect(p0.x, p0.y, m.w, m.h, 'rgba(95,216,255,0.7)');
   }
+  for (const z of L.zips || []) el.push(`<line x1="${X(z.x0)}" y1="${Y(z.y0)}" x2="${X(z.x1)}" y2="${Y(z.y1)}" stroke="#ffffff" stroke-width="2"/><circle cx="${X(z.x0)}" cy="${Y(z.y0)}" r="4" fill="#fff"/>`);
+  for (const br of L.barrels || []) {
+    const ex = br.x + Math.cos(br.angle) * 3, ey = br.y + Math.sin(br.angle) * 3;
+    el.push(`<circle cx="${X(br.x)}" cy="${Y(br.y)}" r="${0.9 * S}" fill="#c08030"/><line x1="${X(br.x)}" y1="${Y(br.y)}" x2="${X(ex)}" y2="${Y(ey)}" stroke="#ffd04a" stroke-width="3"/>` + (br.spin ? `<circle cx="${X(br.x)}" cy="${Y(br.y)}" r="${1.3 * S}" fill="none" stroke="#ffd04a" stroke-dasharray="3 3"/>` : ''));
+  }
+  for (const sw of L.sweepers || []) el.push(`<circle cx="${X(sw.cx)}" cy="${Y(sw.cy)}" r="${sw.len * S}" fill="rgba(255,60,60,0.12)" stroke="#ff4040" stroke-dasharray="4 3"/>`);
+  for (const h of L.hazards) if (h.path && h.path.type === 'pendulum') {
+    const P = h.path;
+    el.push(`<path d="M ${X(P.px + Math.sin(-P.amp) * P.len)} ${Y(P.py - Math.cos(P.amp) * P.len)} A ${P.len * S} ${P.len * S} 0 0 0 ${X(P.px + Math.sin(P.amp) * P.len)} ${Y(P.py - Math.cos(P.amp) * P.len)}" fill="none" stroke="#ff6040" stroke-width="3"/><circle cx="${X(P.px)}" cy="${Y(P.py)}" r="3" fill="#ff6040"/>`);
+  }
+  for (const m of L.movers) if (m.rope) el.push(`<circle cx="${X(m.rope.px)}" cy="${Y(m.rope.py)}" r="3" fill="#5fd8ff"/>`);
   for (const v of L.vines) el.push(`<line x1="${X(v.ax)}" y1="${Y(v.ay)}" x2="${X(v.ax)}" y2="${Y(v.ay - v.len)}" stroke="#3aff90" stroke-width="3"/>`);
   for (const m of L.meteors) el.push(`<circle cx="${X(m.x)}" cy="${Y(m.y1)}" r="6" fill="none" stroke="#ff8030" stroke-width="2"/>`);
   for (const e of L.enemies) el.push(`<circle cx="${X(e.x)}" cy="${Y(e.y + 0.5)}" r="7" fill="${e.type === 'spiker' ? '#ff40a0' : '#ff9040'}"/>` + (e.type !== 'flyer' ? `<line x1="${X(e.x)}" y1="${Y(e.y) + 4}" x2="${X(e.x + e.range)}" y2="${Y(e.y) + 4}" stroke="#ff9040"/>` : ''));

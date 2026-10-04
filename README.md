@@ -1,6 +1,6 @@
 # Starhopper
 
-A 2.5D robot platformer for the browser, built with Three.js. You play a small glossy robot hopping across **14 worlds and 420 levels** (30 per world): the Sun, the eight planets plus the Asteroid Belt, and four alien worlds.
+A 2.5D robot platformer for the browser, built with Three.js. You play a small glossy robot hopping across **14 worlds and 420 levels** (30 per world), plus a bonus 421st level, **THE END**, inside a black hole,: the Sun, the eight planets plus the Asteroid Belt, and four alien worlds.
 
 **Play:** https://fanaustinca.github.io/starhopper/
 
@@ -9,7 +9,7 @@ A 2.5D robot platformer for the browser, built with Three.js. You play a small g
 | 1 | The Sun | 1–30 | plasma surface, fire pits, solar-flare beams, sunspot heat tiles, heat-shield pads |
 | 2 | Mercury | 31–60 | low gravity, liquid-mercury pools, crater vents that launch you |
 | 3 | Venus | 61–90 | thick toxic haze, drifting acid clouds, acid rain, high-pressure steam vents |
-| 4 | Earth | 91–120 | world tour (London, NYC, SF, LA, Shanghai, Beijing, Sydney, Berlin, Moscow, Tokyo; 3 levels each): ride buses (both decks), taxis, trucks, boats, planes, elevators |
+| 4 | Earth | 91–120 | world tour (London, NYC, SF, LA, Shanghai, Beijing, Sydney, Berlin, Moscow, Tokyo; 3 levels each, with 3–4 landmarks per city, such as Tower Bridge, Brooklyn Bridge, Alcatraz, Griffith Observatory, the Great Wall, Tiananmen, Skytree): ride buses (both decks), taxis, trucks, boats, planes, elevators |
 | 5 | Mars | 121–150 | rovers across canyons, dust storms, lava pits |
 | 6 | Asteroid Belt | 151–180 | tumbling asteroid platforms, falling meteors |
 | 7 | Jupiter | 181–210 | floating platforms, wind drafts; 205–210 are inside the Great Red Spot |
@@ -20,6 +20,7 @@ A 2.5D robot platformer for the browser, built with Three.js. You play a small g
 | 12 | Mechanus | 331–360 | giant rotating gears, conveyor belts, crushing pistons, steam exhaust |
 | 13 | Bio-Lumina | 361–390 | bouncy mushrooms, swinging vines, carnivorous plant doors |
 | 14 | Chronos | 391–420 | platforms that run fast-forward, freeze or reverse; erratic gravity zones |
+| ★ | The Black Hole | 421 | **THE END**: a ~860-unit gauntlet with a section from every world in order and 7 checkpoints, ending in an Event Horizon chase. Big Ben, buses, rovers, gears and clocks spiral into the accretion disk around you |
 
 Every jump plays a random air trick: flips, cartwheels, corkscrews, star jumps and more.
 
@@ -29,7 +30,17 @@ When you first press Play, a multi-deck mothership flies in to the Sun, lands, l
 
 All 420 levels are **hand-written** as explicit layouts in `public/js/levels/<world>.js`, using a small authoring DSL (`public/js/levels/dsl.js`, documented in `public/js/levels/README.md`). There's no procedural generation and no randomness. Each level is built around its own idea, for example *Sunspot Checkers*, *Hop-On at the Back*, *Paradox Stair*, *Facet Chimneys* or *Heart of the Machine*. Each world has an intro, two chase levels, a rising-tide climb, a hard level 29 and a finale.
 
-Mechanics include stompable walker enemies, spiky enemies you can't stomp, hovering drones, turrets, floor switches that swap red/blue blocks, blinking platforms, crumbling platforms, multi-point looping rides, ferris wheels, vehicles, vines, light bridges, gravity zones, time-warp platforms, wall-jump chimneys and ceilings/tunnels.
+Moving things are everywhere. Each world uses them in its own style:
+- **zip lines** (canyon cables, ski lifts, spider silk)
+- **launch barrels**, fixed, rotating or rocking, and chainable (mass drivers, cuckoo cannons, seed pods)
+- **pendulum platforms**
+- **sinking and floating weight platforms**
+- **wrecking balls**
+- **sweeping beams**
+- **travelling tornadoes** (dust devils, waterspouts)
+- **swing ropes** drawn per world (vines, plasma tethers, crane hooks, chains, light strands)
+
+Other mechanics include stompable walker enemies, spiky enemies you can't stomp, hovering drones, turrets, floor switches that swap red/blue blocks, blinking platforms, crumbling platforms, multi-point looping rides, ferris wheels, vehicles, vines, light bridges, gravity zones, time-warp platforms, wall-jump chimneys and ceilings/tunnels.
 
 Every level hides **3 Star Shards**.
 

@@ -29,6 +29,8 @@ export default [
     b.plat(93, 4, 10);
     b.goal(99, 4);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.vine(51, 8, 5);                                    // a buoy tether over the first dip
+    b.tornado(60, 64, 0, { rise: 6, T: 6 });                // the first little waterspout: it lifts you into the gust
   }),
 
   // 2 ── a staircase of islands falling away into the storm, each gap its own gust rhythm
@@ -51,32 +53,33 @@ export default [
     b.cells(70, 8, 78, 7, 3); b.cells(83, 6, 90, 5, 3);
     b.plat(92, 2, 10);
     b.goal(98, 2);
+    b.vine(55, 13, 5);
+    b.tornado(24, 27, 10, { rise: 7, T: 5 });                // a waterspout drifting off the second terrace
   }),
 
-  // 3 ── a long icy pier: headwinds shove you back, so dash between the windbreak walls
-  L('Windbreak Pier', 'wind', (b) => {
+  // 3 ── Buoy Bounce: storm buoys sink under your weight and bubble columns lift you; waterspouts carry you over the open sea
+  L('Buoy Bounce', 'swing', (b) => {
     b.start(-6, 0, 12);
-    b.plat(6, 0, 10); b.pool(16, 0, 4, 'water');
-    b.plat(20, 0, 12); b.wall(25, 0, 2.6, 1.2);
-    b.wind(26.2, -1, 14, 9, -12, { P: 4, on: 1.8 });
-    b.pool(32, 0, 5, 'water');
-    b.plat(37, 0, 12); b.wall(44, 0, 2.6, 1.2);
-    b.checkpoint(40, 0);
-    b.wind(45.2, -1, 16, 9, -12, { P: 3.6, on: 1.6, off: 1.2 });
-    b.pool(49, 0, 6, 'water');
-    b.plat(55, 0, 12); b.wall(62, 0, 2.6, 1.2);
-    b.wind(63.2, -1, 18, 9, -13, { P: 3.4, on: 1.6, off: 2.2 });
-    b.pool(67, 0, 5, 'water');
-    b.plat(72, 0, 8);
-    b.pool(80, 0, 6, 'water');
-    b.plat(86, 0, 12);
-    b.goal(93, 0);
-    // the sheltered high road along the wall tops
-    b.thin(28, 5.6, 4); b.thin(36, 6.4, 4); b.thin(47, 5.6, 4);
-    b.cells(29, 6.6, 50, 6.6, 6);
-    b.shard(38, 8.4);
-    b.cells(8, 1, 14, 1, 3); b.cells(57, 1, 79, 1, 6);
-    b.shard(83, 1.6);                                               // over the last pool: risky
+    b.sinker(9, 0, 3, { depth: 3 });                       // first buoy: feel it go down
+    b.sinker(15, 0.5, 3, { depth: 3.5 });
+    b.shard(15.5, -1.6);                                   // only reached by riding a buoy all the way under
+    b.sinker(21, 0, 3, { depth: 3 });
+    b.plat(26, 1, 5);
+    b.floater(35, 1, 3, { rise: 9, speed: 2.2 });          // a bubble column: stand on it and it floats you up
+    b.cells(35, 3.5, 35, 8.5, 3);
+    b.shard(35, 12.6);                                     // ride the bubbles to the very top
+    b.plat(41, 8, 5);
+    b.checkpoint(43, 8);
+    b.tornado(48, 60, 7.5, { rise: 9, T: 6 });               // a waterspout roaming the gap
+    b.cells(50, 13, 64, 13, 6);
+    b.plat(66, 11, 5);
+    b.sinker(75, 11, 2.6, { depth: 3, speed: 2 });
+    b.sinker(81, 10, 2.6, { depth: 3, speed: 2 });
+    b.sinker(87, 9, 2.6, { depth: 3, speed: 2 });
+    b.enemy('flyer', 81, 14, { ax: 3, ay: 0.8, T: 3 });
+    b.plat(92, 8, 10);
+    b.goal(98, 8);
+    b.cells(6, 1, 24, 1, 5);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
@@ -96,26 +99,34 @@ export default [
     b.goal(109, 4);
     b.shard(17, -0.2);                                               // skimming the swells between floes
     b.shard(62, 5.4);
+    b.pendulum(61, 11, 5.6, { amp: 25, T: 3.2 });          // a buoy anchor swinging over the icy pools
+    b.vine(88, 13, 5);
   }),
 
-  // 5 ── lightning walks down a long cloud bridge; then climb a ladder of strikes
-  L('Lightning Rods', 'gauntlet', (b) => {
+  // 5 ── Tether Storm: swing across the sea on lightning-charged tethers while a lighthouse beam turns over the landing
+  L('Tether Storm', 'swing', (b) => {
     b.start(-6, 0, 12);
-    b.plat(8, 0, 44);
-    for (let i = 0; i < 7; i++) b.beam('lightning', 12 + i * 5.5, 0, { P: 3, on: 0.6, warn: 0.8, off: -i * 0.4 });
-    b.cells(10, 1, 49, 1, 9);
-    b.rect(26, 2.6, 10, 0.8); b.shard(31, 4.9);                    // a storm-cloud lid with a prize on it
-    b.plat(56, 2, 6);
-    b.checkpoint(59, 2);
-    b.plat(64, 5, 3); b.plat(70, 8, 3); b.plat(64, 11, 3); b.plat(70, 14, 3);
-    b.beam('lightning', 65.5, 5, { P: 2.6, on: 0.6, h: 14 });
-    b.beam('lightning', 71.5, 8, { P: 2.6, on: 0.6, off: 1.3, h: 14 });
-    b.cells(65.5, 6.5, 71.5, 15.5, 4);
-    b.plat(77, 14, 8);
-    b.shard(68, 18);
-    b.plat(89, 10, 3); b.plat(96, 6, 10);
-    b.goal(102, 6);
-    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.vine(11, 10, 6);
+    b.plat(17, 1, 5);
+    b.sweeper(19.5, 4.6, 3, { omega: 60 });                // a lighthouse beam turning over the first landing
+    b.vine(28, 11, 6);
+    b.plat(33, 2, 4);
+    b.beam('lightning', 36, 2, { P: 3, on: 0.6, warn: 0.8, h: 8 });
+    b.vine(42, 12, 6); b.vine(49, 13, 6);                  // the chain: no ground between
+    b.arc(38, 3, 56, 3, 6, 3);
+    b.shard(45.5, 8);
+    b.plat(57, 3, 5);
+    b.checkpoint(59, 3);
+    b.vine(67, 13, 6);
+    b.plat(73, 6, 4);
+    b.vine(81, 16, 6);                                     // tethers up the storm front
+    b.plat(87, 9, 4);
+    b.vine(95, 19, 6);
+    b.plat(101, 12, 9);
+    b.goal(106, 12);
+    b.cells(11, 6, 28, 7, 5); b.cells(65, 7, 73, 8, 3);
+    b.vine(-9, 10, 5); b.plat(-17, 5, 3); b.shard(-15.5, 7);   // a tether behind the start swings to a perch
+    b.plat(84, 14, 3); b.shard(85.5, 16);                   // let go high on a back-swing
   }),
 
   // 6 ── climb an ice cliff on Triton geysers, then ride a gust off the summit
@@ -140,31 +151,35 @@ export default [
     b.plat(52, 29, 4);
     b.plat(60, 25, 4); b.plat(67, 21, 10);
     b.goal(73, 21);
+    b.vine(-2, 21, 5);                                   // a tether off the cliff
+    b.pendulum(46, 40, 6, { amp: 30, T: 3.4 });             // a buoy anchor swinging in the summit gust
   }),
 
-  // 7 ── storm-drone squadrons patrol the gust corridors: fly between them
-  L('Squall Drones', 'enemies', (b) => {
-    b.start(-6, 0, 12);
-    b.plat(10, 0, 7); b.enemy('walker', 11, 0, { range: 5 });
-    b.wind(17, -4, 14, 12, 9, GUST(3.2, 1.8));
-    b.enemy('flyer', 24, 3, { ax: 0.6, ay: 2.4, T: 2.6 });
-    b.plat(31, 1, 6);
-    b.rect(37, 6.4, 13, 0.8);                                        // storm ceiling: no going over the drones
-    b.wind(37, -4, 13, 10.4, 9, GUST(3, 1.6, 1));
-    b.enemy('flyer', 43.5, 2.4, { ax: 0.4, ay: 1.6, T: 2 });
-    b.plat(50, 1, 8); b.enemy('walker', 51, 1, { range: 6, speed: 2.2 });
-    b.thin(51, 4.6, 3);                                              // a step up onto the storm ceiling
-    b.checkpoint(56, 1);
-    b.wind(58, -4, 30, 16, 10, GUST(4, 2.2));
-    b.plat(70, 3, 3);
-    b.enemy('flyer', 64, 6, { ax: 3, ay: 1, T: 3 });
-    b.enemy('flyer', 79, 5, { ax: 2, ay: 2, T: 2.4 });
-    b.plat(86, 2, 12); b.enemy('walker', 88, 2, { range: 6 });
-    b.goal(95, 2);
-    b.cells(20, 4, 28, 4, 3); b.cells(40, 3, 47, 3, 3); b.cells(61, 7, 68, 6, 3); b.cells(74, 6, 83, 5, 4);
-    b.shard(43.5, 7.8);                                               // on the ceiling
-    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
-    b.shard(71.5, 6.8);
+  // 7 ── Lighthouse Zip: storm zip lines run between lighthouse towers past swinging buoy anchors, then a waterspout lifts you to the last line
+  L('Lighthouse Zip', 'ride', (b) => {
+    b.start(-6, 20, 12);
+    b.zip(7, 23, 25, 17);
+    b.wrecker(16, 26, 5.4, { amp: 50, T: 3.2 });           // a buoy anchor swinging across the first line
+    b.shard(20, 20.6);
+    b.plat(27, 14, 5);
+    b.tower(28, -3, 3, 14);
+    b.sweeper(29.5, 17.6, 2.6, { omega: 70 });             // the lighthouse beam
+    b.zip(33, 17, 55, 10);
+    b.wrecker(44, 20, 5.6, { amp: 50, T: 3, phase: 0.5 });
+    b.plat(57, 7, 6);
+    b.checkpoint(60, 7);
+    b.vine(68, 15, 6);                                     // tether → line: let go into the next zip
+    b.zip(72, 10, 90, 4);
+    b.plat(92, 1, 6);
+    b.tornado(98, 106, 0.5, { rise: 12, T: 7 });           // a waterspout lifts you to the last tower
+    b.cells(100, 6, 110, 12, 5);
+    b.shard(106, 12);
+    b.plat(113, 12, 5);
+    b.zip(119, 15, 138, 8, { oneWay: true });
+    b.plat(140, 5, 10);
+    b.goal(146, 5);
+    b.cells(9, 21, 23, 16.5, 5); b.cells(35, 16, 53, 10, 6); b.cells(74, 9, 88, 4, 4); b.cells(121, 14, 136, 8, 5);
+    b.plat(-14, 22, 3); b.shard(-12.5, 24);
   }),
 
   // 8 ── down an ice crevasse: shelves zig-zag left and right, each with its own trap
@@ -188,6 +203,8 @@ export default [
     b.plat(55, 3, 10);
     b.goal(61, 3);
     b.shard(49, 6.5);
+    b.vine(36, 22, 5);
+    b.sinker(46, 1, 2.6, { depth: 2.5 });
   }),
 
   // 9 ── the Great Dark Spot: two vortices of counter-rotating rings, the inner eye holds a shard
@@ -208,6 +225,8 @@ export default [
     b.cells(57, 21, 57, 21, 1); b.cells(45, 10, 45, 10, 1);
     b.shard(24, 17);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.pendulum(80, 15, 5, { amp: 30, T: 3 });
+    b.vine(66, 22, 5);
   }),
 
   // 10 ── CHASE: the Supersonic Front roars in; ride the jet stream's endless tailwind
@@ -228,6 +247,8 @@ export default [
     b.goal(141, 3);
     b.shard(109, 13.4);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.vine(66, 15, 5);
+    b.pendulum(112, 18, 6, { amp: 30, T: 3 });
   }),
   // 11 ── a storm bunker: each floor button drops one shutter and swaps which stones float
   L('Storm Shutters', 'puzzle', (b) => {
@@ -256,6 +277,8 @@ export default [
     b.beam('lightning', 88, 4, { P: 2.8, on: 0.6 }); b.beam('lightning', 93, 4, { P: 2.8, on: 0.6, off: 1.4 });
     b.thin(86, 7.5, 3); b.shard(87.5, 9.3);
     b.goal(95, 4);
+    b.pendulum(72, 10, 4, { amp: 30, T: 3 });
+    b.vine(82, 9, 5);
   }),
 
   // 12 ── a tall chimney climbed by crosswinds: each tier's gust blows the opposite way
@@ -289,6 +312,8 @@ export default [
     b.cells(17, 32, 27, 32, 4);
     b.plat(30, 28.5, 10);
     b.goal(36, 28.5);
+    b.vine(-4, 22, 5);
+    b.floater(28, 8, 2.6, { rise: 6, speed: 2 });
   }),
 
   // 13 ── riptide currents: forward belts fling you into gusts, backward belts drag you to sea
@@ -312,6 +337,8 @@ export default [
     b.plat(103, 5, 10);
     b.goal(109, 5);
     b.shard(63, 1.4);                                                // in the gap past the riptide's end
+    b.sinker(98, 4, 2.6, { depth: 2 });
+    b.vine(70, 10, 5);
   }),
 
   // 14 ── each cloud-pad blinks out exactly when its bolt strikes: hop in counterpoint
@@ -338,6 +365,8 @@ export default [
     b.goal(97, 4);
     b.shard(46, 5.2);
     b.shard(35.5, 4.6);                                              // over the last singing pad
+    b.pendulum(71, 18, 5, { amp: 30, T: 3.2 });
+    b.vine(101, 10, 5);
   }),
 
   // 15 ── the ocean rises: climb the ice tower on geysers, slick ledges and a chimney
@@ -363,6 +392,8 @@ export default [
     b.plat(23, 44, 8);
     b.goal(28, 44);
     b.cells(10, 4.5, 18, 6.5, 3); b.cells(19.5, 8, 19.5, 11, 2); b.cells(11, 19, 17, 22, 2);
+    b.vine(27, 20, 5);
+    b.floater(5, 2, 2.6, { rise: 6, speed: 2.4 });
   }),
 
   // 16 ── ride three storm-tossed rafts: a choppy one, a heaving one and a circling one
@@ -384,6 +415,8 @@ export default [
     b.plat(109, 6, 9);
     b.goal(114, 6);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.sinker(20, 1, 2.6, { depth: 2 });
+    b.vine(48, 10, 5);
   }),
 
   // 17 ── rock-mounted storm cannons fire across the gust lanes: fly over or under the bolts
@@ -410,6 +443,8 @@ export default [
     b.plat(92, 4, 10);
     b.goal(98, 4);
     b.shard(88.7, 12.4);                                             // on the far cannon's roof
+    b.pendulum(21, 8, 4, { amp: 30, T: 3 });
+    b.vine(60, 12, 5);
   }),
 
   // 18 ── a bowl into the calm eye: a tailwind shoves you down, a headwind fights you out
@@ -431,30 +466,31 @@ export default [
     b.goal(78, 12);
     b.plat(-14, 9, 3); b.shard(-12.5, 11);
     b.shard(51, 2);
+    b.vine(25, 10, 5);
+    b.pendulum(46, 14, 5, { amp: 30, T: 3.4 });
   }),
 
-  // 19 ── a crumbling iceberg: tunnel through its brittle belly or skate over its peak
-  L('Crumbling Iceberg', 'maze', (b) => {
+  // 19 ── Waterspout Alley: four waterspouts roam the open sea at different tempos; ride each one up the staircase of islands
+  L('Waterspout Alley', 'ride', (b) => {
     b.start(-6, 0, 12);
-    b.plat(10, 0, 16);
-    b.plat(12, 3, 3);
-    b.rect(20, 3, 20, 1.5); b.rect(48, 3, 17, 1.5);                 // the berg's roof, cracked open in the middle
-    b.crumble(26, 0, 3); b.crumble(29.5, 0, 3); b.crumble(33, 0, 3);
-    b.enemy('walker', 21, 0, { range: 4 });
-    b.shard(31, 1.6);                                                 // only the tunnel route passes it
-    b.plat(36.5, 0, 11.5);
-    b.checkpoint(42, 0);
-    b.pool(48, 0, 4, 'water');
-    b.plat(52, 0, 6); b.enemy('spiker', 52.5, 0, { range: 4.5 });
-    b.crumble(58, 0, 3); b.crumble(61.5, 0, 3);
-    b.plat(65, 0, 8);
-    b.ice(24, 7, 6); b.ice(32, 10, 6); b.ice(40, 12, 6); b.ice(48, 10, 6); b.ice(56, 7, 6);
-    b.beam('lightning', 43, 12, { P: 3, on: 0.6 });
-    b.shard(43, 15.5);
-    b.cells(22, 5.5, 60, 8.5, 9); b.cells(14, 1, 24, 1, 3); b.cells(53, 1, 63, 1, 4);
-    b.plat(77, 2, 4); b.plat(84, 3, 10);
-    b.goal(90, 3);
-    b.shard(55, 1.4);                                                // past the spiker in the berg's belly
+    b.tornado(8, 20, 0, { rise: 9, T: 5 });
+    b.cells(8, 4, 24, 7, 6);
+    b.plat(28, 7, 5);
+    b.checkpoint(30, 7);
+    b.tornado(34, 44, 6.5, { rise: 10, T: 6, phase: 0.5 });
+    b.enemy('flyer', 40, 16, { ax: 3, ay: 1, T: 3 });
+    b.plat(50, 14, 4);
+    b.beam('lightning', 52, 14, { P: 3, on: 0.6, warn: 0.8, h: 8 });
+    b.tornado(55, 65, 13.5, { rise: 10, T: 5, phase: 0.2 });
+    b.cells(54, 18, 68, 22, 6);
+    b.shard(66, 22);                                        // in the crest of the third waterspout
+    b.plat(70, 20, 4);
+    b.plat(78, 21, 4);
+    b.pendulum(88, 29, 7.5, { amp: 40, T: 3.4 });           // a raft swung out from a crane to the goal isle
+    b.plat(96, 20, 10);
+    b.goal(102, 20);
+    b.shard(24.5, 5.4);                                     // in the first spout's wake, over the open sea
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
   // 20 ── CHASE: the Supersonic Front chases you down from the stormwall to the sea
@@ -478,56 +514,57 @@ export default [
     b.goal(130, -1);
     b.cells(13, 18, 16, 18, 2); b.cells(40, 10, 50, 9, 4); b.cells(54, 8, 60, 6, 3); b.cells(109, 1, 120, 1, 4);
     b.plat(-14, 22, 3); b.shard(-12.5, 24);
+    b.vine(60, 12, 5);
+    b.pendulum(122, 8, 5, { amp: 30, T: 3 });
   }),
-  // 21 ── a sawtooth of glacier chimneys: wall-jump up, cross a brittle bridge, drop, climb again
-  L('Glacier Chimneys', 'ascent', (b) => {
+  // 21 ── Triton Pod Spire: geyser cannon pods blast you up a lighthouse spire: a fixed pod, a spinning pod, a pod ladder, then a rocking pod
+  L('Triton Pod Spire', 'ascent', (b) => {
     b.start(-6, 0, 12);
-    b.plat(6, 0, 8);
-    b.wall(10, 2.2, 14); b.wall(13.6, 0, 13);                       // chimney 1: duck under the left wall
-    b.cells(12.2, 3, 12.2, 11, 4);
-    b.shard(12.2, 17.2);
-    b.crumble(15, 13, 3); b.crumble(19.5, 13.5, 3);
-    b.plat(24, 14, 4);
-    b.beam('lightning', 26, 14, { P: 3, on: 0.6, h: 12 });
-    b.thin(24.5, 17.6, 3); b.shard(26, 19.4);
-    b.cells(16.5, 14.5, 21, 15, 2);
-    b.shard(30, 7);                                                   // drift for it on the drop
-    b.cells(30, 11, 30, 4, 3);
-    b.plat(32, 2, 8);
-    b.wall(36, 4.4, 14); b.wall(39.4, 2, 13);                        // chimney 2, a Triton geyser at its foot
-    b.vent(38.1, 2, 6, { type: 'geyser' });
-    b.cells(38.1, 10, 38.1, 14, 3);
-    b.plat(40.2, 15, 5);
-    b.checkpoint(42, 15);
-    b.ice(49, 12, 3); b.ice(55, 9, 3);
-    b.cells(50.5, 13.5, 56.5, 10.5, 2);
-    b.plat(61, 7, 10);
-    b.goal(67, 7);
+    b.tower(8, -3, 44, 40);
+    b.plat(8, 0, 5);
+    b.barrel(15, 2.4, { angle: 45 });                       // pod 1: hop in, press jump
+    b.barrel(24, 4.4, { spin: 90 });                        // a spinning pod: wait for it to face the next ledge
+    b.plat(31, 3.5, 5);
+    b.checkpoint(33, 3.5);
+    b.barrel(40, 6, { angle: 90, power: 22 });              // the pod ladder up the spire
+    b.barrel(40, 11, { angle: 90, power: 22 });
+    b.barrel(40, 16, { spin: 90 });
+    b.shard(40, 21.5);                                      // straight up out of the top pod
+    b.plat(46, 14, 4);
+    b.barrel(54, 16.5, { angle: 60, sweep: 35, spin: 100, power: 20 });   // a rocking pod
+    b.plat(61, 19, 4);
+    b.plat(51, 22, 3); b.shard(52.5, 24);                   // the rocking pod flung high reaches this perch
+    b.vine(70, 29, 6);
+    b.plat(76, 21, 10);
+    b.goal(82, 21);
+    b.cells(10, 1, 14, 2.5, 2); b.arc(16, 3, 23, 4.4, 2, 1.5); b.arc(25, 5, 31, 5, 2, 1.5);
+    b.cells(40, 8, 40, 14, 3);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
-  // 22 ── abyssal caverns: two corridors stacked under the sea, a switch below opens the gate above
-  L('Abyssal Caverns', 'maze', (b) => {
+  // 22 ── Crane Docks: pendulum life-rafts hang from crane arms over the harbour, wrecking buoys swing between the piers
+  L('Crane Docks', 'ride', (b) => {
     b.start(-6, 0, 12);
-    b.rect(6, 4.5, 53, 1);                                          // cavern roof
-    b.plat(6, 0, 20); b.plat(29, 0, 15); b.plat(47, 0, 12);         // upper floor, holed at 26 and 44
-    b.rect(14, 2.2, 6, 2.3);                                         // a low squeeze
-    b.enemy('walker', 13, 0, { range: 8, speed: 1.4 });
-    b.shard(17, 1);
-    b.plat(22, -6, 8); b.pool(30, -6, 4, 'water'); b.plat(34, -6, 20);   // lower floor
-    b.shard(32, -4.4);
-    b.enemy('spiker', 35, -6, { range: 6, speed: 2 });
-    b.checkpoint(37, -6);
-    b.switch(40, -6);
-    b.spring(45, -6, 4.5);                                            // up through the second hole
-    b.blueWall(49.5, -6, 5);
-    b.rect(54, -6, 1.5, 5); b.turret(54, -5.2, -1, { P: 2.6 });
-    b.shard(52.5, -5);                                                // grab it before the switch seals it off
-    b.redWall(52, 0, 4.5);                                            // the gate in the upper corridor
-    b.cells(8, 1, 12, 1, 2); b.cells(24, -5, 28, -5, 2); b.cells(35, -5, 43, -5, 4); b.cells(48, 1, 57, 1, 4);
-    b.plat(63, 1, 4);
-    b.plat(70, 2, 10);
-    b.beam('lightning', 74, 2, { P: 2.8, on: 0.6 });
-    b.goal(77, 2);
+    b.plat(8, 0, 4);
+    b.pendulum(17, 8, 7, { amp: 40, T: 3.4 });              // first raft
+    b.plat(25, 0, 5);
+    b.wrecker(32, 9, 6.4, { amp: 50, T: 3 });               // a wrecking buoy across the next pier
+    b.plat(30, 0, 6);
+    b.shard(33, 1.4);
+    b.pendulum(40, 9, 8, { amp: 35, T: 3.6 });
+    b.pendulum(48, 9, 8, { amp: 35, T: 3.6, phase: 0.5 });
+    b.plat(54, 1, 6);
+    b.checkpoint(57, 1);
+    b.pendulum(63, 12, 7, { amp: 40, T: 3.4 });             // a crane staircase up the dock
+    b.pendulum(71, 15, 7, { amp: 40, T: 3.4, phase: 0.5 });
+    b.shard(71, 12);                                        // under the raft: swing it out of the way
+    b.pendulum(79, 18, 7, { amp: 40, T: 3.4 });
+    b.plat(85, 11, 4);
+    b.wrecker(91, 20, 6.5, { amp: 55, T: 3, phase: 0.3 });
+    b.plat(89, 11, 12);
+    b.goal(97, 11);
+    b.cells(10, 1, 22, 1, 4); b.cells(36, 2, 52, 2, 5); b.cells(60, 6, 78, 12, 5);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
   // 23 ── a relay of Dark Spot vortices, each one hurls you at the next on a gust
@@ -547,29 +584,31 @@ export default [
     b.cells(72, 15, 80, 14, 3);
     b.plat(84, 12, 10);
     b.goal(90, 12);
+    b.vine(36, 12, 5);
+    b.pendulum(77, 20, 5, { amp: 30, T: 3 });
   }),
 
-  // 24 ── rocks too far apart to jump: let each geyser toss you skyward, then glide to the next
-  L('Geyser Hopscotch', 'bounce', (b) => {
+  // 24 ── Cannon Pod Relay: Triton cannon pods blast you across the open ocean, one pod to the next, with a waterspout for the long haul
+  L('Cannon Pod Relay', 'bounce', (b) => {
     b.start(-6, 0, 12);
-    b.plat(10, 0, 3); b.vent(11.5, 0, 8, { type: 'geyser', P: 2.6, on: 1.1 });
-    b.plat(24, 0, 3); b.vent(25.5, 0, 8, { type: 'geyser', P: 2.6, on: 1.1, off: 0.9 });
-    b.beam('lightning', 31, 4, { P: 3, on: 0.6 });
-    b.plat(37, 1, 3); b.vent(38.5, 1, 8, { type: 'geyser', P: 2.6, on: 1.1, off: 1.7 });
-    b.cells(11.5, 5, 11.5, 9, 2); b.arc(13, 9, 24, 3, 3, 1.5); b.arc(27, 9, 37, 4, 3, 1.5);
-    b.shard(25.5, 13.6);
-    b.plat(46, 1, 6);
-    b.checkpoint(49, 1);
-    // the rocks crumble now: land just as the geyser wakes
-    b.crumble(55, 1, 3); b.vent(56.5, 1, 8, { type: 'geyser', P: 2.4, on: 1 });
-    b.crumble(68, 1, 3); b.vent(69.5, 1, 8, { type: 'geyser', P: 2.4, on: 1, off: 0.8 });
-    b.beam('lightning', 75, 5, { P: 2.8, on: 0.6, off: 1 });
-    b.crumble(81, 2, 3); b.vent(82.5, 2, 8, { type: 'geyser', P: 2.4, on: 1, off: 1.6 });
-    b.arc(58, 9, 68, 4, 3, 1.5); b.arc(71, 9, 81, 5, 3, 1.5);
-    b.shard(63, 2);                                                   // low between the rocks
-    b.plat(92, 3, 10);
-    b.goal(98, 3);
-    b.shard(31, 8.6);                                                // inside the bolt's column: glide through between strikes
+    b.barrel(12, 2.5, { angle: 35, power: 20 });
+    b.barrel(23, 3, { angle: 35, power: 20 });
+    b.barrel(34, 3, { spin: 100 });
+    b.plat(43, 3, 5);
+    b.checkpoint(45, 3);
+    b.tornado(50, 58, 3, { rise: 10, T: 5 });
+    b.plat(64, 12, 4);
+    b.barrel(72, 14.5, { angle: 70, sweep: 40, spin: 90, power: 20 });
+    b.plat(78, 17, 4);
+    b.plat(67, 17.5, 3); b.shard(68.5, 19.5);
+    b.barrel(86, 16, { angle: 25, power: 20 });
+    b.barrel(97, 14, { angle: 20, power: 20 });
+    b.plat(106, 9, 10);
+    b.goal(112, 9);
+    b.arc(13, 3, 22, 3.5, 2, 2); b.arc(24, 3.5, 33, 3.5, 2, 2); b.arc(35, 4, 43, 4, 2, 2);
+    b.cells(48, 6, 60, 12, 4);
+    b.shard(28, 4.7);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
   // 25 ── skate a glacier under shifting winds: a headwind shoves you back, a tailwind off the edge
@@ -590,32 +629,35 @@ export default [
     b.plat(91, 5, 10);
     b.goal(97, 5);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.vine(60, 11, 5);
+    b.floater(93, 5, 2.6, { rise: 4, speed: 2 });
   }),
 
-  // 26 ── thunder drums: spring pads in a line, bolts striking between, then a drum stack up and down
-  L('Thunder Drums', 'bounce', (b) => {
+  // 26 ── Beacon Run: dash lighthouse to lighthouse past turning beams, buoys that sink and a storm spring up the last tower
+  L('Beacon Run', 'bounce', (b) => {
     b.start(-6, 0, 12);
-    const drums = [[10, 0], [19, 1], [28, 0], [37, 2]];
-    drums.forEach(([x, y]) => { b.plat(x, y, 2.4); b.spring(x + 0.3, y, 4); });
-    b.beam('lightning', 15.5, -1, { P: 2.8, on: 0.6 });
-    b.beam('lightning', 24.5, -1, { P: 2.8, on: 0.6, off: 1.4 });
-    b.beam('lightning', 33.5, -1, { P: 2.8, on: 0.6 });
-    b.arc(11, 1, 20, 2, 3, 4); b.arc(20, 2, 29, 1, 3, 4); b.arc(29, 1, 38, 3, 3, 4);
-    b.plat(44, 2, 6);
-    b.checkpoint(47, 2);
-    b.plat(52, 2, 3); b.spring(52.6, 2, 6);
-    b.rect(50, 12.5, 6, 0.8);                                         // a lid: drift right off the drum
-    b.plat(57, 9, 3); b.spring(57.6, 9, 5);
-    b.plat(62, 15, 5);
-    b.shard(64.5, 19);
-    b.plat(70, 12, 2.4); b.spring(70.3, 12, 1.5);
-    b.plat(76, 10, 2.4); b.spring(76.3, 10, 1.5);
-    b.plat(82, 8, 2.4); b.spring(82.3, 8, 1.5);
-    b.beam('lightning', 79.4, 6, { P: 2.6, on: 0.6, off: 0.7 });
-    b.plat(88, 6, 10);
-    b.goal(94, 6);
-    b.shard(53, 11.4);                                                // tucked under the lid
-    b.shard(24.5, 7.4);                                              // right in a bolt's path at the top of a bounce
+    b.plat(8, 0, 8);
+    b.sweeper(12, 3.4, 3.2, { omega: 70 });                 // beam 1, a slow clockwise sweep
+    b.sinker(21, 0, 3, { depth: 2.5 });
+    b.sinker(27, 0.5, 3, { depth: 2.5 });
+    b.plat(32, 1, 9);
+    b.sweeper(36.5, 4.4, 3.4, { omega: -80 });              // beam 2 turns the other way
+    b.beam('lightning', 40, 1, { P: 2.8, on: 0.6 });
+    b.plat(46, 1, 3); b.spring(47, 1, 5);
+    b.plat(52, 6, 10);
+    b.checkpoint(55, 6);
+    b.sweeper(58, 9.4, 3.2, { omega: 60, both: true });     // a full bar turning over the ledge
+    b.shard(64, 4.4);
+    b.pendulum(70, 15, 7, { amp: 40, T: 3.4 });
+    b.plat(76, 8, 3); b.spring(77, 8, 6);
+    b.plat(82, 14, 5);
+    b.sweeper(84.5, 17.4, 2.8, { omega: 75 });
+    b.shard(86, 18.5);
+    b.plat(90, 12, 3); b.spring(91, 12, 1.5);
+    b.plat(96, 10, 10);
+    b.goal(102, 10);
+    b.cells(10, 1, 18, 1, 3); b.cells(21, 2, 28, 2, 3); b.cells(34, 3, 44, 3, 4); b.cells(54, 8, 63, 8, 4);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
   // 27 ── choose your weather: a fast high road on gusts past drones, or a slow low road into headwinds
@@ -643,6 +685,8 @@ export default [
     b.plat(87, 5, 10);
     b.goal(93, 5);
     b.shard(9.5, 6.6);                                               // above the fork
+    b.vine(86, 12, 5);
+    b.tornado(55, 62, 4, { rise: 6, T: 6 });
   }),
 
   // 28 ── storm trawlers: ride a fleet of boats across the open ocean while lightning walks the lanes
@@ -664,6 +708,8 @@ export default [
     b.plat(108, 2.5, 10);
     b.goal(114, 2.5);
     b.plat(-14, 4.5, 3); b.shard(-12.5, 6.5);
+    b.pendulum(112, 12, 5, { amp: 30, T: 3 });
+    b.vine(52, 10, 5);
   }),
 
   // 29 ── the Storm King's spire: every Neptune trick stacked into one brutal climb
@@ -694,6 +740,8 @@ export default [
     b.plat(30, 43, 8);
     b.goal(35, 43);
     b.cells(9.5, 4.5, 15.5, 7.5, 2); b.cells(17.5, 14, 17.5, 18, 2); b.cells(10, 20.5, 18, 20.5, 3);
+    b.vine(25, 28, 5);
+    b.floater(33, 22, 2.6, { rise: 5, speed: 2 });
   }),
 
   // 30 ── FINALE: gust, shutter, geyser and vortex, then the Supersonic Front chases you home
@@ -727,5 +775,7 @@ export default [
     b.plat(146, 16, 12);
     b.goal(154, 16);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.vine(52, 18, 5);
+    b.pendulum(112, 24, 5, { amp: 30, T: 3 });
   }),
 ];

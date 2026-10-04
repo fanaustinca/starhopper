@@ -281,7 +281,7 @@ await test('Earth levels show city location; vehicles move and carry the robot',
 
 await test('every world renders its first level without errors', async () => {
   consoleErrors.length = 0;
-  await boot('test&fresh&unlock=420');
+  await boot('test&fresh&unlock=421');
   for (let w = 0; w < 14; w++) {
     const n = w * 30 + 2;
     await S((n) => SH.startLevel(n), n);
@@ -289,6 +289,16 @@ await test('every world renders its first level without errors', async () => {
     const st = await S(() => SH.state());
     assert(st.mode === 'playing' && st.level === n && st.errors.length === 0, `world ${w + 1}: ${JSON.stringify(st.errors)}`);
     await page.screenshot({ path: path.join(shots, `10-world-${String(w + 1).padStart(2, '0')}-${st.world}.png`) });
+  }
+  await S(() => SH.startLevel(421));
+  await S(() => { SH.manual(true); SH.step(30); SH.render(); });
+  const end = await S(() => SH.state());
+  assert(end.world === 'blackhole' && end.name === 'THE END' && end.errors.length === 0, 'THE END renders');
+  await shot(page, '10-world-15-blackhole.png');
+  for (const n of [104, 107, 97]) {   // every Earth city's landmark set builds (Shanghai, Beijing, SF)
+    await S((n) => SH.startLevel(n), n);
+    await S(() => { SH.manual(true); SH.step(10); SH.render(); });
+    assert((await S(() => SH.state())).errors.length === 0, 'landmarks render for level ' + n);
   }
   assert(consoleErrors.length === 0, 'console errors: ' + consoleErrors.slice(0, 3).join(' | '));
 });
@@ -408,8 +418,8 @@ await test('robot shop: buy and equip a skin with cells; skin persists', async (
 await test('dev console: dev.unlockAll() and dev.level(n) skip ahead', async () => {
   await boot('test&fresh');
   const msg = await S(() => dev.unlockAll());
-  assert(/420/.test(msg));
-  assert((await S(() => SH.state())).unlocked === 420);
+  assert(/421/.test(msg));
+  assert((await S(() => SH.state())).unlocked === 421);
   await S(() => dev.level(250));
   await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 250);
   await S(() => { SH.manual(true); dev.win(); SH.step(200); });

@@ -31,56 +31,51 @@ export default [
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
-  // 62 ── acid rain on an open walkway: dash from shelter to shelter between the drips
-  L('Sulfur Rain', 'gauntlet', (b) => {
+  // 62 ── AEROSTAT ASCENT: board balloon pads that float up through the toxic cloud deck, then zip down the cable between cities
+  L('Aerostat Ascent', 'ride', (b) => {
     b.start(-6, 0, 12);
-    b.block(8, 0, 34);
-    b.rect(13, 2.6, 5, 0.6); b.rect(23, 2.6, 5, 0.6); b.rect(33, 2.6, 5, 0.6);
-    [10.5, 20.5, 30.5, 39.5].forEach((x, i) => b.meteor(x, 0, { style: 'drip', P: 1.6, off: i * 0.4 }));
-    b.meteor(15.5, 3.2, { style: 'drip', P: 2.2 }); b.meteor(35.5, 3.2, { style: 'drip', P: 2.2, off: 1.1 });
-    b.cells(10, 1, 40, 1, 7);
-    b.cells(14, 4.2, 37, 4.2, 6);
-    b.shard(25.5, 4.6);
-    // stepping islands in an acid pond, each one drummed by rain
-    b.block(46, 0, 6); b.pool(52, 0, 4, 'acid'); b.block(56, 0, 4); b.pool(60, 0, 4, 'acid');
-    b.block(64, 0, 4); b.pool(68, 0, 4, 'acid'); b.block(72, 0, 10);
-    b.checkpoint(48, 0);
-    b.meteor(58, 0, { style: 'drip', P: 1.8 }); b.meteor(66, 0, { style: 'drip', P: 1.8, off: 0.9 });
-    b.meteor(76, 0, { style: 'drip', P: 1.4, off: 0.3 });
-    b.shard(62, 0.9);
-    // a broken gallery: rain pours through the holes in the roof
-    b.plat(86, 2, 20);
-    b.rect(86, 4.4, 5, 0.6); b.rect(94, 4.4, 5, 0.6); b.rect(102, 4.4, 4, 0.6);
-    b.meteor(92.5, 2, { style: 'drip', P: 1.5 }); b.meteor(100.5, 2, { style: 'drip', P: 1.5, off: 0.75 });
-    b.cells(88, 3, 104, 3, 6);
-    b.shard(96.5, 6.6);
-    b.plat(110, 3, 8);
-    b.goal(115, 3);
+    b.plat(8, 0, 4);
+    b.floater(15, 0.5, 3, { rise: 8, speed: 2.2 });        // first aerostat: step on and float up
+    b.cells(16.5, 3, 16.5, 8.5, 3);
+    b.plat(21, 8, 5);
+    b.cloud(28, 3, 11, { T: 5 });                          // toxic cloud drifting under the cable
+    b.zip(26, 10.5, 45, 5);                                // zip between aerostats
+    b.thin(33, 11, 3); b.shard(34.5, 12.6);                // a ledge above the cable: hop up from the zip
+    b.plat(46, 3.5, 6);
+    b.checkpoint(49, 3.5);
+    b.floater(56, 3, 3, { rise: 9, speed: 2.4 });
+    b.shard(56, 16.2);                                     // ride the balloon to the very top and jump
+    b.plat(61.5, 11.5, 4);
+    b.floater(68.5, 6, 3, { rise: 7, speed: 2.4 });
+    b.plat(74.5, 12.5, 4);
+    b.cloud(66, 16, 10, { T: 4, dx: 3 });
+    b.cells(62, 13, 76, 14, 5);
+    b.zip(79, 15, 98, 8);
+    b.plat(99, 6, 10);
+    b.goal(105, 6);
+    b.arc(26, 9.5, 45, 5.5, 4, 1);
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
-  // 63 ── a pipe organ of vents: hop across the pipe tops while the steam plays its melody
-  L('Steam Organ', 'timing', (b) => {
+  // 63 ── PENDULUM GONDOLAS: hop between towers on gondolas swinging from the underside of a floating city, then a slag bucket guards the end
+  L('Gondola Run', 'ride', (b) => {
     b.start(-6, 0, 12);
-    const tops = [1, 2.5, 4, 2.5, 4, 5.5, 4, 2.5];
-    tops.forEach((t, i) => {
-      const x = 8 + i * 4.6;
-      b.block(x, t, 2.4);
-      b.beam('steam', x + 1.2, t, { P: 2.8, on: 0.9, off: i * 0.35, h: 3.2, w: 1.6 });
-      b.cell(x + 1.2, t + 1.2);
-    });
-    b.plat(46, 2, 6);
-    b.checkpoint(49, 2);
-    // the pedal pipes: tall pipes are safe perches, the short ones blast steam past them
-    const pedals = [[55, 3, 0], [59.5, 6, 1], [64, 4, 0], [68.5, 8, 1], [73, 6, 0], [77.5, 10, 1], [82, 8, 0]];
-    pedals.forEach(([x, t, tall], i) => {
-      b.block(x, t, 2.6);
-      if (!tall) b.beam('steam', x + 1.3, t, { P: 2.6, on: 1, off: i * 0.4, h: 8, w: 1.8 });
-      else b.cell(x + 1.3, t + 1.2);
-    });
-    b.plat(88, 11, 10);
-    b.goal(94, 11);
-    b.thin(30, 9, 3); b.shard(31.5, 10.6);
-    b.shard(78.8, 14.6);
+    b.pendulum(13, 8, 7, { amp: 40, T: 4 });
+    b.plat(20, 1, 4);
+    b.pendulum(29, 11, 7, { amp: 40, T: 4, phase: 0.5 });
+    b.plat(36, 4, 6);
+    b.checkpoint(39, 4);
+    b.shard(29, 9);                                        // above the second gondola
+    b.pendulum(48, 14, 7, { amp: 38, T: 3.6 });
+    b.pendulum(55, 16, 7, { amp: 38, T: 3.6, phase: 0.5 });
+    b.shard(51.5, 12.4);
+    b.plat(62, 9, 6);
+    b.vine(72, 18, 7);                                     // chain hanging from the city above: swing across
+    b.plat(79, 10, 4);
+    b.plat(82, 10, 14);
+    b.wrecker(89, 17, 4.6, { amp: 45, T: 3 });             // a slag bucket on the landing deck
+    b.goal(93, 10);
+    b.cells(7, 2, 16, 3, 4); b.cells(22, 3, 28, 5, 3); b.cells(42, 7, 52, 8, 4); b.cells(64, 10.4, 76, 11, 4);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
@@ -137,27 +132,32 @@ export default [
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
-  // 66 ── lava domes and their vents: ride eruptions up from dome to dome, then hop the cooling crust down
-  L('Lava Dome Leap', 'bounce', (b) => {
+  // 66 ── PRESSURE CANNONS: volcanic cannons blast you across lava from dome to dome: single shots, a chain, a spinner, a rocker and a tower ladder
+  L('Pressure Cannons', 'pods', (b) => {
     b.start(-6, 0, 12);
-    b.block(9, 0, 7); b.vent(14, 0, 6, { P: 2.4, on: 1.2 });
-    b.block(19, 5, 6); b.vent(23.5, 5, 6, { P: 2.4, on: 1.2, off: 0.8 });
-    b.block(29, 10, 5); b.vent(32.5, 10, 7, { P: 2.4, on: 1.2, off: 1.6 });
-    b.block(37, 15, 8);
-    b.cells(14, 3, 14, 7, 3); b.cells(23.5, 8, 23.5, 12, 3); b.cells(32.5, 13, 32.5, 18, 3);
-    b.checkpoint(41, 15);
-    b.rect(26, 23, 4, 0.6); b.shard(28, 25);
-    // the cooling crust: small domes over lava, then one big blast up to the summit shelf
-    b.block(49, 12, 3); b.pool(52, 12, 4, 'lava'); b.block(56, 12, 3);
-    b.block(63, 9, 3); b.pool(66, 9, 4, 'lava'); b.block(70, 9, 3);
-    b.block(77, 6, 6); b.vent(81.5, 6, 10, { P: 3, on: 1.2 });
-    b.arc(45, 15, 63, 9, 5, 2);
-    b.plat(86, 17, 4);
-    b.cells(81.5, 9, 81.5, 15, 3);
-    b.shard(88, 20.6);
-    b.plat(93, 12, 4); b.plat(100, 8, 10);
-    b.goal(106, 8);
-    b.shard(54, 15);
+    b.plat(9, 0, 5);
+    b.barrel(13, 2.2, { angle: 40 });                      // cannon 1: hop in, press jump
+    b.plat(21, 1, 7);
+    b.pool(28, 1, 26, 'lava');
+    b.barrel(33, 3, { angle: 15 });                        // the chain: cannon to cannon over the lava
+    b.barrel(39, 2.9, { angle: 15 });
+    b.barrel(45, 2.7, { angle: 45 });
+    b.plat(54, 1.5, 7);
+    b.checkpoint(57, 1.5);
+    b.barrel(66, 4.5, { spin: 100 });                      // a spinning cannon: wait for it to face the next dome
+    b.plat(70.5, -0.5, 2.5); b.shard(71.7, 1.5);           // fire it low for the cooled stump
+    b.plat(72, 7, 4);
+    b.barrel(79, 9, { angle: 70, sweep: 35, spin: 100, power: 20 });   // a rocking cannon
+    b.plat(72.5, 14, 2.5); b.shard(73.7, 16);              // rocked all the way back it reaches this perch
+    b.plat(86, 12.5, 5);
+    b.barrel(94, 15, { angle: 90, power: 22 });            // cannon ladder up the tower
+    b.barrel(94, 20.5, { angle: 90, power: 22 });
+    b.barrel(94, 26, { spin: 90 });
+    b.shard(94, 31);
+    b.plat(101, 23, 9);
+    b.goal(107, 23);
+    b.arc(3, 0, 11, 2, 2, 1); b.arc(13, 2.2, 23, 1.5, 3, 2); b.cells(33, 3, 45, 2.7, 3); b.arc(45, 2.7, 56, 2.5, 3, 2.5);
+    b.arc(67, 5, 73, 7.5, 2, 2); b.arc(80, 10, 87, 13.5, 3, 2.5); b.cells(94, 17.5, 94, 23.5, 3);
   }),
 
   // 67 ── a switchback descent through the crust: every tier is a crumbling bridge, steam rising from below
@@ -195,31 +195,32 @@ export default [
     b.plat(-14, 25.5, 3); b.shard(-12.5, 27.5);
   }),
 
-  // 68 ── spikers patrol under a low ceiling of acid clouds: only jump when the cloud above you lifts
-  L('Spiker Haze', 'enemies', (b) => {
+  // 68 ── SLAG FOUNDRY: swinging slag buckets sweep the floor, hanging cradles carry you over the melt pits, a sulfur wheel turns in the middle
+  L('Slag Foundry', 'cave', (b) => {
     b.start(-6, 0, 12);
-    b.plat(9, 0, 16);
-    b.enemy('spiker', 10, 0, { range: 13, speed: 2 });
-    b.cloud(13, 3.4, 7, { T: 4 }); b.cloud(20, 3.4, 7, { T: 4, phase: 0.5 });
-    b.cells(10, 1, 24, 1, 5);
-    b.plat(29, 1.5, 6); b.enemy('walker', 30, 1.5, { range: 3.5 });
-    b.thin(30, 5.8, 4); b.cells(30.5, 6.8, 33.5, 6.8, 3);
-    b.shard(32, 9.2);
-    b.plat(39, 1, 18);
-    b.checkpoint(41, 1);
-    b.enemy('spiker', 44, 1, { range: 11, speed: 2.6 }); b.enemy('spiker', 49, 1, { range: 6, speed: 1.4 });
-    b.cloud(47, 4.4, 8, { T: 3.5 }); b.cloud(53, 8, 4.4, { T: 3.5 });
-    b.cells(43, 2, 55, 2, 4);
-    // the gallery: a roof of rock forces you to fight on the floor
-    b.plat(61, 3, 22);
-    b.rect(61, 7, 22, 0.8);
-    b.enemy('walker', 63, 3, { range: 6, speed: 2 }); b.enemy('spiker', 70, 3, { range: 10, speed: 2.4 });
-    b.enemy('flyer', 76, 5.4, { ax: 3, ay: 0.4, T: 3 });
-    b.cells(63, 4, 81, 4, 6);
-    b.shard(72, 9.6);
-    b.plat(87, 4, 10);
-    b.goal(93, 4);
-    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.plat(8, 0, 10);
+    b.wrecker(13, 7, 4.8, { amp: 55, T: 3 });
+    b.pendulum(25, 9, 7, { amp: 35, T: 3.4 });
+    b.pendulum(31, 9, 7, { amp: 35, T: 3.4, phase: 0.5 });
+    b.shard(28, 7.6);                                      // up between the cradles
+    b.plat(36, 0, 18);
+    b.sweeper(43, 3.5, 3, { omega: 70 });                  // sulfur-jet wheel
+    b.shard(43, 1.9);                                      // right under its hub
+    b.wrecker(48, 7, 4.8, { amp: 55, T: 2.8, phase: 0.3 });
+    b.checkpoint(52, 0);
+    b.pendulum(61, 10.5, 7, { amp: 40, T: 3.6 });
+    b.pendulum(69, 11.5, 7, { amp: 40, T: 3.6, phase: 0.5 });
+    b.plat(77, 4, 10);
+    b.sweeper(82, 7.5, 3, { omega: 50, both: true });
+    b.vine(94, 14, 6);
+    b.plat(87.5, 10, 2.5); b.shard(88.7, 12);
+    b.plat(99, 5, 4);
+    b.plat(107, 5, 14);
+    b.wrecker(110.5, 12.2, 5, { amp: 55, T: 3 });
+    b.wrecker(115.5, 12.2, 5, { amp: 55, T: 3, phase: 0.5 });
+    b.goal(119, 5);
+    b.cells(9, 1, 17, 1, 4); b.arc(18, 0, 36, 0, 3, 3); b.cells(38, 1, 41, 1, 2); b.cells(46, 1, 52, 1, 3);
+    b.arc(56, 0, 77, 4, 4, 4); b.cells(79, 5, 86, 5, 3); b.cells(108, 6, 117, 6, 4);
   }),
 
   // 69 ── crawl through a wrecked lander: every button you press reshapes the hull around you
@@ -267,6 +268,7 @@ export default [
     b.shard(82.5, 12.5); b.shard(113, 3.6);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
+
   // 71 ── TIDE: acid floods the Aphrodite well; climb a lean-right stair, crumble back left, wall-jump the flue
   L('Aphrodite Flood', 'tide', (b) => {
     b.rise({ rate: 0.6, delay: 5 });
@@ -314,31 +316,32 @@ export default [
     b.goal(89, 14);
   }),
 
-  // 73 ── heat mirages: every stepping stone has a twin that is solid only while it is not
-  L('Mirage Stones', 'timing', (b) => {
+  // 73 ── PUMICE RAFTS: floating pumice sinks into the acid under your weight, balloon pads lift you out: never stand still
+  L('Pumice Rafts', 'swamp', (b) => {
     b.start(-6, 0, 12);
-    for (let i = 0; i < 6; i++) {
-      const x = 9 + i * 5.5;
-      b.blink(x, 0.5, 2.6, { P: 3.2, on: 1.6, off: 0 });
-      b.blink(x, 3.5, 2.6, { P: 3.2, on: 1.6, off: 1.6 });
-      b.cell(x + 1.3, i % 2 ? 4.7 : 1.7);
-    }
-    b.plat(43, 2, 6);
-    b.checkpoint(46, 2);
-    b.meteor(31.5, 3.5, { style: 'drip', P: 2.4 });
-    b.thin(25, 7.6, 3); b.shard(26.5, 9.2);
-    // the shimmer bridge: rain falls in the gaps, the stones fade in a wave
-    for (let i = 0; i < 6; i++) b.blink(53 + i * 4.2, 2, 3, { P: 3, on: 2, off: -i * 0.4 });
-    [56.5, 64.9, 73.3].forEach((x, i) => b.meteor(x, 2, { style: 'drip', P: 1.6, off: i * 0.5 }));
-    b.cells(54, 3.4, 76, 3.4, 6);
-    // falling mirage: blinkers stepping down into a hollow
-    b.plat(80, 2, 3);
-    b.blink(85, 0, 2.4, { P: 2.6, on: 1.6 }); b.blink(89, -2, 2.4, { P: 2.6, on: 1.6, off: 0.6 });
-    b.blink(93, -4, 2.4, { P: 2.6, on: 1.6, off: 1.2 });
-    b.plat(97, -5, 4); b.shard(99, -3.2);
-    b.blink(102, -2, 2.4, { P: 2.6, on: 1.6 }); b.blink(106, 1, 2.4, { P: 2.6, on: 1.6, off: 0.8 });
-    b.plat(110, 3, 10);
-    b.goal(116, 3);
+    b.pool(6, 0, 50, 'acid');
+    b.sinker(9.5, 0.5, 3, { depth: 2.5 });                 // first raft: feel it sink
+    b.sinker(15.5, 1, 3, { depth: 2.5 });
+    b.sinker(21.5, 1.5, 3, { depth: 2.5 });
+    b.floater(28, 1.5, 3, { rise: 7, speed: 2.2 });
+    b.cells(29.5, 4, 29.5, 8.5, 3);
+    b.shard(28, 12.2);                                     // ride the balloon to the top
+    b.plat(34, 8, 4);
+    b.sinker(41, 7, 2.6, { depth: 3, speed: 1.8 });
+    b.sinker(46.5, 6, 2.6, { depth: 3, speed: 1.8 });
+    b.sinker(52, 5, 2.6, { depth: 3, speed: 1.8 });
+    b.block(56, 0, 8);
+    b.checkpoint(59, 0);
+    b.pool(64, 0, 32, 'acid');
+    b.sinker(67.5, 0.5, 3, { depth: 2.5 });
+    b.sinker(73.5, 1, 3, { depth: 2.5 });
+    b.pendulum(81, 10, 8.5, { amp: 38, T: 3.8 });          // a gondola over the last of the acid
+    b.floater(91, 0.5, 3, { rise: 7, speed: 2.4 });
+    b.shard(91, 11);
+    b.plat(96, 7, 4);
+    b.plat(100, 6, 12);
+    b.goal(107, 6);
+    b.cells(10, 2, 24, 3, 5); b.cells(41, 8.5, 53, 6.5, 4); b.cells(68, 2, 76, 3, 3); b.cells(98, 8.5, 104, 7.5, 3);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
@@ -380,7 +383,9 @@ export default [
     b.cells(35.5, 12, 35.5, 19, 4);
     b.shard(33.6, 21.4);
     b.checkpoint(41, 21);
-    b.block(45, 23.5, 6); b.block(51, 26, 6);
+    b.block(45, 23.5, 6);
+    b.wrecker(48, 32, 5, { amp: 50, T: 3 });   // slag bucket on the ridge
+    b.block(51, 26, 6);
     b.block(57, 28, 8);
     b.cloud(62, 30, 22, { dx: -18, T: 7 });
     b.cells(48, 25, 61, 29.5, 4);
@@ -426,33 +431,28 @@ export default [
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
-  // 77 ── an arachnoid web of thin ledges: stomp the hover-bugs to bounce between the strands
-  L('Arachnoid Web', 'enemies', (b) => {
-    b.start(-6, 0, 12);
-    // the web: strands radiate from a hub around (40, 10)
-    b.thin(10, 2, 5); b.thin(17, 4, 5); b.thin(24, 6, 5);
-    b.thin(14, 8, 4); b.thin(20, 11, 4); b.thin(27, 13, 4);
-    b.plat(33, 9, 6);
-    b.checkpoint(36, 9);
-    b.enemy('flyer', 31, 4, { ax: 1, ay: 1, T: 2.6 });
-    b.enemy('flyer', 24, 16, { ax: 2, ay: 0.6, T: 3 });
-    b.shard(25.5, 17);
-    b.cloud(36, 13, 18, { T: 4 });
-    b.thin(41, 13, 4); b.thin(48, 16, 4); b.thin(55, 13, 4);
-    b.thin(41, 5, 4); b.thin(48, 2, 4); b.thin(55, 5, 4);
-    b.enemy('flyer', 52, 9, { ax: 3, ay: 0.5, T: 2.4 });
-    b.enemy('walker', 48, 16, { range: 3 });
-    b.enemy('spiker', 48, 2, { range: 3, speed: 1.2 });
-    b.cells(42, 14, 57, 14, 5); b.cells(42, 6, 57, 6, 5);
-    b.shard(50, 19.5);
-    b.plat(62, 9, 4);
-    b.thin(70, 11, 4); b.thin(77, 8, 4); b.thin(84, 11, 4);
-    b.enemy('flyer', 74.5, 14, { ax: 2, ay: 1, T: 2.8 });
-    b.enemy('flyer', 81.5, 14, { ax: 2, ay: 1, T: 2.8 });
-    b.plat(90, 9, 10);
-    b.goal(96, 9);
-    b.cells(71, 12, 86, 12, 4);
-    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  // 77 ── CLOUD CITY CHAINS: swing on chains and zip down cables between floating cloud cities, past swinging slag buckets
+  L('Cloud City Chains', 'speed', (b) => {
+    b.start(-6, 20, 12);
+    b.vine(11, 27, 6.5);                                   // chain from the city above
+    b.plat(18, 19, 4);
+    b.zip(23, 22, 45, 15);
+    b.shard(34, 21.8);                                     // hop off the cable for this one
+    b.plat(46, 13, 6);
+    b.checkpoint(49, 13);
+    b.vine(57, 21, 7);
+    b.plat(63.5, 12, 3); b.shard(64.7, 14);
+    b.plat(66.5, 11, 4);
+    b.zip(70, 15, 90, 8);
+    b.wrecker(80, 18.5, 5, { amp: 50, T: 3 });
+    b.plat(91, 6, 7);
+    b.zip(99, 10.5, 121, 4.5, { oneWay: true });
+    b.wrecker(107, 17, 5.5, { amp: 55, T: 2.8 });
+    b.wrecker(115, 15, 5.5, { amp: 55, T: 2.8, phase: 0.5 });
+    b.plat(122, 1, 10);
+    b.goal(128, 1);
+    b.cells(25, 21, 43, 15.6, 5); b.cells(72, 14, 88, 8.6, 5); b.cells(101, 9.5, 119, 4.5, 6);
+    b.plat(-14, 21.5, 3); b.shard(-12.5, 23.5);
   }),
 
   // 78 ── pancake domes with springs, but acid clouds slide across the sky above each pad: bounce in the gaps
@@ -525,6 +525,7 @@ export default [
     b.shard(36.5, 12); b.shard(80, 13.6);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
+
   // 81 ── counter-rising lifts with steam geysers between them: cross each geyser while it sleeps
   L('Danu Geyser Lifts', 'timing', (b) => {
     b.start(-6, 0, 12);
@@ -578,43 +579,48 @@ export default [
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
-  // 83 ── the batteries of Sif Mons: ride lava vents over three turret towers, each taller than the last
-  L('Sif Mons Batteries', 'gauntlet', (b) => {
+  // 83 ── SULFUR JET SWEEPERS: rotating jets of burning sulfur sweep the foundry floor, then a vent to a gallery of turning beams
+  L('Sulfur Jet Sweepers', 'gauntlet', (b) => {
     b.start(-6, 0, 12);
-    b.block(6, 0, 42);
-    b.vent(14, 0, 8, { P: 2.4, on: 1.2 });
-    b.rect(18, 0, 3, 9); b.turret(18, 0.8, -1, { P: 2.2 }); b.turret(21, 0.8, 1, { P: 2.2, off: 1.1 });
-    b.vent(26.5, 0, 11, { P: 2.4, on: 1.2, off: 0.6 });
-    b.checkpoint(24, 0);
-    b.rect(30, 0, 3, 12); b.turret(30, 3, -1, { P: 2.6 }); b.turret(33, 0.8, 1, { P: 2.4 });
-    b.thin(30, 16, 3); b.shard(31.5, 17.6);
-    b.vent(38.5, 0, 14, { P: 2.4, on: 1.2, off: 1.2 });
-    b.rect(42, 0, 3, 15); b.turret(42, 6, -1, { P: 2.2, off: 0.5 });
-    b.spring(45.4, 0, 11); b.shard(47, 1.2);
-    b.enemy('flyer', 36, 8, { ax: 1, ay: 2, T: 3 });
-    b.plat(49, 13, 4); b.plat(56, 10, 4);
-    b.plat(63, 7, 10);
-    b.goal(69, 7);
-    b.cells(14, 4, 14, 8, 3); b.cells(26.5, 5, 26.5, 11, 3); b.cells(38.5, 6, 38.5, 14, 4); b.cells(50, 14.4, 58, 11.4, 3);
+    b.block(6, 0, 56);
+    b.sweeper(16, 4, 3.5, { omega: 60 });
+    b.sweeper(27, 4.5, 3.6, { omega: 50, both: true });
+    b.checkpoint(32, 0);
+    b.sweeper(38, 4, 3, { omega: 75 });
+    b.sweeper(44, 4, 3, { omega: -75 });
+    b.shard(41, 1.8);                                      // between the counter-rotating jets
+    b.vent(54, 0, 11, { P: 2.4, on: 1.2 });
+    b.cells(54, 4, 54, 11, 3);
+    b.plat(58, 11, 5);
+    b.plat(66, 13, 3); b.sweeper(66, 17, 3, { omega: 60 });
+    b.plat(74, 14, 3); b.sweeper(74, 18, 2.8, { omega: -60, both: true });
+    b.shard(60.5, 15);
+    b.plat(82, 12, 3); b.sweeper(82, 16, 3, { omega: 70 });
+    b.plat(90, 10, 10);
+    b.goal(96, 10);
+    b.cells(8, 1, 36, 1, 8); b.cells(66, 14.6, 83, 13.4, 5);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
-  // 84 ── a forest of needle pillars in a cloudburst: read the slanting clouds, then the vertical ones
-  L('Cloudburst Pillars', 'precision', (b) => {
+  // 84 ── SUPERROTATION UPDRAFTS: travelling tornadoes lift you across a bottomless chasm, then a cable carries you down to the next gale
+  L('Gale Updrafts', 'ride', (b) => {
     b.start(-6, 0, 12);
-    [[10, 1], [15, 2.5], [20, 1.5], [25, 3], [30, 2], [35, 3.5]].forEach(([x, t]) => { b.block(x, t, 1.8); b.cell(x + 0.9, t + 1.2); });
-    b.cloud(12.5, 8, 0, { dx: 5, T: 4 });
-    b.cloud(22.5, 0, 8, { dx: -5, T: 3.6 });
-    b.cloud(32, 7, 0.5, { dx: 4, T: 3.2 });
-    b.plat(17, -2, 2); b.shard(18, -0.4);
-    b.plat(40, 3, 5);
-    b.checkpoint(42, 3);
-    [[49, 6], [54, 9], [59, 7], [64, 10], [69, 8]].forEach(([x, t]) => { b.block(x, t, 1.8); b.cell(x + 0.9, t + 1.2); });
-    b.cloud(52, 2, 12, { T: 3 }); b.cloud(57, 13, 3, { T: 3 }); b.cloud(62, 2, 12, { T: 2.6, phase: 0.3 }); b.cloud(67, 13, 3, { T: 2.6 });
-    b.meteor(54.9, 9, { style: 'drip', P: 1.8 }); b.meteor(64.9, 10, { style: 'drip', P: 1.8, off: 0.9 });
-    b.shard(64.9, 13.8);
-    b.plat(75, 6, 8);
-    b.goal(80, 6);
+    b.tornado(8.5, 13, 0, { rise: 8, T: 4 });
+    b.plat(22, 7, 5);
+    b.shard(13, 11.5);                                     // top of the first gale
+    b.tornado(28.5, 34, 7, { rise: 8, T: 4.5, phase: 0.5 });
+    b.plat(45, 14, 5);
+    b.checkpoint(48, 14);
+    b.cloud(29, 20, 12, { T: 4, dx: 3 });
+    b.zip(51, 17, 71, 8);
+    b.plat(72, 6, 5);
+    b.tornado(78.5, 84, 6, { rise: 10, T: 4.5 });
+    b.plat(93, 15, 4);
+    b.shard(83, 18);
+    b.tornado(98.5, 102, 15, { rise: 3, T: 3.6, phase: 0.5 });
+    b.plat(108, 17, 10);
+    b.goal(114, 17);
+    b.cells(8, 2, 21, 8, 5); b.cells(25, 9, 44, 15, 5); b.cells(53, 17, 69, 9, 5); b.cells(95, 16, 107, 18, 4);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
@@ -680,6 +686,7 @@ export default [
     b.blink(49, 3.5, 2.4, { P: 2.4, on: 1.5 }); b.crumble(53.5, 2, 2);
     b.blink(58, 0.5, 2.4, { P: 2.4, on: 1.5, off: 0.8 }); b.crumble(62.5, -1, 2);
     b.plat(60, -4, 3); b.shard(61.5, -2.2);
+    b.wrecker(60, 9, 5, { amp: 40, T: 3 });
     b.crumble(67, 1, 2); b.blink(71.5, 3, 2.4, { P: 2.4, on: 1.5, off: 1.6 }); b.crumble(76, 5, 2);
     [55.5, 64.5, 73.5].forEach((x, i) => b.meteor(x, 0, { style: 'drip', P: 1.6, off: i * 0.5 }));
     b.cells(50, 5, 77, 6.4, 7);
@@ -703,7 +710,9 @@ export default [
     b.vent(81, 0, 7.5, { P: 2.4, on: 1.2 });
     b.plat(84, 7, 6);
     b.shard(87, 11.4);
-    b.block(94, 0, 6); b.pool(100, 0, 6, 'lava'); b.block(106, 0, 4); b.pool(110, 0, 6, 'lava');
+    b.block(94, 0, 6);
+    b.wrecker(103, 8, 4.5, { amp: 45, T: 3, phase: 0.3 });
+    b.pool(100, 0, 6, 'lava'); b.block(106, 0, 4); b.pool(110, 0, 6, 'lava');
     b.block(116, 0, 4); b.pool(120, 0, 6, 'lava'); b.block(126, 0, 6);
     b.enemy('walker', 126.5, 0, { range: 4.5 }); b.shard(129, 4.5);
     b.pool(132, 0, 16, 'lava');
@@ -761,6 +770,7 @@ export default [
     b.checkpoint(67, 7);
     b.chase({ speed: 4.6, trigger: 69, behind: 16 });
     b.crumble(74, 6, 2.4); b.crumble(79, 5, 2.4);
+    b.wrecker(77, 12, 5, { amp: 45, T: 2.8 });
     b.block(84, 2, 4); b.vent(86, 2, 8, { always: true });
     b.plat(90, 11, 5);
     b.meteor(92.5, 11, { style: 'drip', P: 1.2 });

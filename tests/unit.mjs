@@ -7,6 +7,7 @@ import { WORLDS, TOTAL_LEVELS, PHYS, worldOf, locationOf, MAX_HEALTH } from '../
 import { createPlayer, stepPlayer, maxJumpHeight, maxGapFor } from '../public/js/core/physics.js';
 import { getLevel as generateLevel } from '../public/js/levels/index.js';
 import { solveLevel } from '../tools/solver.mjs';
+import { buildLevel } from '../public/js/levels/build.js';
 import fs from 'node:fs';
 import { LevelSim } from '../public/js/core/sim.js';
 
@@ -152,9 +153,10 @@ test('rides a moving platform', () => {
 });
 
 console.log('\nCampaign structure');
-test('14 worlds × 30 levels = 420', () => {
-  assert.equal(WORLDS.length, 14);
-  assert.equal(TOTAL_LEVELS, 420);
+test('14 worlds × 30 levels + the black hole bonus = 421', () => {
+  assert.equal(WORLDS.length, 15);
+  assert.equal(TOTAL_LEVELS, 421);
+  assert.equal(worldOf(421).id, 'blackhole');
   assert.equal(worldOf(1).id, 'sun');
   assert.equal(worldOf(31).id, 'mercury');
   assert.equal(worldOf(92).id, 'earth');
@@ -168,7 +170,7 @@ test('14 worlds × 30 levels = 420', () => {
 });
 
 const levels = [];
-test('all 420 levels are hand-written and build to valid data', () => {
+test('all 421 levels are hand-written and build to valid data', () => {
   const missing = [];
   for (let n = 1; n <= TOTAL_LEVELS; n++) {
     let L;
@@ -202,7 +204,7 @@ test('every level: a name, exactly 3 star shards, a checkpoint, cells', () => {
     assert.equal(new Set(names).size, names.length, `world ${w + 1} has duplicate level names`);
   }
 });
-test('the solver bot finishes every one of the 420 levels', () => {
+test('the solver bot finishes every one of the 421 levels', () => {
   const bad = [];
   let sims = 0;
   for (const L of levels) {
@@ -222,6 +224,16 @@ test('layouts differ: no two levels in a world share the same platform skeleton'
       sigs.add(sig);
     }
   }
+});
+
+test('THE END: a huge level inside the black hole that samples every world', () => {
+  const L = levels[420];
+  assert.equal(L.world, 'blackhole');
+  assert.ok(L.goal.x - L.spawn.x > 700, 'super long: ' + (L.goal.x - L.spawn.x));
+  assert.ok(L.checkpoints.length >= 6, 'checkpoints ' + L.checkpoints.length);
+  const has = { vines: L.vines.length, streams: L.movers.some((m) => m.path.type === 'stream'), rovers: L.movers.some((m) => m.kind === 'rover'), buses: L.movers.some((m) => m.kind === 'bus'),
+    gears: L.gears.length, bridges: L.bridges.length, doors: L.doors.length, zips: L.zips.length, barrels: L.barrels.length, chaser: !!L.chaser, warp: L.movers.some((m) => m.warp) };
+  for (const [k, v] of Object.entries(has)) assert.ok(v, 'THE END is missing ' + k);
 });
 
 console.log('\nLevel runtime');
@@ -321,6 +333,45 @@ test('switches swap red/blue blocks; enemies can be stomped; turrets fire', () =
   const s3 = new LevelSim(generateLevel(Lt.index));
   for (let i = 0; i < 800 && !s3.shots.length; i++) s3.step(idle());
   assert.ok(s3.shots.length > 0, 'turret fired');
+});
+test('zip lines carry you along the cable; jumping lets go', () => {
+  const z = { x0: 0, y0: 6, x1: 20, y1: 2 };
+  const p = createPlayer(1, 6 - 1.6 * 0.95 - 0.1); p.vy = 1;
+  const world = { colliders: [], zips: [z] };
+  stepPlayer(p, idle(), world, { gravityScale: 1 }, DT);
+  assert.ok(p.zip, 'grabbed the cable');
+  for (let i = 0; i < 60; i++) stepPlayer(p, idle(), world, { gravityScale: 1 }, DT);
+  assert.ok(p.x > 4 && p.zip, 'slid downhill to ' + p.x);
+  stepPlayer(p, { ...idle(), jump: true, jumpPressed: true }, world, { gravityScale: 1 }, DT);
+  assert.ok(!p.zip && p.vy > 5, 'let go with a hop');
+});
+test('launch barrels load you and blast you out along their aim', () => {
+  const br = { x: 0, y: 2, angle: Math.PI / 4, spin: 0, power: 18 };
+  const p = createPlayer(0, 1.2);
+  const world = { colliders: [], barrels: [br], time: 0 };
+  stepPlayer(p, idle(), world, { gravityScale: 1 }, DT);
+  assert.equal(p.barrel, br, 'loaded');
+  for (let i = 0; i < 20; i++) stepPlayer(p, idle(), world, { gravityScale: 1 }, DT);
+  stepPlayer(p, { ...idle(), jump: true, jumpPressed: true }, world, { gravityScale: 1 }, DT);
+  assert.ok(!p.barrel && p.vy > 10 && p.extVx > 10, `blasted vy=${p.vy} ext=${p.extVx}`);
+  assert.equal(p.jumps, 1, 'double jump still available after a blast');
+});
+test('pendulums swing, floaters rise under you, sinkers drop, sweepers hurt', () => {
+  const def = { name: 't', kind: 't', build: (b) => { b.start(-6, 0, 12); b.floater(8, 0, 3, { rise: 6 }); b.sinker(14, 0, 3, { depth: 4 }); b.pendulum(25, 10, 8); b.sweeper(40, 2, 4, { omega: 90 }); b.plat(36, 0, 8); b.checkpoint(0, 0); b.goal(40, 0); } };
+  const L = buildLevel(def, 2);
+  const sim = new LevelSim(L);
+  const fl = sim.moverState.find((m) => m.def.kind === 'floater'), sk = sim.moverState.find((m) => m.def.kind === 'sinker');
+  sim.teleport(9.5, 0.1); for (let i = 0; i < 240; i++) sim.step(idle());
+  assert.ok(fl.y > -0.8 + 3, 'floater rose to ' + fl.y);
+  sim.teleport(15.5, 0.1); for (let i = 0; i < 240; i++) sim.step(idle());
+  assert.ok(sk.y < -0.8 - 2, 'sinker sank to ' + sk.y);
+  const pe = sim.moverState.find((m) => m.def.path.type === 'pendulum');
+  const xs = new Set(); for (let i = 0; i < 480; i++) { sim.step(idle()); xs.add(Math.round(pe.x)); }
+  assert.ok(xs.size > 5, 'pendulum swings');
+  sim.invuln = 0; const h0 = sim.health;
+  sim.teleport(40, 0.05);
+  for (let i = 0; i < 500 && sim.health === h0; i++) sim.step(idle());
+  assert.ok(sim.health < h0, 'sweeper beam hurts');
 });
 test('blink platforms vanish and return', () => {
   const L = levels.find((l) => l.solids.some((s) => s.blink));

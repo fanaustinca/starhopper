@@ -1067,7 +1067,7 @@ export class Renderer {
       line.rotation.z = Math.atan2(ey - py, ex - px) - Math.PI / 2;
     });
     sim.sweepState.forEach((sw, i) => { this.sweepMeshes[i].rotation.z = sw.a; });
-    if (this.checkpointMesh) {
+    if (this.chaserMesh) {
       const ch = sim.chaser;
       this.chaserMesh.visible = !!(ch && ch.active);
       if (ch && ch.active) {

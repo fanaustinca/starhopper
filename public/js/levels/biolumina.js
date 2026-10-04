@@ -104,49 +104,57 @@ export default [
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
-  // 365 ── a lake of lily stumps patrolled by glow-moths drifting in figure-eights over every gap; time each hop between their loops
-  L('Mothlight Mere', 'enemies', (b) => {
+  // 365 ── lily pads sink under your weight and spore puffballs float you up: cross the mire without ever standing still
+  L('Lilypad Mire', 'swamp', (b) => {
     b.start(-6, 0, 12);
-    b.plat(10, 0, 3); b.enemy('flyer', 8, 2.5, { ax: 1.2, ay: 1.4, T: 3 });
-    b.plat(17, 1, 3); b.enemy('flyer', 15, 3, { ax: 0.6, ay: 2, T: 2.6 });
-    b.plat(24, 0, 3); b.enemy('flyer', 22, 2.5, { ax: 1.6, ay: 1, T: 3.4 });
-    b.crumble(31, 0.5, 3);
-    b.plat(38, 1, 7); b.enemy('walker', 39, 1, { range: 4 });
-    b.checkpoint(43, 1);
-    b.plat(49, 2, 2.5); b.plat(55, 3.5, 2.5); b.plat(61, 2, 2.5);
-    b.enemy('flyer', 53, 5, { ax: 3.5, ay: 0.8, T: 3 });
-    b.enemy('flyer', 59, 5.5, { ax: 3, ay: 1, T: 2.4 });
-    b.thin(54, 7.8, 4.5); b.shard(56.2, 9.2);              // a leaf canopy above the moth lane
-    b.vine(70, 10, 6); b.enemy('flyer', 70, 8, { ax: 2, ay: 0.5, T: 2.8 });
-    b.plat(76, 3, 4);
-    b.plat(83, 4, 12);
-    b.goal(91, 4);
-    b.arc(13, 0, 17, 1, 2, 1.6); b.arc(20, 1, 24, 0, 2, 1.6); b.arc(27, 0, 31, 0.5, 2, 1.6);
-    b.cells(50, 3.6, 62, 3.6, 5);
-    b.plat(30.5, -2.6, 2); b.shard(31.5, -1);             // a sunken stump under the rotting log
-    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.sinker(9, 0, 3, { depth: 3 });                       // first pad: feel it go down
+    b.sinker(15, 0.5, 3, { depth: 3.5 });
+    b.shard(16.5, -1.6);                                   // only reached by riding a pad all the way under
+    b.sinker(21, 0, 3, { depth: 3 });
+    b.plat(27, 1, 5);
+    b.floater(34, 1, 3, { rise: 9, speed: 2.2 });          // a puffball: stand on it and it floats you up
+    b.cells(35.5, 3.5, 35.5, 8.5, 3);
+    b.shard(35.5, 12.6);                                   // ride the puffball to the very top
+    b.plat(40, 7, 5);
+    b.checkpoint(42, 7);
+    b.sinker(48, 6, 2.6, { depth: 3, speed: 2 });
+    b.sinker(53.5, 5, 2.6, { depth: 3, speed: 2 });
+    b.sinker(59, 4, 2.6, { depth: 3, speed: 2 });
+    b.enemy('flyer', 56.5, 8.5, { ax: 2.5, ay: 0.6, T: 3 });   // a glow-moth drifting over the pad chain
+    b.thin(53, 10.5, 3.5); b.shard(54.7, 12);              // a leaf canopy above the moth lane
+    b.floater(65, 3, 3, { rise: 7, speed: 2.4 });
+    b.plat(70, 9, 4);
+    b.sinker(77, 8, 6, { depth: 5, speed: 0.9 });          // the giant lily: slow, but don't dawdle
+    b.plat(87, 6, 10);
+    b.goal(93, 6);
+    b.arc(6, 0, 27, 1, 6, 1.6); b.cells(49, 7.2, 60, 5.2, 4); b.arc(68, 10, 70, 9, 1, 1); b.cells(78, 9.2, 82, 9.2, 3);
   }),
 
-  // 366 ── glow-spore pads breathe: first all together (wait, then dash), then in alternating pairs up a slope, then as a wave down
-  L('Sporelight Pulse', 'timing', (b) => {
+  // 366 ── seed-pod cannons: one pod, then a pod-to-pod blast chain over the bog, a spinning pod, a rocking pod, and a pod ladder up a trunk
+  L('Podcannon Canopy', 'pods', (b) => {
     b.start(-6, 0, 12);
-    b.plat(9, 0, 3);
-    for (let i = 0; i < 3; i++) b.blink(15 + i * 5, 0, 3, { P: 4, on: 2.6 });
-    b.plat(30, 1, 3);
-    for (let i = 0; i < 3; i++) b.blink(36 + i * 5, 1 + (i % 2), 3, { P: 4, on: 2.6, off: 2 });
-    b.plat(51, 2, 6);
-    b.checkpoint(54, 2);
-    // alternating pairs: A on while B rests
-    for (let i = 0; i < 6; i++) b.blink(60 + i * 4.5, 4 + i * 1.8, 2.6, { P: 3, on: 1.7, off: (i % 2) * 1.5 });
-    b.plat(87, 15, 5);
-    b.thin(80, 19.5, 3); b.shard(81.5, 21);               // above the top of the slope
-    // wave down
-    for (let i = 0; i < 5; i++) b.blink(96 + i * 5, 13 - i * 2.2, 3, { P: 3.4, on: 2, off: -i * 0.45 });
-    b.plat(121, 3, 10);
-    b.goal(127, 3);
-    b.cells(10, 2, 29, 2, 6); b.cells(37, 3, 49, 3, 4); b.cells(61, 6, 84, 14, 6); b.cells(97, 14.5, 117, 6, 5);
-    b.shard(40.5, -0.8);                                   // low beneath the second set of spores
-    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.plat(9, 0, 5);
+    b.barrel(13, 2.2, { angle: 40 });                      // pod 1: hop in, press jump
+    b.plat(21, 1, 7);
+    b.barrel(27, 3, { angle: 15 });                        // the chain: pod → pod → pod, no ground between
+    b.barrel(33, 2.9, { angle: 15 });
+    b.barrel(39, 2.7, { angle: 45 });
+    b.plat(48, 1.5, 7);
+    b.checkpoint(51, 1.5);
+    b.barrel(58, 4.5, { spin: 100 });                      // a spinning pod: wait for it to face the next ledge
+    b.plat(62.5, -0.5, 2.5); b.shard(63.7, 1.5);           // fire it low for a drowned stump
+    b.plat(64, 7, 4);
+    b.barrel(71, 9, { angle: 70, sweep: 35, spin: 100, power: 20 });   // a rocking pod
+    b.plat(64.5, 14, 2.5); b.shard(65.7, 16);              // ...rocked all the way back, it reaches this perch
+    b.plat(78, 12.5, 5);
+    b.barrel(86, 15, { angle: 90, power: 22 });            // pod ladder up the trunk
+    b.barrel(86, 20.5, { angle: 90, power: 22 });
+    b.barrel(86, 26, { spin: 90 });
+    b.shard(86, 31);                                       // straight up out of the top pod
+    b.plat(93, 23, 9);
+    b.goal(99, 23);
+    b.arc(3, 0, 11, 2, 2, 1); b.arc(13, 2.2, 23, 1.5, 3, 2); b.cells(29, 3, 37, 2.9, 3); b.arc(39, 2.7, 50, 2.5, 3, 2.5);
+    b.cells(52, 2.5, 56, 3.5, 2); b.arc(59, 5, 65, 7.5, 2, 2); b.arc(72, 10, 79, 13.5, 3, 2.5); b.cells(86, 17.5, 86, 23.5, 3); b.arc(87, 26, 95, 24, 3, 1);
   }),
 
   // 367 ── a staircase of seed-pod wheels: transfer pod-to-pod up three wheels, swing down a vine, then dive through the hub of a giant one
@@ -178,7 +186,7 @@ export default [
     b.rect(13.6, 0, 0.8, 11); b.plat(13.6, 12, 6);
     b.cells(12.2, 3, 12.2, 10, 3);
     // canopy hop to trunk 2: drop in from the top, climb out the far side
-    b.thin(23, 12, 3);
+    b.pendulum(23, 16.5, 4.5, { amp: 35, T: 3.2 });          // a hanging cocoon to cross the gap
     b.rect(28, -3, 0.8, 16);                               // trunk 2 outer bark (top 13)
     b.plat(28.8, -3, 10);                                  // trunk 2 floor
     b.rect(35.2, 0.6, 0.8, 16.4);                          // inner bark: duck under it into the chimney
@@ -198,24 +206,28 @@ export default [
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
-  // 369 ── rotting logs crumble, so hop from log to drifting leaf to log without stopping: a river run through the bog
-  L('Rotlog Rapids', 'speed', (b) => {
-    b.start(-6, 0, 12);
-    b.crumble(9, 0, 3); b.crumble(15, 0.5, 3);
-    b.slide(24, 1, 34, 1, { T: 3.2, w: 3 });
-    b.crumble(38, 1, 3); b.crumble(44, 1.5, 3);
-    b.slide(53, 2, 53, 7, { T: 3, w: 3 });
-    b.plat(57, 7, 5);
-    b.checkpoint(59, 7);
-    b.crumble(66, 6, 2.5); b.crumble(71, 5, 2.5);
-    b.slide(79, 5, 89, 7, { T: 3, w: 2.8, phase: 0.5 });
-    b.crumble(93, 7, 2.5); b.crumble(98, 8, 2.5); b.crumble(103, 7, 2.5);
-    b.plat(109, 6, 10);
-    b.goal(115, 6);
-    b.cells(10, 1.5, 46, 3, 10); b.cells(67, 7.5, 104, 8.5, 9);
-    b.thin(51, 11, 3); b.shard(52.5, 12.5);                 // above the leaf lift
-    b.shard(84, 1.6);                                       // dip under the drifting leaf
-    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+  // 369 ── spider-silk zip lines carry you down the canopy past swinging thorn-pods: zip, hop, vine-to-silk, zip again
+  L('Silkline Descent', 'speed', (b) => {
+    b.start(-6, 30, 12);
+    b.thin(0, 34.2, 3); b.shard(1.5, 35.7);                // a twig over the first silk anchor
+    b.zip(7, 33, 25, 27);
+    b.wrecker(16, 36, 5.4, { amp: 50, T: 3.2 });           // a thorn-pod swinging across the first silk
+    b.shard(20, 30.6);                                     // hop on the silk (you re-grab it) to snag this one
+    b.plat(27, 24, 5);
+    b.zip(33, 26, 55, 18);
+    b.wrecker(44, 28, 5.4, { amp: 50, T: 3, phase: 0.5 });
+    b.plat(56, 15, 6);
+    b.checkpoint(59, 15);
+    b.vine(67, 22, 6);                                     // vine → silk: let go into the next zip line
+    b.plat(59.5, 20.5, 2.5); b.shard(60.7, 22.5);          // ...or let go on the back-swing for a high knot
+    b.zip(71, 17, 88, 10.5);
+    b.plat(89, 8, 6);
+    b.zip(95, 10.5, 117, 4.5, { oneWay: true });
+    b.wrecker(102, 15, 5.5, { amp: 55, T: 2.8 });
+    b.wrecker(110, 13, 5.5, { amp: 55, T: 2.8, phase: 0.5 });
+    b.plat(118, 1, 10);
+    b.goal(124, 1);
+    b.cells(9, 31, 23, 26.6, 5); b.cells(35, 24, 53, 19, 6); b.arc(62, 15, 71, 16, 3, 3); b.cells(73, 14.8, 86, 10.3, 5); b.cells(97, 8.3, 115, 3.3, 6);
   }),
 
   // 370 ── the Spore Swarm wakes: a sprint over stumps, mushrooms and two vines with no time to think
@@ -240,26 +252,27 @@ export default [
     b.shard(100, 6.2);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
-  // 371 ── spore turrets rake a walkway: duck behind stump cover, then climb a zig-zag of leaves through crossfire
-  L('Thornshot Thicket', 'gauntlet', (b) => {
+  // 371 ── spitting flower pods: a self-firing bloom spits you across, a rocking pod, a thorn bar to dash under, and a spinning pod over the thicket
+  L('Flowerspit Thicket', 'gauntlet', (b) => {
     b.start(-6, 0, 12);
-    b.plat(9, 0, 30);
-    b.wall(16, 0, 1.6, 1.4); b.wall(24, 0, 1.6, 1.4); b.wall(32, 0, 1.6, 1.4);   // stumps: hide on their left
-    b.rect(39, 0, 1.6, 5.5); b.turret(39.8, 0.8, -1, { P: 2.2 });
-    b.shard(37, 1);                                        // right at the turret's mouth
-    b.cells(11, 1, 14, 1, 2); b.cells(19, 1, 22, 1, 2); b.cells(27, 1, 30, 1, 2);
-    b.plat(44, 4, 6);
-    b.checkpoint(46, 4);
-    b.thin(51, 7.5, 4); b.thin(45, 11, 4); b.thin(51, 14.5, 4); b.thin(45, 18, 4);
-    b.rect(57, 6, 1.4, 16); b.turret(57.7, 8.3, -1, { P: 2.4 }); b.turret(57.7, 15.3, -1, { P: 2.4, off: 1.2 });
-    b.rect(41, 9, 1.4, 4); b.turret(41.7, 11.8, 1, { P: 2.6, off: 0.6 });
-    b.shard(53, 10.2);                                     // hanging in the lower firing lane
-    b.cells(53, 9, 47, 12.5, 3); b.cells(53, 16, 47, 19.5, 3);
-    b.plat(51, 21.5, 6);
-    b.plat(39, 22, 3); b.shard(40.5, 24);                  // a perch over the left cannon
-    b.plat(62, 20, 4); b.plat(70, 17, 12);
-    b.enemy('walker', 72, 17, { range: 6 });
-    b.goal(79, 17);
+    b.plat(9, 0, 5);
+    b.barrel(16, 2.2, { angle: 35, auto: true });          // the flower spits you out by itself
+    b.plat(29, 4, 5);
+    b.barrel(37, 5.6, { angle: 20, sweep: 25, spin: 70 }); // a rocking pod
+    b.plat(50, 5, 5);
+    b.checkpoint(52, 5);
+    b.plat(58, 5, 3); b.sweeper(63, 8, 3.5, { omega: 90, both: true });   // a thorn bar: cross when it is vertical
+    b.plat(68, 5, 4);
+    b.barrel(76, 6.6, { angle: 55, auto: true });          // another flower spits you up the thicket
+    b.plat(88, 12, 5);
+    b.barrel(95, 14, { spin: 90 });                        // a spinning pod over the thorns
+    b.plat(106, 10, 10);
+    b.enemy('walker', 108, 10, { range: 5 });
+    b.goal(113, 10);
+    b.shard(60, 8.5);                                      // above the thorn bar
+    b.shard(42, 9.5);                                       // at the top of the rocking pod's arc
+    b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.arc(3, 0, 9, 1, 2, 1); b.arc(18, 3, 28, 5, 3, 2); b.cells(30, 5.2, 34, 5.2, 2); b.arc(51, 6, 58, 6, 2, 2); b.arc(78, 8, 88, 13, 3, 2);
   }),
 
   // 372 ── glowing buttons swap the roots: open a sealed gallery, then climb a tower where every floor's button grows the next step
@@ -380,16 +393,16 @@ export default [
     b.cells(10, 28, 29, 28, 6); b.cells(16, 22, 36, 22, 6); b.cells(15, 16, 27, 16, 5); b.cells(20, 10, 42, 10, 6);
   }),
 
-  // 377 ── thorn-balls roll along a gully floor: cross overhead on vines and leaves, dropping down only to snatch shards and bounce back out
-  L('Thornball Gully', 'swing', (b) => {
+  // 377 ── thorn-balls roll along a gully floor: cross overhead on vines and swaying hanging fruit, dropping down only to snatch shards and bounce back out
+  L('Fruitfall Gully', 'swing', (b) => {
     b.start(-6, 4, 12);
     b.plat(8, -2, 60);
     b.enemy('spiker', 10, -2, { range: 10, speed: 3 }); b.enemy('spiker', 24, -2, { range: 12, speed: 2.4 });
     b.enemy('spiker', 40, -2, { range: 10, speed: 3.2 }); b.enemy('spiker', 54, -2, { range: 12, speed: 2.6 });
     b.vine(12, 12, 6);
-    b.thin(17, 5, 3);
+    b.pendulum(18, 10, 5, { amp: 35, T: 3.2 });             // hanging fruit swaying over the gully
     b.vine(25, 12, 6);
-    b.thin(30, 6, 3);
+    b.pendulum(31, 11, 5, { amp: 35, T: 3.4, phase: 0.5 });
     b.mushroom(36, -2, 7);                                 // escape mushroom from the gully floor
     b.plat(38, 6, 5);
     b.checkpoint(40, 6);
@@ -403,12 +416,12 @@ export default [
     b.cells(9, 7, 15, 6, 3); b.cells(21, 7, 28, 7, 3); b.arc(43, 6, 63, 7, 6, 3);
   }),
 
-  // 378 ── a highwire through the treetops: vine chains that climb and dip, glow-moths drifting through the arcs, flickering spore rests
+  // 378 ── a highwire through the treetops: vine chains that climb and dip, glow-moths drifting through the arcs, swaying hanging-fruit rests
   L('Canopy Highwire', 'swing', (b) => {
     b.start(-6, 10, 10);
     b.vine(9, 18, 5); b.vine(17.5, 18, 5);
     b.enemy('flyer', 13, 16, { ax: 1, ay: 1.5, T: 3 });
-    b.blink(23, 10, 3, { P: 3.4, on: 2.4 });
+    b.pendulum(23, 16, 6, { amp: 30, T: 3.4 });            // hanging fruit instead of a flicker
     b.vine(31, 19, 6);
     b.plat(36, 11, 5);
     b.checkpoint(38, 11);
@@ -417,7 +430,7 @@ export default [
     b.plat(60, 13, 3);
     b.vine(69, 22, 6); b.enemy('flyer', 66, 17, { ax: 1, ay: 2, T: 3 });
     b.plat(74, 14, 4);
-    b.blink(81, 13, 3, { P: 3, on: 2 });
+    b.pendulum(81, 19.5, 6.5, { amp: 30, T: 3.2, phase: 0.5 });
     b.vine(89, 21, 7);
     b.plat(95, 12, 10);
     b.goal(101, 12);
@@ -427,29 +440,34 @@ export default [
     b.arc(4, 10, 23, 10, 5, 3); b.arc(41, 11, 60, 13, 5, 3); b.arc(63, 13, 74, 14, 3, 3); b.arc(84, 13, 95, 12, 3, 3);
   }),
 
-  // 379 ── two hollow logs with low roofs: no high jumps, only short hops across glow-spore floor tiles and past beetles
-  L('Glowworm Gallery', 'cave', (b) => {
+  // 379 ── a hive-hung hollow: beehive hammers swing through a low log, cross its pits on hanging cocoons, dash under turning thorn-vine wheels
+  L('Hivehammer Hollow', 'cave', (b) => {
     b.start(-6, 0, 12);
-    b.rect(8, 4.2, 50, 1);
-    b.plat(8, 0, 6);
-    b.blink(16, 0, 3, { P: 3.2, on: 2 }); b.blink(21, 0, 3, { P: 3.2, on: 2, off: -0.6 });
-    b.plat(26, 0, 5); b.enemy('walker', 26.5, 0, { range: 3.5 });
-    b.blink(33, 0, 3, { P: 2.6, on: 1.6 }); b.blink(38, 0, 3, { P: 2.6, on: 1.6, off: 1.3 });
-    b.plat(43, 0, 4);
-    b.crumble(49, 0, 3); b.blink(54, 0, 3, { P: 3, on: 1.8, off: 0.5 });
-    b.plat(59, 0, 6);
-    b.checkpoint(61, 0);
-    b.mushroom(59.2, 0, 7); b.shard(60.3, 11.5);
-    b.rect(68, 7.2, 40, 1); b.rect(68, 8.2, 1, 7);
-    b.plat(68, 3, 4);
-    for (let i = 0; i < 4; i++) b.blink(74 + i * 4.5, 3, 2.6, { P: 2.4, on: 1.4, off: (i % 2) * 1.2 });
-    b.plat(92, 3, 6); b.enemy('spiker', 92.5, 3, { range: 4.5, speed: 2 });
-    b.crumble(100, 3, 2.5); b.crumble(104.5, 3, 2.5);
-    b.plat(109, 3, 8);
-    b.goal(114, 3);
-    b.shard(28.5, 3);                                      // above the beetle's beat
-    b.plat(-15, 1, 3); b.shard(-13.5, 3);
-    b.cells(9, 1, 46, 1, 10); b.cells(69, 4, 106, 4, 9);
+    b.rect(8, 7, 42, 1);                                   // the hollow log's roof
+    b.plat(8, 0, 10);
+    b.wrecker(13, 7, 4.8, { amp: 55, T: 3 });              // a beehive hammer sweeping the floor
+    b.pendulum(21.5, 7, 4.5, { amp: 35, T: 3.4 });         // hanging cocoons over the pit
+    b.pendulum(26.5, 7, 4.5, { amp: 35, T: 3.4, phase: 0.5 });
+    b.shard(24, 5.6);                                      // up between the cocoons, under the bark
+    b.plat(30, 0, 18);
+    b.sweeper(36, 3.5, 3, { omega: 70 });                  // a thorny vine wheel filling the chamber
+    b.shard(36, 1.9);                                      // right under its hub
+    b.wrecker(40.5, 7, 4.8, { amp: 55, T: 2.8, phase: 0.3 });
+    b.checkpoint(46, 0);
+    b.pendulum(53, 9.5, 6.5, { amp: 40, T: 3.6 });
+    b.pendulum(61, 10.5, 6.5, { amp: 40, T: 3.6, phase: 0.5 });
+    b.plat(69, 4, 10);
+    b.sweeper(74, 7.5, 3, { omega: 50, both: true });      // a thorn bar turning over the ledge: duck under it when it lies flat
+    b.vine(86, 14, 6);
+    b.sweeper(86, 1, 4, { omega: -80 });                   // ...and a thorn wheel under the vine: don't let go early
+    b.plat(79.5, 10, 2.5); b.shard(80.7, 12);              // let go on the back-swing for this knot
+    b.plat(91, 5, 4);
+    b.plat(99, 5, 14);
+    b.wrecker(102.5, 12.2, 5, { amp: 55, T: 3 });
+    b.wrecker(107.5, 12.2, 5, { amp: 55, T: 3, phase: 0.5 });
+    b.goal(111, 5);
+    b.cells(9, 1, 17, 1, 4); b.arc(18, 0, 30, 0, 3, 3); b.cells(31, 1, 34, 1, 2); b.cells(39, 1, 45, 1, 3);
+    b.arc(48, 0, 69, 4, 5, 4); b.cells(70, 5, 78, 5, 4); b.arc(80, 6, 91, 5, 3, 3); b.cells(100, 6, 109, 6, 4);
   }),
 
   // 380 ── the Swarm returns as you race DOWNHILL: drop down stump steps, bounce over a bark wall, swing twice to the valley floor
@@ -458,7 +476,7 @@ export default [
     b.start(-6, 24, 14);
     b.plat(-15, 26, 3); b.shard(-13.5, 28);
     b.plat(11, 22, 5); b.plat(19, 19, 5);
-    b.crumble(27, 16, 3); b.crumble(32, 13, 3);
+    b.zip(24, 20.5, 36, 14.5);                             // spider silk: slide down, no waiting
     b.plat(38, 11, 6); b.mushroom(41.6, 11, 6);
     b.rect(46, 6, 1.2, 12);
     b.shard(46.6, 21.5);
@@ -473,7 +491,7 @@ export default [
     b.plat(100, 4, 4);
     b.plat(107, 2, 12);
     b.goal(115, 2);
-    b.cells(12, 23.5, 22, 20.5, 4); b.cells(28, 17.5, 33, 14.5, 2); b.arc(55, 13, 67, 11, 4, 3); b.cells(76, 10.5, 81, 8.5, 2); b.arc(89, 5, 100, 4, 3, 3);
+    b.cells(12, 23.5, 22, 20.5, 4); b.cells(26, 19.4, 34, 15.4, 3); b.arc(55, 13, 67, 11, 4, 3); b.cells(76, 10.5, 81, 8.5, 2); b.arc(89, 5, 100, 4, 3, 3);
   }),
   // 381 ── a hollow tree stacked with floors: each floor is guarded by snapjaws, and a mushroom at its far end pops you up to the next
   L('Bloomgate Ladder', 'ascent', (b) => {
@@ -506,30 +524,33 @@ export default [
     b.cells(15, 17, 25, 17, 4); b.cells(10, 25, 19, 25, 4); b.cells(15, 33, 26, 33, 5); b.arc(35, 32, 46, 30, 4, 3);
   }),
 
-  // 382 ── a meadow of snapjaws, each with a mushroom in front: wait for the jaw to open, or vault clean over it
-  L('Jawvault Meadow', 'doors', (b) => {
+  // 382 ── a meadow strung with spider silk: a mushroom throws you onto a long zip line, snapjaws guard the landing, hanging fruit carries you over a pit, then silk again
+  L('Silkmeadow Run', 'doors', (b) => {
     b.start(-6, 0, 12);
-    b.plat(8, 0, 70);
-    b.mushroom(10, 0, 6); b.door(16, 0, { P: 3.4, open: 0.5 });
-    b.enemy('walker', 19, 0, { range: 3 });
-    b.mushroom(23, 0, 8); b.door(28, 0, { P: 3, open: 0.4 }); b.door(31, 0, { P: 3, open: 0.4, off: -0.5 });
-    b.shard(29.5, 11);                                     // above the twin jaws, at the top of a vault
-    b.door(40, 0, { P: 3.6, open: 0.4, off: 1 }); b.rect(36, 6.5, 8, 1);   // this one has a roof: no vaulting
-    b.mushroom(37, 0, 2);
-    b.checkpoint(47, 0);
-    b.enemy('spiker', 50, 0, { range: 5, speed: 2 });
-    b.mushroom(56, 0, 9); b.door(62, 0, { P: 2.6, open: 0.35, h: 8 });
-    b.thin(57, 12.5, 4); b.shard(59, 14);
-    b.door(70, 0, { P: 3, open: 0.5, off: 1.5 }); b.mushroom(65, 0, 6);
-    b.plat(81, 3, 6); b.door(85, 3, { P: 3, open: 0.5 }); b.mushroom(81.3, 3, 7);
-    b.plat(92, 5, 10);
-    b.goal(98, 5);
-    b.cells(11.1, 4, 18, 6.5, 4); b.cells(24.1, 4, 33, 8, 4); b.cells(57.1, 5, 64, 9, 4); b.cells(66.1, 4, 72, 6.5, 3);
+    b.plat(8, 0, 10);
+    b.mushroom(14, 0, 8);
+    b.zip(17, 7.5, 36, 2.5);                               // bounce up, grab the silk, slide down the meadow
+    b.plat(38, 0, 10);
+    b.door(43, 0, { P: 3.2, open: 0.45 });
+    b.checkpoint(46, 0);
+    b.pendulum(55, 9, 6, { amp: 35, T: 3.4 });             // hanging fruit over the pit
+    b.pendulum(63, 9, 6, { amp: 35, T: 3.4, phase: 0.5 });
+    b.pendulum(71, 9, 6, { amp: 35, T: 3.4 });
+    b.plat(79, 3, 5);
+    b.mushroom(83, 3, 8);
+    b.zip(85, 10, 104, 5);
+    b.plat(106, 4, 14);
+    b.door(110, 4, { P: 3, open: 0.4 });
+    b.door(113, 4, { P: 3, open: 0.4, off: -0.5 });
+    b.goal(118, 4);
+    b.shard(27, 7);                                        // hop on the silk (you re-grab it) to snag this one
+    b.shard(95, 11);                                       // above the second silk
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
+    b.cells(9, 1, 17, 1, 3); b.cells(39, 1, 42, 1, 2); b.cells(47, 1, 51, 1, 2); b.arc(80, 4.5, 84, 4.5, 2, 1); b.cells(107, 5, 109, 5, 2);
   }),
 
-  // 383 ── a seed mill: hop between wheels by way of the vines strung between them, ending on a pair of counter-turning wheels
-  L('Seedpod Mill', 'ride', (b) => {
+  // 383 ── a seed mill: wheels and vines carry you up, then spinning and rocking seed-pod cannons fling you across the mill yard to a last vine
+  L('Podwheel Mill', 'ride', (b) => {
     b.start(-6, 0, 12);
     b.ferris(14, 3, 5, { n: 3, omega: 0.7 });
     b.vine(25, 13, 6);
@@ -537,40 +558,41 @@ export default [
     b.shard(35, 15.5);
     b.plat(45, 8, 5);
     b.checkpoint(47, 8);
-    b.ferris(57, 10, 5, { n: 4, omega: 0.6 });
-    b.ferris(68.5, 10, 5, { n: 4, omega: -0.6 });
-    b.shard(62.8, 10);                                     // where the two wheels nearly touch
+    b.barrel(55, 9.6, { spin: 90 });                       // a spinning pod: wait for the ledge
+    b.plat(64, 9, 3);
+    b.barrel(70, 10.5, { angle: 20, sweep: 25, spin: 80 }); // a rocking pod
+    b.shard(64.5, 14);                                     // over the middle knot
     b.vine(79, 21, 6);
     b.plat(85, 12, 9);
     b.goal(91, 12);
-    b.arc(6, 0, 19, 6, 3, 3); b.arc(19, 6, 30, 6, 3, 2); b.cells(57, 15.5, 68.5, 15.5, 3); b.arc(74, 12, 85, 12, 3, 3);
+    b.arc(6, 0, 19, 6, 3, 3); b.arc(19, 6, 30, 6, 3, 2); b.arc(56, 12, 64, 10.5, 2, 2); b.arc(74, 12, 85, 12, 3, 3);
     b.plat(-14, 1.5, 3); b.shard(-12.5, 3.5);
   }),
 
-  // 384 ── up a hollow trunk on glow-spore steps that flicker in pairs, with rotting logs mixed in and a spore turret sweeping the middle
-  L('Sporelight Tower', 'ascent', (b) => {
+  // 384 ── up a hollow trunk on pollen: a whirlwind, a spore puffball, a second whirlwind past a turning thorn bar, a rocking pod out the top, then silk down
+  L('Pollen Updraft', 'ascent', (b) => {
     b.start(-6, 0, 12);
-    b.rect(8, 3, 1, 40); b.rect(24, 0, 1, 36); b.rect(8, 43, 17, 1);
-    b.tower(9, 0, 15, 43);
-    b.plat(8, 0, 17);
-    b.blink(18, 3.5, 3, { P: 3, on: 2 }); b.blink(12, 7, 3, { P: 3, on: 2, off: 1.5 });
-    b.blink(18, 10.5, 3, { P: 3, on: 2 }); b.crumble(12, 14, 3);
-    b.blink(18, 17.5, 3, { P: 3, on: 2, off: 1.5 });
-    b.turret(9.5, 12, 1, { P: 2.4 });
-    b.plat(9, 21, 5);
-    b.checkpoint(11, 21);
-    b.blink(15.5, 24.5, 3, { P: 2.6, on: 1.6 }); b.blink(20.5, 28, 3, { P: 2.6, on: 1.6, off: 1.3 });
-    b.crumble(14.5, 31.5, 3); b.blink(9.5, 35, 3, { P: 2.6, on: 1.6 });
-    b.turret(23.4, 29.2, -1, { P: 2.2, off: 1 });
-    b.thin(15, 38.5, 4);
-    b.plat(20, 39, 2); b.shard(21, 41);                    // a knot above the right bark
+    b.rect(8, 3, 1, 40); b.rect(26, 0, 1, 36); b.rect(8, 43, 19, 1);
+    b.tower(9, 0, 17, 43);
+    b.plat(8, 0, 18);
+    b.tornado(12, 16, 0, { rise: 7, T: 4 });               // a pollen whirlwind wandering the floor
+    b.shard(12, 12.5);                                     // ride it and double-jump at the top
+    b.plat(18, 8, 8);
+    b.floater(10, 8, 3, { rise: 9, speed: 2.2 });          // a spore puffball lifts you to the middle floor
+    b.plat(15, 17, 11);
+    b.checkpoint(23, 17);
+    b.tornado(18, 24, 17, { rise: 8, T: 5 });
+    b.sweeper(16, 25, 2.5, { omega: 70, both: true });     // a thorn bar turning across the drift to the left ledge
+    b.plat(9, 27, 5);
+    b.barrel(19, 31, { angle: 75, sweep: 40, spin: 100, power: 20 });   // a rocking pod fires you out over the bark
+    b.plat(9, 35, 2.5); b.shard(10.2, 37);                 // rock it all the way back for the high nook
     b.plat(26, 37, 5);
-    b.slide(36, 36, 36, 22, { T: 6, w: 3 });
-    b.plat(41, 20, 8);
-    b.goal(46, 20);
-    b.shard(22.5, 1.2);                                    // behind the first step
-    b.plat(9, 14.5, 2); b.shard(10, 16.5);                 // a nook beside the rotting log
-    b.cells(19.5, 5, 13.5, 8.5, 2); b.cells(19.5, 12, 19.5, 19, 2); b.cells(17, 26, 22, 29.5, 2); b.cells(16, 33, 11, 36.5, 2);
+    b.zip(32, 39.5, 52, 27);
+    b.shard(42, 35.1);                                     // hop on the silk to snag it
+    b.plat(53, 24, 8);
+    b.goal(58, 24);
+    b.cells(14, 3, 14, 7, 2); b.cells(19, 9.5, 24, 9.5, 3); b.cells(11.5, 11, 11.5, 16, 3); b.cells(20, 20, 20, 25, 3);
+    b.cells(10, 28.5, 13, 28.5, 2); b.arc(19, 31, 28, 38.5, 3, 2); b.cells(34, 37.4, 50, 28.6, 5);
   }),
 
   // 385 ── a storm of drifting leaves, each tracing its own loop: box, diamond, tall oval; read the paths and hop between them
@@ -619,26 +641,26 @@ export default [
     b.cells(16, 1, 28, 1, 4); b.cells(32, 1, 50, 1, 5); b.cells(50, 6.5, 24, 6.5, 7); b.cells(18, 12, 58, 12, 8);
   }),
 
-  // 387 ── spore pods on every landing fire across the swing lanes: jump the low bolts on the ground, time each swing between the high ones
-  L('Sporeshot Swing', 'swing', (b) => {
+  // 387 ── vine → pod → vine: swing out, get caught by a seed-pod cannon, fired to the next vine, over a thorn wheel, and a spinning pod throws you home
+  L('Podvine Relay', 'swing', (b) => {
     b.start(-6, 2, 10);
     b.vine(10, 11, 6);
-    b.plat(16, 2, 7); b.rect(16, 2, 1.2, 3.4);
-    b.turret(16.6, 2.8, 1, { P: 2.4 }); b.turret(16.6, 4.9, 1, { P: 2.4, off: 1.2 });
-    b.vine(29, 12, 6);
-    b.plat(35, 3, 7); b.rect(35, 3, 1.2, 3.4);
-    b.turret(35.6, 3.8, 1, { P: 2 }); b.turret(35.6, 5.9, 1, { P: 2, off: 1 });
-    b.checkpoint(40, 3);
-    b.vine(48, 13, 6); b.vine(56.5, 13, 6);
-    b.plat(62, 4, 6); b.rect(62, 4, 1.2, 3.4);
-    b.turret(62.6, 4.8, 1, { P: 1.8 }); b.turret(62.6, 6.9, 1, { P: 1.8, off: 0.9 });
-    b.vine(74, 15, 6);
-    b.plat(80, 8, 10);
-    b.goal(86, 8);
-    b.shard(16.6, 7);                                      // perched on the first pod
-    b.shard(52.2, 4.6);                                    // low between the chained vines
+    b.plat(16, 2, 5);
+    b.barrel(24, 3.8, { angle: 30 });                      // pod: hop in, press jump
+    b.plat(34, 3, 3); b.vine(40, 14, 6);              // the blast lands on a knot; the vine carries on
+    b.plat(45, 4, 4);
+    b.checkpoint(47, 4);
+    b.vine(55, 14, 7); b.vine(63.5, 14, 7);
+    b.sweeper(59.5, 3, 3, { omega: 75 });                  // a thorn wheel turning under the vine chain
+    b.plat(70, 5, 4);
+    b.barrel(78, 7, { spin: 80 });                         // a spinning pod: wait for the far vine
+    b.vine(92, 16, 6);
+    b.plat(98, 8, 10);
+    b.goal(104, 8);
+    b.shard(32, 7);                                       // up on the arc of the first blast
+    b.shard(59.5, 7.8);                                    // hanging over the thorn wheel
     b.plat(-14, 4, 3); b.shard(-12.5, 6);
-    b.arc(4, 2, 16, 2, 3, 3); b.arc(23, 2, 35, 3, 3, 3); b.arc(42, 3, 62, 4, 5, 3); b.arc(68, 4, 80, 8, 3, 3);
+    b.arc(4, 2, 16, 2, 3, 3); b.arc(26, 5, 38, 7, 3, 3); b.arc(47, 4, 70, 5, 5, 3); b.arc(80, 9, 92, 10, 3, 3);
   }),
 
   // 388 ── every jaw and spore tile opens in a rolling wave: run WITH the wave and everything parts before you
@@ -677,6 +699,7 @@ export default [
     b.crumble(71, 12, 2); b.thin(75.5, 10.6, 2.4);
     b.plat(80, 9, 10); b.enemy('spiker', 80.5, 9, { range: 8.5, speed: 3 });
     b.vine(96, 17, 6); b.vine(104.5, 17, 6);
+    b.sweeper(100.2, 7.5, 3, { omega: 80, both: true });   // a thorn bar turning under the vine chain
     b.enemy('flyer', 100, 12, { ax: 1.2, ay: 1.6, T: 2.4 });
     b.plat(110, 10, 3); b.crumble(116, 11, 2); b.crumble(121, 12, 2);
     b.plat(126, 12, 10);
@@ -708,12 +731,13 @@ export default [
     b.chase({ speed: 4.6, trigger: 50, behind: 16 });
     b.vine(60, 38, 6); b.vine(68.5, 38, 6);
     b.plat(74, 29, 4);
-    b.crumble(81, 27, 2.4); b.crumble(86, 25, 2.4);
+    b.barrel(82, 29.6, { angle: -10, auto: true });         // a flower pod spits you on down the slope
+    b.plat(89, 25, 2);
     b.plat(91, 23, 5); b.mushroom(94, 23, 6);
     b.rect(99, 20, 1.2, 11);
     b.plat(102, 24, 4);
     b.vine(112, 31, 6);
-    b.plat(118, 22, 4); b.crumble(125, 20, 2.4); b.crumble(130, 18, 2.4);
+    b.plat(118, 22, 4); b.barrel(125, 23.6, { angle: -12, auto: true });
     b.plat(136, 16, 12);
     b.goal(144, 16);
     b.shard(64.2, 30.5);                                   // low under the vine chain

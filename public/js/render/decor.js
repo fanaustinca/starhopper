@@ -245,7 +245,7 @@ function pearlTower(g) {
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i), a = (y + 50) / 100 * 2.0;
     const x = pos.getX(i), z = pos.getZ(i);
-    pos.setXZ(i, x * Math.cos(a) - z * Math.sin(a), x * Math.sin(a) + z * Math.cos(a));
+    pos.setX(i, x * Math.cos(a) - z * Math.sin(a)); pos.setZ(i, x * Math.sin(a) + z * Math.cos(a));
   }
   st.geometry.computeVertexNormals();
 }
