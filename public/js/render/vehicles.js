@@ -188,7 +188,16 @@ export function makeMoverMesh(def, world, location, seed = 0) {
     box(g, def.w * 0.96, 0.06, 2.5, mat(top, { roughness: 0.3 }), def.w * 0.02, def.h - 0.02, 0);
     const strip = box(g, def.w * 0.9, 0.08, 0.06, glowMat(edge), def.w * 0.05, def.h * 0.45, 1.31);
     g.userData.strip = strip;
-    if (k === 'shield' || k === 'pad' || k === 'lift' || k === 'warp') {
+    if (k === 'floater') {
+      // a buoyant bubble/balloon lifts this pad
+      const bal = new THREE.Mesh(new THREE.SphereGeometry(0.9, 20, 14), mat(world.accent, { physical: true, transmission: 0.4, roughness: 0.1, transparent: true, opacity: 0.7, emissive: world.accent, emissiveIntensity: 0.3 }));
+      bal.position.set(def.w / 2, def.h + 2.2, -0.9); g.add(bal);
+      const str = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.4, 4), mat(0xdddddd)); str.position.set(def.w / 2, def.h + 0.8, -0.9); g.add(str);
+    }
+    if (k === 'sinker') {
+      for (const ox of [0.25, def.w - 0.25]) { const w8 = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.5, 10), mat(0x3a3f4a, { metalness: 0.8 })); w8.position.set(ox, -0.25, 0); g.add(w8); }
+    }
+    if (k === 'shield' || k === 'pad' || k === 'lift' || k === 'warp' || k === 'swing') {
       // thruster glow underneath
       const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.05, 0.6, 12, 1, true), new THREE.MeshBasicMaterial({ color: edge, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false }));
       glow.position.set(def.w / 2, -0.35, 0);

@@ -32,6 +32,7 @@ export class LevelBuilder {
     this.winds = []; this.gravZones = []; this.vines = []; this.bridges = [];
     this.doors = []; this.meteors = []; this.pickups = []; this.roads = [];
     this.gears = []; this.mirrors = []; this.towers = []; this.enemies = []; this.turrets = [];
+    this.zips = []; this.barrels = []; this.sweepers = []; this.checkpointList = [];
     this.spawn = null; this.goalPos = null; this.checkpointPos = null;
     this.chaser = null; this.tide = null; this.globalWind = null;
   }
@@ -168,6 +169,43 @@ export class LevelBuilder {
   vine(ax, ay, len = 6) { this.vines.push({ id: this.id('v'), ax, ay, len, phase: (ax * 0.37) % 6.28 }); }
   bridge(x, top, w) { this.bridges.push({ id: this.id('b'), x, y: top - 0.4, w, h: 0.4, trigger: { x: x - 2.2, y: top - 1, w: w + 2.2, h: 4 } }); }
   door(x, top, o = {}) { this.doors.push({ id: this.id('d'), x: x - 0.6, y: top, w: 1.2, h: o.h ?? 6.5, P: o.P ?? 3.4, openFrac: o.open ?? 0.5, off: o.off ?? 0 }); }
+  // ---- moving things (v4) ----
+  // zip line: cable from (x0,y0) to (x1,y1); grab it in mid-air, slide downhill (or the way you were going)
+  zip(x0, y0, x1, y1, o = {}) { this.zips.push({ id: this.id('z'), x0, y0, x1, y1, speed: o.speed ?? 6, oneWay: !!o.oneWay }); }
+  // launch barrel at centre (x,y): jump in, press jump to blast out along `angle` degrees (0 = right, 90 = up)
+  barrel(x, y, o = {}) {
+    const d = Math.PI / 180;
+    this.barrels.push({ id: this.id('br'), x, y, angle: (o.angle ?? 45) * d, spin: (o.spin ?? 0) * d, sweep: o.sweep ? o.sweep * d : 0, power: o.power ?? 18, auto: o.auto ?? false });
+  }
+  // platform hanging on a rope from (px,py), swinging ±amp degrees
+  pendulum(px, py, len, o = {}) {
+    const w = o.w ?? 3, h = 0.6;
+    this.movers.push({ id: this.id('m'), kind: o.kind || 'swing', w, h, rope: { px, py }, path: { type: 'pendulum', px, py, len, amp: (o.amp ?? 40) * Math.PI / 180, T: o.T ?? 4, phase: o.phase ?? 0 } });
+  }
+  // sinks while you stand on it, rises back when you leave
+  sinker(x, top, w, o = {}) {
+    this.movers.push({ id: this.id('m'), kind: 'sinker', w, h: 0.8, solidMover: true, path: { type: 'weight', x0: x, y0: top - 0.8, dir: -1, range: o.depth ?? 4, speed: o.speed ?? 1.6, back: o.back } });
+  }
+  // floats up while you stand on it (a balloon / bubble), drifts back down when you leave
+  floater(x, top, w, o = {}) {
+    this.movers.push({ id: this.id('m'), kind: 'floater', w, h: 0.8, solidMover: true, path: { type: 'weight', x0: x, y0: top - 0.8, dir: 1, range: o.rise ?? 6, speed: o.speed ?? 2, back: o.back } });
+  }
+  // wrecking ball / swinging hammer on a rope from (px,py)
+  wrecker(px, py, len, o = {}) {
+    const r = o.r ?? 1.1;
+    this.hazards.push({ id: this.id('h'), type: 'wrecker', w: r * 2, h: r * 2, x: px - r, y: py - len - r * 2,
+      path: { type: 'pendulum', px, py, len, amp: (o.amp ?? 55) * Math.PI / 180, T: o.T ?? 3.2, phase: o.phase ?? 0 }, rope: { px, py } });
+  }
+  // rotating beam around (cx,cy): length len, degrees/second omega; both:true = full bar through the centre
+  sweeper(cx, cy, len, o = {}) { this.sweepers.push({ id: this.id('sw'), cx, cy, len, omega: (o.omega ?? 60) * Math.PI / 180, a0: (o.a0 ?? 0) * Math.PI / 180, width: o.width ?? 0.6, both: !!o.both }); }
+  // travelling tornado / dust devil: an updraft column drifting between x0 and x1
+  tornado(x0, x1, y, o = {}) {
+    const rise = o.rise ?? 8, w = o.w ?? 2.4;
+    const power = Math.sqrt(2 * PHYS.gravity * this.W.gravity * (rise + 1.6));
+    this.launchers.push({ id: this.id('l'), type: 'tornado', x: x0 - w / 2, y, w, h: o.h ?? rise + 4, power, pulse: null,
+      path: { x0: x0 - w / 2, x1: x1 - w / 2, T: o.T ?? 6, phase: o.phase ?? 0 } });
+  }
+
   enemy(type, x, y, o = {}) { this.enemies.push({ id: this.id('e'), type, x, y, range: o.range ?? 4, speed: o.speed ?? 1.6, ax: o.ax, ay: o.ay, T: o.T }); }
   turret(x, y, dir, o = {}) { this.turrets.push({ id: this.id('t'), x, y, dir, P: o.P ?? 2.5, speed: o.speed ?? 7, off: o.off ?? 0, range: o.range ?? 26 }); }
 
@@ -177,7 +215,7 @@ export class LevelBuilder {
   arc(x0, y0, x1, y1, n = 3, h = 2.4) { for (let i = 1; i <= n; i++) { const t = i / (n + 1); this.cell(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t + Math.sin(t * Math.PI) * h); } }
   shard(x, y) { this.pickups.push({ id: this.id('k'), type: 'shard', x, y }); }
   heart(x, y) { this.pickups.push({ id: this.id('c'), type: 'heart', x, y }); }
-  checkpoint(x, top) { this.checkpointPos = { x, y: top }; }
+  checkpoint(x, top) { this.checkpointList.push({ x, y: top }); if (!this.checkpointPos) this.checkpointPos = { x, y: top }; }
   goal(x, top) { this.goalPos = { x, y: top }; }
   chase(o = {}) { this.chaser = { trigger: o.trigger ?? 4, behind: o.behind ?? 14, speed: o.speed ?? 4, name: o.name }; }
   rise(o = {}) { this.tide = { rate: o.rate ?? 0.7, delay: o.delay ?? 4 }; }
@@ -200,6 +238,8 @@ export class LevelBuilder {
       if (P.type === 'line') minTop = Math.min(minTop, P.y0 + m.h, P.y1 + m.h);
       if (P.type === 'poly') for (const [, y] of P.pts) minTop = Math.min(minTop, y);
       if (P.type === 'circle') minTop = Math.min(minTop, P.cy - P.r);
+      if (P.type === 'pendulum') minTop = Math.min(minTop, P.py - P.len);
+      if (P.type === 'weight') minTop = Math.min(minTop, P.y0 + m.h + Math.min(0, P.dir * P.range));
       if (P.type === 'bob') minTop = Math.min(minTop, P.y0 + m.h - P.ay);
     }
     const floorY = minTop - (W.floating ? 7 : 4);
@@ -222,6 +262,7 @@ export class LevelBuilder {
       winds: this.winds, gravZones: this.gravZones, vines: this.vines, bridges: this.bridges,
       doors: this.doors, meteors: this.meteors, pickups: this.pickups, roads: this.roads,
       gears: this.gears, mirrors: this.mirrors, towers: this.towers, enemies: this.enemies, turrets: this.turrets,
+      zips: this.zips, barrels: this.barrels, sweepers: this.sweepers, checkpoints: this.checkpointList,
       totalCells: this.pickups.filter((p) => p.type === 'cell').length,
       totalShards: this.pickups.filter((p) => p.type === 'shard').length,
     };

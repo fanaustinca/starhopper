@@ -99,6 +99,28 @@ b.enemy('flyer', x, y, {ax, ay, T})         hovers around (x, y); stompable
 b.turret(x, y, dir, {P, speed, off, range}) fires a bolt every P s at height y (dir ±1); mount it on a rect
 ```
 
+Moving things (v4). These are the most fun parts, so use them a lot:
+
+```
+b.vine(ax, ay, len)                     swing rope; drawn per world (vines, plasma tethers, crane cables, chains, light strands…)
+b.zip(x0, y0, x1, y1, {speed, oneWay})  zip line: grab the cable in mid-air (hands ~1.5 above feet), slide downhill
+                                        (or the way you were moving on a level cable); jump to let go, or drop off the end
+b.barrel(x, y, {angle, spin, sweep, power, auto})
+        launch barrel/pod centred at (x,y): touch it to get loaded, press jump to blast out along `angle`
+        degrees (0 = right, 90 = up). spin: deg/s rotating; sweep: rocks ±sweep degrees around `angle`
+        (spin = rocking speed); power default 18 (~blasts 10–20 units); auto:true fires by itself after 0.5s.
+        Barrel → barrel chains work (Donkey-Kong style).
+b.pendulum(px, py, len, {amp, T, phase, w})   platform hanging on a rope from (px,py), swinging ±amp degrees
+b.sinker(x, top, w, {depth, speed})     sinks while you stand on it (down to `depth`), rises back when you leave
+b.floater(x, top, w, {rise, speed})     balloon pad: floats UP while you stand on it (an elevator you ride), sinks back when empty
+b.wrecker(px, py, len, {amp, T, phase, r})    swinging wrecking ball / hammer hazard
+b.sweeper(cx, cy, len, {omega, a0, width, both})   rotating beam hazard (deg/s); both:true = full bar through the centre
+b.tornado(x0, x1, y, {rise, h, T, w})   updraft column drifting back and forth between x0 and x1 at height y
+b.checkpoint(x, top)                    can be called several times for long levels
+```
+
+The solver understands all of these: it rides zips, chains barrels (aiming rotating ones), samples pendulums, weights and tornadoes. Barrels and zips can bridge gaps far wider than a jump.
+
 Flow:
 
 ```

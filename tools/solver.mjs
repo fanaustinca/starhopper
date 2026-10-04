@@ -3,7 +3,7 @@
 // is a simulated attempt (run, jump, double jump, steer, springs, vents, vines,
 // wall-climbs, rides on sampled mover positions).
 
-import { createPlayer, stepPlayer, maxGapFor, maxJumpHeight } from '../public/js/core/physics.js';
+import { createPlayer, stepPlayer, maxGapFor, maxJumpHeight, barrelAngle } from '../public/js/core/physics.js';
 import { PHYS } from '../public/js/core/config.js';
 import { moverPos } from '../public/js/core/sim.js';
 
@@ -23,6 +23,8 @@ function moverSamples(L) {
     else if (P.type === 'circle') { period = (Math.PI * 2) / Math.abs(P.omega); n = 12; }
     else if (P.type === 'bob') { period = P.T / 0.7 * 1.0; n = 10; }
     else if (P.type === 'stream') { period = P.span / P.speed; n = Math.max(6, Math.ceil((P.xEnd - P.xStart) / 2.5)); }
+    else if (P.type === 'pendulum') { period = P.T; n = 12; }
+    else if (P.type === 'weight') { period = 1; n = 0; }
     else if (P.type === 'mirror') { continue; }
     const samples = [];
     if (P.type === 'poly') {
@@ -31,6 +33,8 @@ function moverSamples(L) {
       moverPos(tmp, 0, lookup);
       const len = tmp.path._len, cnt = Math.max(8, Math.ceil(len / 2.5));
       for (let i = 0; i < cnt; i++) samples.push(moverPos(tmp, (len * i / cnt) / P.speed, lookup));
+    } else if (P.type === 'weight') {
+      for (const k of [0, 0.25, 0.5, 0.75, 1]) samples.push({ x: P.x0, y: P.y0 + P.dir * P.range * k, alpha: 1 });
     } else if (P.type === 'stream') {
       for (let i = 0; i < n; i++) {
         const x = P.xStart - P.len + (P.xEnd - P.xStart + P.len) * (i + 0.5) / n;
@@ -70,6 +74,12 @@ export function solveLevel(L, opts = {}) {
   for (const b of L.bridges) statics.push({ id: b.id, x: b.x, y: b.y, w: b.w, h: b.h, active: true, oneWay: false, dx: 0, dy: 0, bridge: true });
   const hasSwitch = statics.some((c) => c.onoff);
   const lethal = L.hazards.filter((h) => h.respawn);
+  const launchers = [];
+  for (const l of L.launchers) {
+    if (!l.path) { launchers.push(l); continue; }
+    for (let i = 0; i <= 4; i++) launchers.push({ ...l, x: l.path.x0 + (l.path.x1 - l.path.x0) * i / 4 });
+  }
+  const zips = L.zips || [], barrels = L.barrels || [];
   const floorLethal = L.floor.lethal ? L.floor.y + 0.15 : -Infinity;
 
   // nodes: standable surfaces
@@ -81,6 +91,7 @@ export function solveLevel(L, opts = {}) {
   for (const sm of moverSamples(L)) {
     for (const c of sm.colliders) nodes.push({ key: `${sm.moverId}#${sm.i}:${c.x.toFixed(1)}`, cols: [c], col: c, kind: 'mover', mover: sm.moverId });
   }
+  for (const br of barrels) nodes.push({ key: br.id, kind: 'barrel', barrel: br, col: { x: br.x - 0.5, y: br.y - 1.4, w: 1, h: 0.01, oneWay: true, active: false, dx: 0, dy: 0 } });
   const bouncers = statics.filter((c) => c.bounce);
   const colliderSet = (sw, extra) => {
     const out = [];
@@ -100,7 +111,7 @@ export function solveLevel(L, opts = {}) {
 
   function attempt(A, B, sw, strat) {
     const cols = colliderSet(sw, [A.col, B.col].filter((c) => c.mover));
-    const world = { colliders: cols, vines: vines.map((v) => ({ ...v })) };
+    const world = { colliders: cols, vines: vines.map((v) => ({ ...v })), zips, barrels, time: strat.t0 || 0 };
     const a = A.col, b = B.col;
     const p = createPlayer(0, top(a));
     const bx = b.x + b.w / 2;
@@ -111,11 +122,24 @@ export function solveLevel(L, opts = {}) {
     sx = Math.min(Math.max(sx, a.x + 0.42), a.x + a.w - 0.42);
     p.x = sx; p.y = top(a); p.onGround = true; p.ground = a;
     let jumped = false, jt = 0, doubled = false, phase = strat.via ? 0 : 1, pressedWall = 0, prevVy = 0, holdDir = strat.dir;
-    const target = () => (phase === 0 ? strat.via.x : Math.min(Math.max(strat.aim ?? bx, b.x + 0.5), b.x + b.w - 0.5));
+    if (A.kind === 'barrel') { p.x = A.barrel.x; p.y = A.barrel.y - p.h / 2; p.onGround = false; p.ground = null; p.barrel = A.barrel; p.barrelT = 0; jumped = true; }
+    let wasBarrel = !!p.barrel;
+    const target = () => (phase === 0 ? strat.via.x : B.kind === 'barrel' ? B.barrel.x : Math.min(Math.max(strat.aim ?? bx, b.x + 0.5), b.x + b.w - 0.5));
     for (let i = 0; i < 720; i++) {
       const inp = { left: false, right: false, jump: true, jumpPressed: false, up: false, down: false };
       const tx = target();
-      if (!jumped) {
+      world.time += DT;
+      if (p.barrel) {
+        // fire when the barrel points the way we want (fixed barrels: straight away)
+        const br = p.barrel;
+        const want = Math.atan2((strat.aimY ?? top(b) + 2) - br.y, tx - br.x) + (strat.aimBias || 0);
+        const ang = barrelAngle(br, world.time);
+        const diff = Math.atan2(Math.sin(ang - want), Math.cos(ang - want));
+        if (!br.spin || Math.abs(diff) < 0.12) inp.jumpPressed = p.barrelT > 0.09;
+      } else if (p.zip) {
+        const d = p.zip.dir;
+        if ((d > 0 && p.x >= tx - 0.6) || (d < 0 && p.x <= tx + 0.6)) inp.jumpPressed = true;
+      } else if (!jumped) {
         if (strat.via && strat.via.walk) { inp[tx > p.x ? 'right' : 'left'] = Math.abs(tx - p.x) > 0.2; if (Math.abs(tx - p.x) < 0.3 || !p.onGround) jumped = true; }
         else {
           inp[dir > 0 ? 'right' : 'left'] = true;
@@ -140,8 +164,12 @@ export function solveLevel(L, opts = {}) {
         }
       }
       stepPlayer(p, inp, world, env, DT);
+      if (B.kind === 'barrel' && p.barrel === B.barrel) return true;
+      if (wasBarrel && !p.barrel) { phase = 1; jt = 0; jumped = true; }
+      wasBarrel = !!p.barrel;
+      if (p.barrel && B.kind !== 'barrel' && A.kind !== 'barrel' && p.barrel !== strat.viaBarrel) return false;
       // launchers (vents/geysers/updrafts) — assume they're firing when we need them
-      for (const l of L.launchers) {
+      for (const l of launchers) {
         if (p.x + p.w / 2 > l.x && p.x - p.w / 2 < l.x + l.w && p.y < l.y + l.h && p.y + p.h > l.y && p.vy < l.power * 0.9) {
           p.vy = l.power; p.onGround = false; p.ground = null; p.jumps = 1;
         }
@@ -160,6 +188,15 @@ export function solveLevel(L, opts = {}) {
   function strategies(A, B) {
     const a = A.col, b = B.col;
     const out = [];
+    if (A.kind === 'barrel') {
+      const br = A.barrel;
+      const dist = Math.hypot(b.x + b.w / 2 - br.x, top(b) - br.y);
+      if (dist > (br.power || 18) * 2.2) return out;
+      if (!br.spin) return [{ dir: 1, takeoff: br.x, runup: 0, dbl: null }, { dir: 1, takeoff: br.x, runup: 0, dbl: 'apex' }];
+      for (const bias of [0.35, 0.15, 0.6, 0, 0.85]) out.push({ dir: 1, takeoff: br.x, runup: 0, dbl: null, aimBias: bias, aimY: top(b) });
+      for (const bias of [0.35, 0.6]) out.push({ dir: 1, takeoff: br.x, runup: 0, dbl: 'apex', aimBias: bias, aimY: top(b) });
+      return out;
+    }
     const ta = top(a), tb = top(b);
     const dy = tb - ta;
     const gapR = b.x - (a.x + a.w), gapL = a.x - (b.x + b.w);
@@ -183,14 +220,14 @@ export function solveLevel(L, opts = {}) {
       out.push({ dir, takeoff: s.x + s.w / 2 - dir * 0.5, runup: 2, via: { x: s.x + s.w / 2 }, dbl: 'apex' });
       out.push({ dir, takeoff: s.x + s.w / 2 - dir * 0.5, runup: 2, via: { x: s.x + s.w / 2 }, dbl: null });
     }
-    for (const l of L.launchers) if (nearA(l, 4) && Math.abs(l.y - ta) < 1.5) {
+    for (const l of launchers) if (nearA(l, 4) && Math.abs(l.y - ta) < 1.5) {
       const dir = l.x + l.w / 2 > a.x + a.w / 2 ? 1 : -1;
       out.push({ dir, takeoff: l.x + l.w / 2, runup: 2, via: { x: l.x + l.w / 2, walk: true }, dbl: 'apex' });
       out.push({ dir, takeoff: l.x + l.w / 2, runup: 2, via: { x: l.x + l.w / 2, walk: true }, dbl: null });
     }
     // vines / gusts / gravity zones / wall shafts: try long jumps that pure envelopes would reject
-    const special = L.vines.length || L.winds.some((w) => w.gust) || L.gravZones.length;
-    if (!reachable && special && gx < 26 && dy < maxH + 2) {
+    const special = L.vines.length || L.winds.some((w) => w.gust) || L.gravZones.length || zips.length;
+    if (!reachable && special && gx < (zips.length ? 45 : 26) && dy < maxH + 2) {
       for (const dir of dirs) {
         const edge = dir > 0 ? a.x + a.w - 0.4 : a.x + 0.4;
         for (const dbl of [null, 'apex', 0.5, 0.8]) out.push({ dir, takeoff: edge, runup: 3, dbl });

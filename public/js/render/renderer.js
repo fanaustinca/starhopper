@@ -262,17 +262,119 @@ export class Renderer {
       m.userData.points = p;
       return m;
     });
+    // swing ropes: Bio-Lumina vines, plus a themed rope in every other world
+    const ROPE = {
+      sun: { rope: 0xff7a20, glow: 1.6, knob: 0xffc040, tip: 0xfff0a0, deco: 'sparks' },
+      mercury: { rope: 0x9aa0a8, metal: true, knob: 0x6a6e76, tip: 0xffd04a, deco: 'hook' },
+      venus: { rope: 0xb07a3a, metal: true, knob: 0x6a4020, tip: 0xc8d030, deco: 'chain' },
+      earth: { rope: 0x30343a, metal: true, knob: 0xf2c200, tip: 0xf2c200, deco: 'hook' },
+      mars: { rope: 0x8a8a90, metal: true, knob: 0xe8e2d4, tip: 0xff8a40, deco: 'hook' },
+      asteroids: { rope: 0x5ad8ff, glow: 1.2, knob: 0xd8dde6, tip: 0x5ad8ff, deco: 'sat' },
+      jupiter: { rope: 0xf0dcc0, knob: 0xd8b088, tip: 0xffffff, deco: 'cloud' },
+      saturn: { rope: 0xcfe8ff, glow: 0.5, knob: 0xe8e0d0, tip: 0xffffff, deco: 'ice' },
+      uranus: { rope: 0x8ae8f0, glow: 0.4, knob: 0xc8f8ff, tip: 0xe8ffff, deco: 'ice' },
+      neptune: { rope: 0x2a5ad0, glow: 0.8, knob: 0x1a2a6a, tip: 0x9ac8ff, deco: 'sparks' },
+      prismara: { rope: 0xff7af0, glow: 1.8, knob: 0xc8b0ff, tip: 0xffffff, deco: 'crystal' },
+      mechanus: { rope: 0x9a7a40, metal: true, knob: 0x6a5030, tip: 0xffb040, deco: 'chain' },
+      biolumina: { rope: 0x2a8a4a, knob: 0x1a4a2a, tip: 0xff5ad0, deco: 'leaves' },
+      chronos: { rope: 0xd8b040, metal: true, knob: 0xf0e8d0, tip: 0xffd86a, deco: 'chain' },
+      blackhole: { rope: 0xb08aff, glow: 1.6, knob: 0x2a1a4a, tip: 0xffb040, deco: 'sparks' },
+    };
+    const RS = ROPE[W.id] || ROPE.biolumina;
     this.vineMeshes = level.vines.map((v) => {
       const g = new THREE.Group();
       g.position.set(v.ax, v.ay, 0);
-      addMesh(G, new THREE.SphereGeometry(0.6, 12, 8), mat(0x1a4a2a, { roughness: 1 }), v.ax, v.ay, 0);
-      const vine = addMesh(g, new THREE.CylinderGeometry(0.09, 0.12, v.len, 6), mat(0x2a8a4a, { roughness: 0.8 }), 0, -v.len / 2, 0);
-      vine.castShadow = true;
-      for (let k = 1; k < 6; k++) {
-        const leaf = addMesh(g, new THREE.SphereGeometry(0.22, 6, 4), glowMat(0x3affa0, 0.6), (k % 2 ? 0.18 : -0.18), -v.len * (k / 6), 0);
-        leaf.scale.set(1.6, 0.6, 0.8);
+      addMesh(G, new THREE.SphereGeometry(0.55, 14, 10), mat(RS.knob, { roughness: RS.metal ? 0.3 : 1, metalness: RS.metal ? 0.8 : 0 }), v.ax, v.ay, 0);
+      const ropeMat = RS.glow ? glowMat(RS.rope, RS.glow) : mat(RS.rope, { roughness: RS.metal ? 0.35 : 0.8, metalness: RS.metal ? 0.8 : 0 });
+      if (RS.deco === 'chain') {
+        for (let k = 0; k < Math.floor(v.len / 0.42); k++) {
+          const link = addMesh(g, new THREE.TorusGeometry(0.16, 0.05, 6, 12), ropeMat, 0, -0.25 - k * 0.42, 0);
+          link.rotation.y = k % 2 ? Math.PI / 2 : 0;
+          link.scale.y = 1.5;
+        }
+      } else {
+        addMesh(g, new THREE.CylinderGeometry(RS.glow ? 0.07 : 0.09, RS.glow ? 0.07 : 0.12, v.len, 8), ropeMat, 0, -v.len / 2, 0).castShadow = true;
       }
-      addMesh(g, new THREE.SphereGeometry(0.25, 10, 8), glowMat(0xff5ad0, 2), 0, -v.len, 0);
+      if (RS.deco === 'leaves') for (let k = 1; k < 6; k++) addMesh(g, new THREE.SphereGeometry(0.22, 6, 4), glowMat(0x3affa0, 0.6), (k % 2 ? 0.18 : -0.18), -v.len * (k / 6), 0).scale.set(1.6, 0.6, 0.8);
+      if (RS.deco === 'sparks' || RS.deco === 'crystal') for (let k = 1; k < 5; k++) addMesh(g, RS.deco === 'crystal' ? new THREE.OctahedronGeometry(0.16) : new THREE.SphereGeometry(0.1, 6, 4), glowMat(RS.tip, 2.5), 0, -v.len * (k / 5), 0);
+      if (RS.deco === 'ice') for (let k = 1; k < 5; k++) addMesh(g, new THREE.ConeGeometry(0.08, 0.35, 5), glowMat(RS.tip, 0.6), 0.1, -v.len * (k / 5), 0).rotation.z = Math.PI;
+      if (RS.deco === 'hook') {
+        const hook = addMesh(g, new THREE.TorusGeometry(0.28, 0.07, 8, 16, Math.PI * 1.4), mat(0xd0b040, { metalness: 0.9, roughness: 0.25 }), 0, -v.len - 0.25, 0);
+        hook.rotation.z = Math.PI * 0.8;
+      } else if (RS.deco === 'sat') {
+        addMesh(g, new THREE.BoxGeometry(0.5, 0.4, 0.4), mat(0xd8dde6, { metalness: 0.7 }), 0, -v.len, 0);
+        addMesh(g, new THREE.BoxGeometry(1.4, 0.04, 0.5), mat(0x2a3a8a, { metalness: 0.6 }), 0, -v.len, 0);
+      } else addMesh(g, new THREE.SphereGeometry(0.25, 10, 8), glowMat(RS.tip, 2), 0, -v.len, 0);
+      G.add(g);
+      return g;
+    });
+    // zip lines: a taut cable with posts at both ends
+    this.zipMeshes = (level.zips || []).map((z) => {
+      const g = new THREE.Group();
+      const len = Math.hypot(z.x1 - z.x0, z.y1 - z.y0);
+      const cable = addMesh(g, new THREE.CylinderGeometry(0.05, 0.05, len, 6), RS.glow ? glowMat(RS.rope, 1.2) : mat(0x2a2e36, { metalness: 0.8, roughness: 0.3 }), (z.x0 + z.x1) / 2, (z.y0 + z.y1) / 2, 0, false);
+      cable.rotation.z = Math.atan2(z.y1 - z.y0, z.x1 - z.x0) - Math.PI / 2;
+      for (const [x, y] of [[z.x0, z.y0], [z.x1, z.y1]]) {
+        addMesh(g, new THREE.CylinderGeometry(0.12, 0.16, 1.2, 8), mat(0x6a7078, { metalness: 0.7 }), x, y + 0.2, -0.3);
+        addMesh(g, new THREE.SphereGeometry(0.2, 10, 8), glowMat(W.accent, 1.5), x, y + 0.85, -0.3);
+      }
+      const trolley = addMesh(g, new THREE.TorusGeometry(0.22, 0.07, 8, 16), mat(0xd0d6e0, { metalness: 0.9 }), z.x0, z.y0, 0);
+      g.userData = { trolley, z };
+      G.add(g);
+      return g;
+    });
+    // launch barrels / pods, themed per world
+    this.barrelMeshes = (level.barrels || []).map((br) => {
+      const g = new THREE.Group();
+      g.position.set(br.x, br.y, 0);
+      const aim = new THREE.Group(); g.add(aim);
+      const bodyCol = { biolumina: 0x3a8a4a, mechanus: 0x8a6a3a, sun: 0x3a3f4a, earth: 0xd0201c, prismara: 0xb08aff }[W.id] || 0x5a6070;
+      const body = addMesh(aim, new THREE.CylinderGeometry(0.75, 0.9, 1.9, 24, 1, true), mat(bodyCol, { metalness: 0.5, roughness: 0.35, side: THREE.DoubleSide }), 0.35, 0, 0);
+      body.rotation.z = -Math.PI / 2;
+      addMesh(aim, new THREE.TorusGeometry(0.78, 0.09, 8, 28), glowMat(W.accent, 2), 1.3, 0, 0).rotation.y = Math.PI / 2;
+      addMesh(aim, new THREE.TorusGeometry(0.92, 0.08, 8, 28), mat(0x2a2e36, { metalness: 0.8 }), -0.55, 0, 0).rotation.y = Math.PI / 2;
+      addMesh(aim, new THREE.CircleGeometry(0.85, 24), mat(0x1a1d24), -0.6, 0, 0).rotation.y = Math.PI / 2;
+      const arrow = addMesh(aim, new THREE.ConeGeometry(0.25, 0.5, 12), glowMat(0xffffff, 1.5), 1.9, 0, 0);
+      arrow.rotation.z = -Math.PI / 2;
+      addMesh(g, new THREE.SphereGeometry(0.4, 12, 10), mat(0x3a3f4a, { metalness: 0.8 }), 0, 0, -0.8);
+      g.userData = { aim, def: br };
+      G.add(g);
+      return g;
+    });
+    // wrecking balls / swinging hammers
+    this.wreckerMeshes = level.hazards.map((h) => {
+      if (h.type !== 'wrecker') return null;
+      const g = new THREE.Group();
+      const r = h.w / 2;
+      const ball = addMesh(g, new THREE.SphereGeometry(r, 24, 16), mat(0x2a2e36, { metalness: 0.85, roughness: 0.3 }), 0, 0, 0);
+      for (let k = 0; k < 10; k++) {
+        const v = new THREE.Vector3(Math.sin(k * 2.4) * Math.cos(k), Math.cos(k * 1.7), Math.sin(k)).normalize();
+        const sp = addMesh(ball, new THREE.ConeGeometry(r * 0.22, r * 0.6, 8), mat(0x8a909a, { metalness: 0.9 }), v.x * r, v.y * r, v.z * r);
+        sp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), v);
+      }
+      addMesh(G, new THREE.SphereGeometry(0.4, 12, 10), mat(0x3a3f4a, { metalness: 0.8 }), h.rope.px, h.rope.py, 0);
+      const chain = addMesh(G, new THREE.CylinderGeometry(0.07, 0.07, 1, 6), mat(0x6a6e76, { metalness: 0.8 }), 0, 0, 0, false);
+      g.userData = { chain, def: h };
+      G.add(g);
+      return g;
+    });
+    // pendulum platform ropes
+    this.ropeMeshes = level.movers.map((m) => {
+      if (!m.rope) return null;
+      addMesh(G, new THREE.SphereGeometry(0.4, 12, 10), mat(RS.knob, { metalness: 0.6 }), m.rope.px, m.rope.py, 0);
+      const line = addMesh(G, new THREE.CylinderGeometry(0.06, 0.06, 1, 6), RS.glow ? glowMat(RS.rope, 1.2) : mat(RS.rope, { metalness: RS.metal ? 0.8 : 0, roughness: 0.4 }), 0, 0, 0, false);
+      return line;
+    });
+    // rotating beams
+    this.sweepMeshes = (level.sweepers || []).map((d) => {
+      const g = new THREE.Group();
+      g.position.set(d.cx, d.cy, 0);
+      addMesh(G, new THREE.CylinderGeometry(0.6, 0.6, 1.2, 20), mat(0x3a3f4a, { metalness: 0.8 }), d.cx, d.cy, -0.4).rotation.x = Math.PI / 2;
+      const lo = d.both ? -d.len : 0;
+      const beam = addMesh(g, new THREE.CylinderGeometry(d.width / 2, d.width / 2, d.len - lo, 12, 1, true), additive(W.id === 'prismara' ? 0xff7af0 : 0xff5a3a, 0.85), (d.len + lo) / 2, 0, 0, false);
+      beam.rotation.z = Math.PI / 2;
+      const core = addMesh(g, new THREE.CylinderGeometry(d.width / 5, d.width / 5, d.len - lo, 8, 1, true), additive(0xffffff, 1), (d.len + lo) / 2, 0, 0, false);
+      core.rotation.z = Math.PI / 2;
       G.add(g);
       return g;
     });
@@ -354,16 +456,18 @@ export class Renderer {
     }
 
     // checkpoint + goal
-    if (level.checkpoint) {
+    const cpList = level.checkpoints && level.checkpoints.length ? level.checkpoints : (level.checkpoint ? [level.checkpoint] : []);
+    this.checkpointMeshes = cpList.map((c) => {
       const cp = new THREE.Group();
-      cp.position.set(level.checkpoint.x, level.checkpoint.y, -0.8);
+      cp.position.set(c.x, c.y, -0.8);
       addMesh(cp, new THREE.CylinderGeometry(0.08, 0.1, 3, 8), mat(0xd0d6e0, { metalness: 0.7 }), 0, 1.5, 0);
       const orb = addMesh(cp, new THREE.SphereGeometry(0.3, 16, 12), glowMat(0xff8a3a, 2), 0, 3.1, 0);
       const ring = addMesh(cp, new THREE.TorusGeometry(0.55, 0.05, 8, 32), glowMat(0xff8a3a, 2), 0, 3.1, 0);
       cp.userData = { orb, ring };
       G.add(cp);
-      this.checkpointMesh = cp;
-    } else this.checkpointMesh = null;
+      return cp;
+    });
+    this.checkpointMesh = this.checkpointMeshes[0] || null;
     const goal = new THREE.Group();
     goal.position.set(level.goal.x, level.goal.y, 0);
     addMesh(goal, new THREE.CylinderGeometry(1.6, 1.8, 0.3, 32), mat(0xe8ecf2, { metalness: 0.6, roughness: 0.2 }), 0, 0.15, 0);
@@ -639,7 +743,17 @@ export class Renderer {
     const core = addMesh(g, new THREE.CircleGeometry(l.w * 0.5, 20), glowMat(col, 1.5), cx, l.y + 0.05, 0, false);
     core.rotation.x = -Math.PI / 2;
     const column = addMesh(g, new THREE.CylinderGeometry(l.w * 0.45, l.w * 0.3, l.h, 16, 1, true), additive(col, l.type === 'updraft' ? 0.18 : 0.4), cx, l.y + l.h / 2, 0, false);
-    g.userData = { column, core };
+    if (l.type === 'tornado') {
+      ring.visible = false; core.visible = false;
+      column.geometry.dispose();
+      column.geometry = new THREE.CylinderGeometry(l.w * 1.3, l.w * 0.3, l.h, 20, 6, true);
+      column.material = additive({ mars: 0xd8a070, jupiter: 0xf0dcc0, neptune: 0x9ac8ff }[W.id] || 0xd8d0c8, 0.32);
+      for (let k = 0; k < 3; k++) {
+        const band = addMesh(g, new THREE.TorusGeometry(l.w * (0.5 + k * 0.35), 0.08, 6, 24), additive(0xffffff, 0.35), cx, l.y + l.h * (0.25 + k * 0.25), 0, false);
+        band.rotation.x = Math.PI / 2;
+      }
+    }
+    g.userData = { column, core, tornado: l.type === 'tornado', baseX: cx };
     return g;
   }
 
@@ -720,6 +834,9 @@ export class Renderer {
           this.shake = 0.15;
           break;
         }
+        case 'blast': this.robot.trigger('launch'); this.fx.burst('launch', p.x, p.y, 0xffd04a); this.shake = 0.15; break;
+        case 'barrel': this.fx.burst('sparkle', p.x, p.y + 0.8, 0xffffff); break;
+        case 'zip': this.fx.burst('sparkle', p.x, p.y + 1.6, 0xffffff); break;
         case 'stomp': this.fx.burst('sparkle', e.x, e.y, 0xffd84a); this.robot.trigger('launch'); break;
         case 'switch': this.fx.burst('flash', p.x, p.y, e.state ? 0x3a7aff : 0xff3a4a); this.shake = 0.12; break;
         case 'walljump': this.robot.trigger('walljump'); this.fx.burst('dust', p.x + p.facing * -0.4, p.y + 0.8); break;
@@ -845,7 +962,9 @@ export class Renderer {
       if (!ms.falling) ms._boom = false;
     });
     sim.launcherState.forEach((l, i) => {
-      const u = this.launcherMeshes[i].userData;
+      const lm = this.launcherMeshes[i];
+      const u = lm.userData;
+      if (u.tornado) { lm.position.x = l.def.x + l.def.w / 2 - u.baseX; lm.rotation.y = t * 4; return; }
       const on = l.state === 'on';
       u.column.visible = on || l.def.type === 'updraft';
       u.column.material.opacity = (l.def.type === 'updraft' ? 0.15 : 0.45) + Math.sin(t * 20) * 0.05;
@@ -900,18 +1019,55 @@ export class Renderer {
       m.rotation.y = t * 2.5;
       m.position.y = m.userData.baseY + Math.sin(t * 3 + m.position.x) * 0.12;
     }
-    if (this.checkpointMesh) {
-      const c = sim.checkpointReached ? 0x5aff8a : 0xff8a3a;
-      this.checkpointMesh.userData.orb.material = glowMat(c, 2);
-      this.checkpointMesh.userData.ring.material = glowMat(c, 2);
-      this.checkpointMesh.userData.ring.rotation.y = t * 2;
-    }
+    this.checkpointMeshes.forEach((cm, i) => {
+      const c = i <= (sim.checkpointIdx ?? -1) ? 0x5aff8a : 0xff8a3a;
+      cm.userData.orb.material = glowMat(c, 2);
+      cm.userData.ring.material = glowMat(c, 2);
+      cm.userData.ring.rotation.y = t * 2;
+    });
     const gu = this.goalMesh.userData;
     gu.disc.rotation.z = -t * 1.5;
     gu.ringG.rotation.y = Math.sin(t) * 0.3;
     gu.beam.material.opacity = 0.08 + 0.05 * Math.sin(t * 2);
 
-    if (this.chaserMesh) {
+    this.zipMeshes.forEach((zm) => {
+      const z = zm.userData.z, p = sim.player;
+      const riding = p.zip && p.zip.line === z;
+      const x = riding ? p.x : z.x0 + (z.x1 - z.x0) * (0.5 + 0.5 * Math.sin(t * 0.8));
+      zm.userData.trolley.position.set(x, z.y0 + (z.y1 - z.y0) * (x - z.x0) / (z.x1 - z.x0), 0);
+    });
+    this.barrelMeshes.forEach((bm) => {
+      const d = bm.userData.def;
+      const a = d.spin ? (d.sweep ? d.angle + Math.sin(sim.t * d.spin) * d.sweep : d.angle + d.spin * sim.t) : d.angle;
+      bm.userData.aim.rotation.z = a;
+      const inside = sim.player.barrel === d;
+      bm.scale.setScalar(inside ? 1.08 + Math.sin(t * 20) * 0.03 : 1);
+    });
+    sim.hazardState.forEach((h, i) => {
+      const wm = this.wreckerMeshes[i];
+      if (!wm) return;
+      const r = h.def.w / 2;
+      const cx = h.x + r, cy = h.y + r;
+      wm.position.set(cx, cy, 0);
+      wm.rotation.z += dt * 2;
+      const { px, py } = h.def.rope;
+      const ch = wm.userData.chain;
+      const len = Math.hypot(cx - px, cy + r - py);
+      ch.position.set((cx + px) / 2, (cy + r + py) / 2, 0);
+      ch.scale.y = len;
+      ch.rotation.z = Math.atan2(cy + r - py, cx - px) - Math.PI / 2;
+    });
+    sim.moverState.forEach((st, i) => {
+      const line = this.ropeMeshes[i];
+      if (!line) return;
+      const { px, py } = st.def.rope;
+      const ex = st.x + st.def.w / 2, ey = st.y + st.def.h;
+      line.position.set((px + ex) / 2, (py + ey) / 2, 0);
+      line.scale.y = Math.hypot(ex - px, ey - py);
+      line.rotation.z = Math.atan2(ey - py, ex - px) - Math.PI / 2;
+    });
+    sim.sweepState.forEach((sw, i) => { this.sweepMeshes[i].rotation.z = sw.a; });
+    if (this.checkpointMesh) {
       const ch = sim.chaser;
       this.chaserMesh.visible = !!(ch && ch.active);
       if (ch && ch.active) {
@@ -946,6 +1102,7 @@ export class Renderer {
     // hero
     this.robot.root.position.set(p.x, p.y, 0);
     this.robot.update(p, dt, t, { invuln: sim.invuln, win: sim.complete, showcase: this.showcase });
+    if (p.barrel) this.robot.root.visible = false;
     this.heroLight.position.set(p.x + 1, p.y + 2.5, 3);
     // blob shadow on whatever is below
     let below = L.floor.y;

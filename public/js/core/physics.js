@@ -20,6 +20,7 @@ export function createPlayer(x, y) {
     hang: null, climb: null, swing: null,
     regrab: 0, vineCooldown: 0, dropT: 0,
     wall: 0, wallLock: 0,
+    zip: null, zipCool: 0, barrel: null, barrelCool: 0, barrelT: 0,
     airTime: 0,
   };
 }
@@ -46,6 +47,8 @@ export function stepPlayer(p, input, world, env, dt) {
   p.vineCooldown = Math.max(0, p.vineCooldown - dt);
   p.dropT = Math.max(0, p.dropT - dt);
   p.wallLock = Math.max(0, p.wallLock - dt);
+  p.zipCool = Math.max(0, p.zipCool - dt);
+  p.barrelCool = Math.max(0, p.barrelCool - dt);
 
   // ---- Climbing up a ledge (short scripted tween) ----
   if (p.climb) {
@@ -96,6 +99,53 @@ export function stepPlayer(p, input, world, env, dt) {
       }
       if (p.hang) return ev;
     }
+  }
+
+  // ---- Inside a launch barrel: aim, then blast out ----
+  if (p.barrel) {
+    const b = p.barrel;
+    const a = barrelAngle(b, world.time || 0);
+    p.x = b.x; p.y = b.y - p.h / 2;
+    p.vx = 0; p.vy = 0; p.extVx = 0;
+    p.state = 'barrel';
+    p.barrelT += dt;
+    if ((p.buffer > 0 && p.barrelT > 0.08) || (b.auto && p.barrelT > (b.auto === true ? 0.5 : b.auto))) {
+      p.buffer = 0;
+      const pw = b.power || 18;
+      p.extVx = Math.cos(a) * pw;           // horizontal blast rides on extVx so it isn't clamped to run speed
+      p.vy = Math.sin(a) * pw;
+      p.facing = Math.cos(a) >= 0 ? 1 : -1;
+      p.jumps = 1; p.jumpHeld = false;
+      p.barrel = null; p.barrelCool = 0.45;
+      ev.push('blast');
+    }
+    return ev;            // the blast consumes this tick's jump press (keeps the double jump in reserve)
+  }
+
+  // ---- Riding a zip line ----
+  if (p.zip) {
+    const z = p.zip.line;
+    const dx = z.x1 - z.x0, dy = z.y1 - z.y0;
+    const len = Math.hypot(dx, dy), sin = dy / len;
+    const dir = p.zip.dir;
+    // gravity along the cable (downhill speeds you up), with a minimum cruising speed
+    p.zip.v = Math.max(z.speed || 6, Math.min(17, p.zip.v - dir * sin * PHYS.gravity * env.gravityScale * 0.35 * dt));
+    p.x += dir * p.zip.v * (dx / len) * dt;
+    const u = (p.x - z.x0) / dx;
+    p.y = z.y0 + dy * u - p.h * 0.95;
+    p.vx = 0; p.vy = 0; p.extVx = 0;
+    p.facing = dir;
+    p.state = 'zip';
+    const off = u < 0 || u > 1;
+    if (p.buffer > 0 || off) {
+      p.buffer = 0;
+      p.extVx = dir * p.zip.v * (dx / len) * 0.9;
+      p.vy = off ? dir * p.zip.v * sin * 0.5 : 9;
+      p.jumps = 1; p.jumpHeld = false;
+      p.zip = null; p.zipCool = 0.35;
+      ev.push('unzip');
+    }
+    return ev;
   }
 
   // ---- Swinging on a vine ----
@@ -286,6 +336,36 @@ export function stepPlayer(p, input, world, env, dt) {
     }
   }
 
+  // ---- Zip line catch: hands reach the cable while airborne ----
+  if (!p.onGround && world.zips && p.zipCool <= 0) {
+    for (const z of world.zips) {
+      if (p.x < Math.min(z.x0, z.x1) || p.x > Math.max(z.x0, z.x1)) continue;
+      const cy = z.y0 + (z.y1 - z.y0) * (p.x - z.x0) / (z.x1 - z.x0);
+      const hand = p.y + p.h * 0.95;
+      if (hand > cy - 0.5 && hand < cy + 0.35) {
+        const dir = z.y1 === z.y0 ? (p.vx + p.extVx >= 0 ? 1 : -1) * (z.x1 > z.x0 ? 1 : -1) : (z.y1 < z.y0 ? 1 : -1) * (z.x1 > z.x0 ? 1 : -1);
+        p.zip = { line: z, dir: z.oneWay ? Math.sign(z.x1 - z.x0) : dir, v: Math.max(z.speed || 6, Math.abs(p.vx + p.extVx)) };
+        p.vx = 0; p.vy = 0; p.extVx = 0; p.jumps = 0;
+        ev.push('zip');
+        return ev;
+      }
+    }
+  }
+
+  // ---- Barrel catch ----
+  if (world.barrels && p.barrelCool <= 0) {
+    for (const b of world.barrels) {
+      const dx = p.x - b.x, dy = p.y + p.h / 2 - b.y;
+      if (dx * dx + dy * dy < 0.95 * 0.95) {
+        p.barrel = b; p.barrelT = 0;
+        p.onGround = false; p.ground = null;
+        p.hang = null; p.swing = null;
+        ev.push('barrel');
+        return ev;
+      }
+    }
+  }
+
   // ---- Vine catch ----
   if (!p.onGround && world.vines && p.vineCooldown <= 0) {
     for (const v of world.vines) {
@@ -380,4 +460,10 @@ function buildReachTable(gs) {
     table.push(best);
   }
   return table;
+}
+
+export function barrelAngle(b, t) {
+  if (!b.spin) return b.angle;
+  if (b.sweep) return b.angle + Math.sin(t * b.spin) * b.sweep;   // rocks back and forth
+  return b.angle + b.spin * t;
 }

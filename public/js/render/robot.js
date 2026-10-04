@@ -258,7 +258,7 @@ export class Robot {
         legL = 0.2 + s * 0.12; legR = -0.2 - s * 0.12; knL = 0.3; knR = 0.5;
         armL = -2.5 + Math.sin(t * 16) * 0.25; armR = -2.5 - Math.sin(t * 16) * 0.25; elL = elR = -0.2; spread = 0.55;
         break;
-      case 'hang': case 'swing':
+      case 'hang': case 'swing': case 'zip':
         armL = armR = -3.0; elL = elR = 0; spread = 0.05;
         legL = Math.sin(t * 3) * 0.2; legR = -legL; knL = knR = 0.3;
         break;

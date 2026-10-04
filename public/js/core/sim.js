@@ -70,6 +70,16 @@ export function moverPos(m, tau, lookup) {
       }
       return { x: pts[0][0] - m.w / 2, y: pts[0][1] - m.h, alpha: 1 };
     }
+    case 'pendulum': {
+      // swings on a rope from (px, py); the platform's top-centre is at the rope's end
+      const th = P.amp * Math.sin(TAU * (tau / P.T + (P.phase || 0)));
+      const cx = P.px + Math.sin(th) * P.len, cy = P.py - Math.cos(th) * P.len;
+      return { x: cx - m.w / 2, y: cy - m.h, alpha: 1, angle: th };
+    }
+    case 'weight': {
+      // sinks (dir -1) or floats up (dir +1) while stood on; tau here is its offset, not time
+      return { x: P.x0, y: P.y0 + P.dir * tau, alpha: 1 };
+    }
     case 'mirror': {
       const master = lookup(P.master);
       return { x: 2 * P.m - (master.x + m.w), y: master.y, alpha: 1 };
@@ -131,7 +141,11 @@ export class LevelSim {
     this.launcherState = level.launchers.map((l) => ({ def: l, state: l.pulse ? 'idle' : 'on', cool: 0 }));
     this.windState = level.winds.map((w) => ({ def: w, state: 'idle' }));
     this.gravState = level.gravZones.map((z) => ({ def: z, low: true }));
-    this.world = { colliders: this.colliders, vines: this.vines };
+    this.zips = level.zips || [];
+    this.barrels = level.barrels || [];
+    this.world = { colliders: this.colliders, vines: this.vines, zips: this.zips, barrels: this.barrels, time: 0 };
+    this.checkpointIdx = -1;
+    this.sweepState = (level.sweepers || []).map((d) => ({ def: d, a: d.a0 || 0 }));
     this.crumbles = this.colliders.filter((c) => c.crumble);
     this.blinks = this.colliders.filter((c) => c.blink);
     this.onoffs = this.colliders.filter((c) => c.onoff);
@@ -186,7 +200,11 @@ export class LevelSim {
         st.warpScale = WARP_MODES[idx];
         st.warpMode = idx;
       }
-      st.tau += dt * st.warpScale;
+      if (m.path.type === 'weight') {
+        const P = m.path;
+        const on = this.player && this.player.onGround && st.colliders.includes(this.player.ground);
+        st.tau = on ? Math.min(P.range, st.tau + P.speed * dt) : Math.max(0, st.tau - (P.back ?? P.speed * 0.6) * dt);
+      } else st.tau += dt * st.warpScale;
       const prevX = st.x, prevY = st.y;
       const pos = moverPos(m, st.tau, lookup);
       st.x = pos.x; st.y = pos.y; st.alpha = pos.alpha; st.angle = pos.angle || 0;
@@ -249,7 +267,14 @@ export class LevelSim {
     for (const l of this.launcherState) {
       if (l.def.pulse) l.state = phaseOf(l.def.pulse, t);
       l.cool = Math.max(0, l.cool - dt);
+      if (l.def.path) {      // travelling tornado / dust devil
+        const P = l.def.path;
+        const u = 0.5 - 0.5 * Math.cos(TAU * (t / P.T + (P.phase || 0)));
+        l.def.x = P.x0 + (P.x1 - P.x0) * u;
+      }
     }
+    for (const sw of this.sweepState) sw.a = (sw.def.a0 || 0) + sw.def.omega * t;
+    if (this.world) this.world.time = t;
     for (const w of this.windState) w.state = phaseOf(w.def.pulse, t);
     for (const z of this.gravState) {
       const d = z.def;
@@ -283,7 +308,8 @@ export class LevelSim {
     if (this.health <= 0) {
       this.deaths++;
       this.health = MAX_HEALTH;
-      const cp = this.checkpointReached ? this.L.checkpoint : this.L.spawn;
+      const cps = this.L.checkpoints || (this.L.checkpoint ? [this.L.checkpoint] : []);
+      const cp = this.checkpointReached ? (cps[this.checkpointIdx] || this.L.checkpoint) : this.L.spawn;
       this.placePlayer(cp.x, cp.y);
       this.lastSafe = { x: cp.x, y: cp.y };
       this.relieve(cp.x, cp.y);
@@ -311,7 +337,7 @@ export class LevelSim {
   placePlayer(x, y) {
     const p = this.player;
     p.x = x; p.y = y + 0.05; p.vx = 0; p.vy = 0; p.extVx = 0;
-    p.hang = null; p.climb = null;
+    p.hang = null; p.climb = null; p.zip = null; p.barrel = null;
     if (p.swing) { p.swing.vine.grabbed = false; p.swing = null; }
     p.onGround = false; p.ground = null; p.jumps = 0;
   }
@@ -386,6 +412,17 @@ export class LevelSim {
       if (h.state !== 'on') continue;
       const box = { x: h.x, y: h.y, w: d.w, h: d.h };
       if (boxHit(p, box, d.type === 'acid' ? 0.3 : 0.12)) this.hurt(!!d.respawn, d.type);
+    }
+    for (const sw of this.sweepState) {
+      const d = sw.def;
+      const ux = Math.cos(sw.a), uy = Math.sin(sw.a);
+      const lo = d.both ? -d.len : 0;
+      for (const py of [p.y + 0.3, p.y + p.h / 2, p.y + p.h - 0.3]) {
+        const rx = p.x - d.cx, ry = py - d.cy;
+        const along = Math.max(lo, Math.min(d.len, rx * ux + ry * uy));
+        const ex = rx - along * ux, ey = ry - along * uy;
+        if (ex * ex + ey * ey < (d.width / 2 + 0.35) ** 2) { this.hurt(false, 'sweep'); break; }
+      }
     }
     for (const m of this.meteorState) {
       if (!m.falling) continue;
@@ -475,11 +512,14 @@ export class LevelSim {
       }
     }
 
-    const cp = this.L.checkpoint;
-    if (cp && !this.checkpointReached && Math.abs(p.x - cp.x) < 1.2 && Math.abs(p.y - cp.y) < 2.5) {
-      this.checkpointReached = true;
-      this.emit('checkpoint', {});
-    }
+    const cps = this.L.checkpoints || (this.L.checkpoint ? [this.L.checkpoint] : []);
+    cps.forEach((cp, i) => {
+      if (i > this.checkpointIdx && Math.abs(p.x - cp.x) < 1.2 && Math.abs(p.y - cp.y) < 2.5) {
+        this.checkpointIdx = i;
+        this.checkpointReached = true;
+        this.emit('checkpoint', { i });
+      }
+    });
 
     const g = this.L.goal;
     if (Math.abs(p.x - g.x) < 1.2 && p.y + p.h > g.y && p.y < g.y + 3.2) {
