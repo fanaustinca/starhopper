@@ -153,10 +153,12 @@ test('rides a moving platform', () => {
 });
 
 console.log('\nCampaign structure');
-test('14 worlds × 30 levels + the black hole bonus = 421', () => {
-  assert.equal(WORLDS.length, 15);
-  assert.equal(TOTAL_LEVELS, 421);
-  assert.equal(worldOf(421).id, 'blackhole');
+test('16 worlds × 30 levels + the black hole bonus = 481', () => {
+  assert.equal(WORLDS.length, 17);
+  assert.equal(TOTAL_LEVELS, 481);
+  assert.equal(worldOf(481).id, 'blackhole');
+  assert.equal(worldOf(421).id, 'aerolis');
+  assert.equal(worldOf(480).id, 'velocitar');
   assert.equal(worldOf(1).id, 'sun');
   assert.equal(worldOf(31).id, 'mercury');
   assert.equal(worldOf(92).id, 'earth');
@@ -170,7 +172,7 @@ test('14 worlds × 30 levels + the black hole bonus = 421', () => {
 });
 
 const levels = [];
-test('all 421 levels are hand-written and build to valid data', () => {
+test('all 481 levels are hand-written and build to valid data', () => {
   const missing = [];
   for (let n = 1; n <= TOTAL_LEVELS; n++) {
     let L;
@@ -199,12 +201,12 @@ test('every level: a name, exactly 3 star shards, a checkpoint, cells', () => {
     assert.ok(L.checkpoint, `L${L.index} checkpoint`);
     assert.ok(L.totalCells >= 5, `L${L.index} cells`);
   }
-  for (let w = 0; w < 14; w++) {
+  for (let w = 0; w < WORLDS.length - 1; w++) {
     const names = levels.filter((l) => l.worldIndex === w).map((l) => l.name);
     assert.equal(new Set(names).size, names.length, `world ${w + 1} has duplicate level names`);
   }
 });
-test('the solver bot finishes every one of the 421 levels', () => {
+test('the solver bot finishes every one of the 481 levels', () => {
   const bad = [];
   let sims = 0;
   for (const L of levels) {
@@ -216,7 +218,7 @@ test('the solver bot finishes every one of the 421 levels', () => {
   console.log(`    (${levels.length} levels solved, ${sims} simulated attempts)`);
 });
 test('layouts differ: no two levels in a world share the same platform skeleton', () => {
-  for (let w = 0; w < 14; w++) {
+  for (let w = 0; w < WORLDS.length - 1; w++) {
     const sigs = new Set();
     for (const L of levels.filter((l) => l.worldIndex === w)) {
       const sig = L.solids.map((s) => `${Math.round(s.x)},${Math.round(s.y + s.h)},${Math.round(s.w)}`).sort().join('|');
@@ -227,13 +229,22 @@ test('layouts differ: no two levels in a world share the same platform skeleton'
 });
 
 test('THE END: a huge level inside the black hole that samples every world', () => {
-  const L = levels[420];
+  const L = levels[480];
   assert.equal(L.world, 'blackhole');
   assert.ok(L.goal.x - L.spawn.x > 700, 'super long: ' + (L.goal.x - L.spawn.x));
   assert.ok(L.checkpoints.length >= 6, 'checkpoints ' + L.checkpoints.length);
   const has = { vines: L.vines.length, streams: L.movers.some((m) => m.path.type === 'stream'), rovers: L.movers.some((m) => m.kind === 'rover'), buses: L.movers.some((m) => m.kind === 'bus'),
     gears: L.gears.length, bridges: L.bridges.length, doors: L.doors.length, zips: L.zips.length, barrels: L.barrels.length, chaser: !!L.chaser, warp: L.movers.some((m) => m.warp) };
   for (const [k, v] of Object.entries(has)) assert.ok(v, 'THE END is missing ' + k);
+});
+
+test('speed-run worlds are built around flow: rings and boost lanes in most levels', () => {
+  for (const id of ['aerolis', 'velocitar']) {
+    const ws = levels.filter((l) => l.world === id);
+    assert.equal(ws.length, 30, id);
+    const flow = ws.filter((l) => l.rings.length || l.solids.some((s) => s.style === 'boost'));
+    assert.ok(flow.length >= 24, `${id}: only ${flow.length}/30 levels use rings or boost lanes`);
+  }
 });
 
 console.log('\nLevel runtime');
@@ -355,6 +366,29 @@ test('launch barrels load you and blast you out along their aim', () => {
   stepPlayer(p, { ...idle(), jump: true, jumpPressed: true }, world, { gravityScale: 1 }, DT);
   assert.ok(!p.barrel && p.vy > 10 && p.extVx > 10, `blasted vy=${p.vy} ext=${p.extVx}`);
   assert.equal(p.jumps, 1, 'double jump still available after a blast');
+});
+test('fling rings throw you along their arrow, keep your double jump, and do not re-catch instantly', () => {
+  const r = { x: 0, y: 2, r: 1.1, vx: 14, vy: 10 };
+  const p = createPlayer(0, 2 - 0.8);
+  const world = { colliders: [], rings: [r], time: 0 };
+  stepPlayer(p, idle(), world, { gravityScale: 1 }, DT);
+  assert.ok(p.extVx === 14 && p.vy > 9, `flung ext=${p.extVx} vy=${p.vy}`);
+  assert.equal(p.jumps, 1, 'double jump still available after a fling');
+  const vy = p.vy;
+  stepPlayer(p, idle(), world, { gravityScale: 1 }, DT);
+  assert.ok(p.vy < vy, 'not re-caught by the same ring on the next tick');
+  // after flying clear (or respawning) the same ring works again: no soft-lock on a retry
+  for (let i = 0; i < 60; i++) stepPlayer(p, idle(), world, { gravityScale: 1 }, DT);
+  p.x = 0; p.y = 2 - 0.8; p.vx = 0; p.vy = 0; p.extVx = 0;
+  stepPlayer(p, idle(), world, { gravityScale: 1 }, DT);
+  assert.ok(p.extVx === 14 && p.vy > 9, 'same ring catches you again on a retry');
+});
+test('boost lanes rush you forward without any input', () => {
+  const def = { name: 't', kind: 't', build: (b) => { b.start(-6, 0, 12); b.boost(8, 0, 20, 14); b.plat(28, 0, 40); b.checkpoint(0, 0); b.goal(60, 0); } };
+  const sim = new LevelSim(buildLevel(def, 2));
+  sim.teleport(9, 0.1);
+  for (let i = 0; i < 120; i++) sim.step(idle());
+  assert.ok(sim.player.x > 9 + 10, 'carried to ' + sim.player.x);
 });
 test('pendulums swing, floaters rise under you, sinkers drop, sweepers hurt', () => {
   const def = { name: 't', kind: 't', build: (b) => { b.start(-6, 0, 12); b.floater(8, 0, 3, { rise: 6 }); b.sinker(14, 0, 3, { depth: 4 }); b.pendulum(25, 10, 8); b.sweeper(40, 2, 4, { omega: 90 }); b.plat(36, 0, 8); b.checkpoint(0, 0); b.goal(40, 0); } };

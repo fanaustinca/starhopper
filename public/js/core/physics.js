@@ -20,7 +20,7 @@ export function createPlayer(x, y) {
     hang: null, climb: null, swing: null,
     regrab: 0, vineCooldown: 0, dropT: 0,
     wall: 0, wallLock: 0,
-    zip: null, zipCool: 0, barrel: null, barrelCool: 0, barrelT: 0,
+    zip: null, zipCool: 0, barrel: null, barrelCool: 0, barrelT: 0, ringCool: 0, lastRing: null,
     airTime: 0,
   };
 }
@@ -49,6 +49,8 @@ export function stepPlayer(p, input, world, env, dt) {
   p.wallLock = Math.max(0, p.wallLock - dt);
   p.zipCool = Math.max(0, p.zipCool - dt);
   p.barrelCool = Math.max(0, p.barrelCool - dt);
+  p.ringCool = Math.max(0, p.ringCool - dt);
+  p.flungBy = null;
 
   // ---- Climbing up a ledge (short scripted tween) ----
   if (p.climb) {
@@ -196,7 +198,8 @@ export function stepPlayer(p, input, world, env, dt) {
   const conveyor = p.onGround && p.ground && p.ground.conveyor ? p.ground.conveyor : 0;
   const wind = env.windAt ? env.windAt(p.x, p.y + p.h / 2) : 0;
   // grounded robots grip the floor: wind only nudges them
-  p.extVx = approach(p.extVx, conveyor + wind * (p.onGround ? 0.3 : 1), (p.onGround ? 30 : 9) * dt);
+  // boost lanes (fast conveyors) kick in almost instantly so speed-run lines never feel sticky
+  p.extVx = approach(p.extVx, conveyor + wind * (p.onGround ? 0.3 : 1), (p.onGround ? (Math.abs(conveyor) > 6 ? 90 : 30) : 9) * dt);
 
   // ---- Jumping ----
   if (p.buffer > 0 && (p.onGround || p.coyote > 0)) {
@@ -347,6 +350,28 @@ export function stepPlayer(p, input, world, env, dt) {
         p.zip = { line: z, dir: z.oneWay ? Math.sign(z.x1 - z.x0) : dir, v: Math.max(z.speed || 6, Math.abs(p.vx + p.extVx)) };
         p.vx = 0; p.vy = 0; p.extVx = 0; p.jumps = 0;
         ev.push('zip');
+        return ev;
+      }
+    }
+  }
+
+  // ---- Fling ring: fly through a hoop and get launched without stopping ----
+  // the ring you were just flung by can't re-catch you until you've flown clear of it
+  if (p.lastRing) {
+    const lr = p.lastRing, dx = p.x - lr.x, dy = p.y + p.h / 2 - lr.y;
+    if (dx * dx + dy * dy > ((lr.r || 1.1) * 1.4) ** 2) p.lastRing = null;
+  }
+  if (world.rings && p.ringCool <= 0) {
+    for (const r of world.rings) {
+      const dx = p.x - r.x, dy = p.y + p.h / 2 - r.y;
+      if (dx * dx + dy * dy < (r.r || 1.1) ** 2 && p.lastRing !== r) {
+        p.extVx = r.vx; p.vx = 0;
+        p.vy = r.vy;
+        if (r.vx) p.facing = Math.sign(r.vx);
+        p.jumps = 1; p.jumpHeld = false;
+        p.onGround = false; p.ground = null; p.hang = null;
+        p.ringCool = 0.3; p.lastRing = r; p.flungBy = r;
+        ev.push('fling');
         return ev;
       }
     }

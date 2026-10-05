@@ -128,7 +128,7 @@ export class Robot {
     }
 
     // ---- legs: hip → knee → ovoid boot ----
-    this.legs = []; this.knees = []; this.jets = [];
+    this.legs = []; this.knees = []; this.jets = []; this.ankles = [];
     for (const side of [-1, 1]) {
       const hip = new THREE.Group();
       hip.position.set(side * 0.125, 0.02, 0);
@@ -140,15 +140,20 @@ export class Robot {
       hip.add(kn);
       mesh(kn, new THREE.SphereGeometry(0.07, 16, 12), jointMat);
       mesh(kn, new THREE.CapsuleGeometry(0.078, 0.06, 8, 16), bodyMat, 0, -0.07, 0);
-      const boot = mesh(kn, new THREE.SphereGeometry(0.115, 32, 20), bodyMat, 0, -0.2, 0.035);
+      // ankle joint: the boot hangs from it and is counter-rotated so the sole stays flat
+      const ankle = new THREE.Group();
+      ankle.position.y = -0.17;
+      kn.add(ankle);
+      const boot = mesh(ankle, new THREE.SphereGeometry(0.115, 32, 20), bodyMat, 0, -0.03, 0.035);
       boot.scale.set(1.0, 0.72, 1.45);
-      const sole = mesh(kn, new THREE.TorusGeometry(0.1, 0.014, 8, 32), accentMat, 0, -0.245, 0.035);
+      const sole = mesh(ankle, new THREE.TorusGeometry(0.1, 0.014, 8, 32), accentMat, 0, -0.075, 0.035);
       sole.rotation.x = Math.PI / 2; sole.scale.set(1, 1.42, 1);
       const jet = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.5, 16, 1, true), this.jetMat);
       jet.rotation.x = Math.PI;
-      jet.position.set(0, -0.53, 0.035);
+      jet.position.set(0, -0.36, 0.035);
       jet.visible = false;
-      kn.add(jet);
+      ankle.add(jet);
+      this.ankles.push(ankle);
       this.jets.push(jet);
       this.legs.push(hip); this.knees.push(kn);
     }
@@ -323,6 +328,19 @@ export class Robot {
     this.elbows[0].rotation.x = elL; this.elbows[1].rotation.x = elR;
     this.legs[0].rotation.x = legL; this.legs[1].rotation.x = legR;
     this.knees[0].rotation.x = knL; this.knees[1].rotation.x = knR;
+    // feet: flat on the ground when standing/running, relaxed in the air
+    const grounded = st === 'idle' || st === 'run' || st === 'showcase' || st === 'win';
+    const leanNow = this.body.rotation.x;
+    const flat = grounded ? 1 : 0.55;
+    this.ankles[0].rotation.x = -(legL + knL + (grounded ? leanNow : 0)) * flat;
+    this.ankles[1].rotation.x = -(legR + knR + (grounded ? leanNow : 0)) * flat;
+    if (grounded && !this.trick) {
+      // plant the lowest foot exactly on the floor (hip 0.02, thigh 0.16, shin 0.17, foot 0.113 below the ankle)
+      const footY = (h, k) => 0.02 - 0.16 * Math.cos(h + leanNow) - 0.17 * Math.cos(h + k + leanNow) - 0.113;
+      const lowest = Math.min(footY(legL, knL), footY(legR, knR));
+      const sy = this.body.scale.y;
+      this.body.position.y = -lowest * sy + (st === 'win' ? Math.abs(Math.sin(t * 5)) * 0.12 : 0) + (st === 'idle' || st === 'showcase' ? Math.sin(t * 2.4) * 0.006 : 0);
+    }
     if (this.scarfTail) this.scarfTail.rotation.x = 0.6 + Math.min(1.2, speed * 0.12) + Math.sin(t * 14) * 0.12;
 
     this.jetT = Math.max(0, this.jetT - dt);

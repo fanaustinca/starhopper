@@ -94,7 +94,7 @@ export default [
     [[19.5, 17], [24.5, 14], [19.5, 11], [24.5, 8], [19.5, 5]].forEach(([x, y]) => b.plat(x, y, 3));
     b.cloud(23.3, 15.5, 3, { T: 7 });
     b.plat(20, 2, 14);
-    b.checkpoint(23, 2);
+    b.checkpoint(21.5, 2);
     b.cells(21, 15, 26, 9, 4);
     // shaft C: climb again (squeeze under the dividing wall)
     b.rect(28.4, 4.6, 1, 22);
@@ -207,7 +207,7 @@ export default [
     b.sweeper(43, 3.5, 3, { omega: 70 });                  // sulfur-jet wheel
     b.shard(43, 1.9);                                      // right under its hub
     b.wrecker(48, 7, 4.8, { amp: 55, T: 2.8, phase: 0.3 });
-    b.checkpoint(52, 0);
+    b.checkpoint(53, 0);
     b.pendulum(61, 10.5, 7, { amp: 40, T: 3.6 });
     b.pendulum(69, 11.5, 7, { amp: 40, T: 3.6, phase: 0.5 });
     b.plat(77, 4, 10);

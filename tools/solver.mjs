@@ -79,7 +79,7 @@ export function solveLevel(L, opts = {}) {
     if (!l.path) { launchers.push(l); continue; }
     for (let i = 0; i <= 4; i++) launchers.push({ ...l, x: l.path.x0 + (l.path.x1 - l.path.x0) * i / 4 });
   }
-  const zips = L.zips || [], barrels = L.barrels || [];
+  const zips = L.zips || [], barrels = L.barrels || [], rings = L.rings || [];
   const floorLethal = L.floor.lethal ? L.floor.y + 0.15 : -Infinity;
 
   // nodes: standable surfaces
@@ -91,6 +91,7 @@ export function solveLevel(L, opts = {}) {
   for (const sm of moverSamples(L)) {
     for (const c of sm.colliders) nodes.push({ key: `${sm.moverId}#${sm.i}:${c.x.toFixed(1)}`, cols: [c], col: c, kind: 'mover', mover: sm.moverId });
   }
+  for (const rg of rings) nodes.push({ key: rg.id, kind: 'ring', ring: rg, col: { x: rg.x - 0.5, y: rg.y - 1.4, w: 1, h: 0.01, oneWay: true, active: false, dx: 0, dy: 0 } });
   for (const br of barrels) nodes.push({ key: br.id, kind: 'barrel', barrel: br, col: { x: br.x - 0.5, y: br.y - 1.4, w: 1, h: 0.01, oneWay: true, active: false, dx: 0, dy: 0 } });
   const bouncers = statics.filter((c) => c.bounce);
   const colliderSet = (sw, extra) => {
@@ -111,7 +112,7 @@ export function solveLevel(L, opts = {}) {
 
   function attempt(A, B, sw, strat) {
     const cols = colliderSet(sw, [A.col, B.col].filter((c) => c.mover));
-    const world = { colliders: cols, vines: vines.map((v) => ({ ...v })), zips, barrels, time: strat.t0 || 0 };
+    const world = { colliders: cols, vines: vines.map((v) => ({ ...v })), zips, barrels, rings, time: strat.t0 || 0 };
     const a = A.col, b = B.col;
     const p = createPlayer(0, top(a));
     const bx = b.x + b.w / 2;
@@ -124,7 +125,12 @@ export function solveLevel(L, opts = {}) {
     let jumped = false, jt = 0, doubled = false, phase = strat.via ? 0 : 1, pressedWall = 0, prevVy = 0, holdDir = strat.dir;
     if (A.kind === 'barrel') { p.x = A.barrel.x; p.y = A.barrel.y - p.h / 2; p.onGround = false; p.ground = null; p.barrel = A.barrel; p.barrelT = 0; jumped = true; }
     let wasBarrel = !!p.barrel;
-    const target = () => (phase === 0 ? strat.via.x : B.kind === 'barrel' ? B.barrel.x : Math.min(Math.max(strat.aim ?? bx, b.x + 0.5), b.x + b.w - 0.5));
+    if (A.kind === 'ring') {           // start mid-fling, just past the hoop
+      const rg = A.ring;
+      p.x = rg.x; p.y = rg.y - p.h / 2; p.onGround = false; p.ground = null;
+      p.extVx = rg.vx; p.vy = rg.vy; p.jumps = 1; p.ringCool = 0.3; p.lastRing = rg; jumped = true;
+    }
+    const target = () => (phase === 0 ? strat.via.x : B.kind === 'barrel' ? B.barrel.x : B.kind === 'ring' ? B.ring.x : Math.min(Math.max(strat.aim ?? bx, b.x + 0.5), b.x + b.w - 0.5));
     for (let i = 0; i < 720; i++) {
       const inp = { left: false, right: false, jump: true, jumpPressed: false, up: false, down: false };
       const tx = target();
@@ -165,6 +171,8 @@ export function solveLevel(L, opts = {}) {
       }
       stepPlayer(p, inp, world, env, DT);
       if (B.kind === 'barrel' && p.barrel === B.barrel) return true;
+      if (B.kind === 'ring' && p.flungBy === B.ring) return true;
+      if (p.flungBy && B.kind !== 'ring' && A.kind !== 'ring' && p.flungBy !== strat.viaRing) return false;
       if (wasBarrel && !p.barrel) { phase = 1; jt = 0; jumped = true; }
       wasBarrel = !!p.barrel;
       if (p.barrel && B.kind !== 'barrel' && A.kind !== 'barrel' && p.barrel !== strat.viaBarrel) return false;
@@ -188,6 +196,11 @@ export function solveLevel(L, opts = {}) {
   function strategies(A, B) {
     const a = A.col, b = B.col;
     const out = [];
+    if (A.kind === 'ring') {
+      const dist = Math.hypot(b.x + b.w / 2 - A.ring.x, top(b) - A.ring.y);
+      if (dist > 40) return out;
+      return [{ dir: 1, takeoff: A.ring.x, runup: 0, dbl: null }, { dir: 1, takeoff: A.ring.x, runup: 0, dbl: 'apex' }, { dir: 1, takeoff: A.ring.x, runup: 0, dbl: 0.25 }];
+    }
     if (A.kind === 'barrel') {
       const br = A.barrel;
       const dist = Math.hypot(b.x + b.w / 2 - br.x, top(b) - br.y);
@@ -203,7 +216,8 @@ export function solveLevel(L, opts = {}) {
     const gx = Math.max(0, gapR, gapL);
     const dirs = gapR >= -0.01 ? [1] : gapL >= -0.01 ? [-1] : [1, -1];
     const nearA = (o, r) => o.x < a.x + a.w + r && o.x + (o.w || 0) > a.x - r;
-    const reachable = dy <= maxH + 0.4 && gx <= maxGapFor(Math.max(-12, dy), gs) + 0.6;
+    const boostReach = a.conveyor ? Math.max(0, a.conveyor * (gapR >= 0 ? 1 : -1)) * 1.4 : 0;   // boost lanes carry speed into the jump
+    const reachable = dy <= maxH + 0.4 && gx <= maxGapFor(Math.max(-12, dy), gs) + 0.6 + boostReach;
     const dbls = [null, 'apex', 0.25, 0.45, 0.65, 0.9];
     if (reachable) {
       for (const dir of dirs) {

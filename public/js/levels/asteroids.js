@@ -182,7 +182,7 @@ export default [
     b.zip(34, 3, 54, -5);
     b.wrecker(44, 11, 7, { amp: 45, T: 3.2, phase: 0.2 });   // cargo crate swinging across the cable
     b.plat(56, -6, 6); b.enemy('walker', 57, -6, { range: 3, speed: 1.2 });
-    b.checkpoint(60, -6);
+    b.checkpoint(61, -6);
     b.floater(66, -6, 3, { rise: 10, speed: 2.2 });
     b.cells(67.5, -2, 67.5, 2, 3);
     b.plat(72, 4, 5); b.shard(74.5, 8);
@@ -396,7 +396,7 @@ export default [
     });
     b.meteor(60, 2, { P: 2.4, off: 1 });
     b.plat(57, 2, 6);
-    b.checkpoint(60, 2);
+    b.checkpoint(58.5, 2);
     b.heart(60, 4);
     b.plat(43.5, -5, 3); b.shard(45, -3.5);
     b.thin(73.5, 9.5, 3); b.shard(75, 11.2);
@@ -602,7 +602,7 @@ export default [
     b.thin(36, 3.6, 4);
     b.switch(13, 7);
     b.redWall(56, 7, 3.2);
-    b.checkpoint(44, 7);
+    b.checkpoint(41, 7);
     b.enemy('walker', 42, 7, { range: 12, speed: 1.6 });
     b.enemy('spiker', 44, 0, { range: 18, speed: 2.4 });
     b.shard(66, 1.4);                                    // the lower tunnel's dead end

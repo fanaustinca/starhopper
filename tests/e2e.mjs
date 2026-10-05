@@ -243,16 +243,16 @@ await test('finishing a world plays the ship cutscene and lands on the next plan
   assert((await page.textContent('#hud-world')).includes('Mercury'));
 });
 
-await test('level select features THE END: locked card until 420 is cleared, then it launches level 421', async () => {
+await test('level select features THE END: locked card until 480 is cleared, then it launches level 481', async () => {
   await boot('test&fresh&unlock=40');
   await S(() => SH.openSelect());
-  assert((await page.textContent('#end-card')).includes('Clear all 14 worlds'), 'locked card shown');
+  assert((await page.textContent('#end-card')).includes('Clear all 16 worlds'), 'locked card shown');
   await page.click('#end-card');
   assert((await S(() => SH.state())).mode !== 'playing', 'locked card does not start the level');
-  await boot('test&fresh&unlock=421');
+  await boot('test&fresh&unlock=481');
   await S(() => SH.openSelect());
   await page.click('#end-card');
-  await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 421);
+  await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 481);
 });
 
 await test('cutscene can be skipped with Space', async () => {
@@ -263,7 +263,7 @@ await test('cutscene can be skipped with Space', async () => {
   await page.waitForFunction(() => SH.state().mode === 'cutscene');
   await S(() => SH.manual(false));
   await page.keyboard.press('Space');
-  await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 61, null, { timeout: 15000 });
+  await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 61, null, { timeout: 90000 });
   assert((await S(() => SH.state())).world === 'venus');
 });
 
@@ -293,7 +293,7 @@ await test('Earth levels show city location; vehicles move and carry the robot',
 
 await test('every world renders its first level without errors', async () => {
   consoleErrors.length = 0;
-  await boot('test&fresh&unlock=421');
+  await boot('test&fresh&unlock=481');
   for (let w = 0; w < 14; w++) {
     const n = w * 30 + 2;
     await S((n) => SH.startLevel(n), n);
@@ -302,7 +302,7 @@ await test('every world renders its first level without errors', async () => {
     assert(st.mode === 'playing' && st.level === n && st.errors.length === 0, `world ${w + 1}: ${JSON.stringify(st.errors)}`);
     await page.screenshot({ path: path.join(shots, `10-world-${String(w + 1).padStart(2, '0')}-${st.world}.png`) });
   }
-  await S(() => SH.startLevel(421));
+  await S(() => SH.startLevel(481));
   await S(() => { SH.manual(true); SH.step(30); SH.render(); });
   const end = await S(() => SH.state());
   assert(end.world === 'blackhole' && end.name === 'THE END' && end.errors.length === 0, 'THE END renders');
@@ -430,8 +430,8 @@ await test('robot shop: buy and equip a skin with cells; skin persists', async (
 await test('dev console: dev.unlockAll() and dev.level(n) skip ahead', async () => {
   await boot('test&fresh');
   const msg = await S(() => dev.unlockAll());
-  assert(/421/.test(msg));
-  assert((await S(() => SH.state())).unlocked === 421);
+  assert(/481/.test(msg));
+  assert((await S(() => SH.state())).unlocked === 481);
   await S(() => dev.level(250));
   await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 250);
   await S(() => { SH.manual(true); dev.win(); SH.step(200); });

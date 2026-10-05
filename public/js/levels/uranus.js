@@ -383,8 +383,8 @@ export default [
     b.pendulum(28, 12, 7.5, { amp: 35, T: 3.4 });
     b.pendulum(35, 12, 7.5, { amp: 35, T: 3.4, phase: 0.5 });
     b.plat(41, 4, 8);
-    b.checkpoint(44, 4);
-    b.wrecker(46, 11, 4.9, { amp: 55, T: 2.8, phase: 0.4 });
+    b.checkpoint(42, 4);
+    b.wrecker(48.5, 11, 4.9, { amp: 55, T: 2.8, phase: 0.4 });
     b.plat(53, 4, 10);
     b.wrecker(58, 11, 4.9, { amp: 55, T: 2.8 });
     b.shard(55, 11.6);                                      // up over the boulders

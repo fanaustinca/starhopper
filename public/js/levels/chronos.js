@@ -321,7 +321,7 @@ export default [
     b.plat(38, 6, 2); b.shard(39, 7.6);                      // the arbor at the big wheel's heart
     b.enemy('flyer', 39, 11, { ax: 2, ay: 1, T: 3.4 });
     b.plat(50, 8, 5);
-    b.checkpoint(52, 8);
+    b.checkpoint(50, 8);
     b.ferris(62, 10, 4, { n: 4, omega: -0.75 });
     // the escapement: a stuttering warp chain
     b.loop([[69, 8], [69, 14], [77, 14], [77, 8]], { speed: 3, w: 2.4, warp: true });
@@ -761,7 +761,7 @@ export default [
     b.enemy('flyer', 25, 2.5, { ax: 8, ay: 0.4, T: 4 });
     b.cells(14, 1.4, 36, 1.4, 4); b.cells(14, 13.4, 36, 13.4, 4);
     b.plat(44, 12, 5);
-    b.checkpoint(46, 12);
+    b.checkpoint(41, 12);
     const eight = [[52, 12], [58, 18], [66, 12], [74, 6], [82, 12], [74, 18], [66, 12], [58, 6]];
     b.loop(eight, { speed: 3, w: 2.6, warp: true });
     b.loop(eight, { speed: 3, w: 2.6, warp: true, phase: 0.5 });

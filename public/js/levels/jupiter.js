@@ -91,7 +91,7 @@ export default [
     b.wrecker(52, 10, 7.5, { amp: 48, T: 3.4 });
     b.cells(35, 1, 54, 1, 6);
     b.thin(44, 3.6, 4); b.shard(46, 5.6);
-    b.checkpoint(55, 0);
+    b.checkpoint(86, 3);
     b.zip(58, 5.2, 83, 4.2, { speed: 6.5 });
     b.cells(62, 6.5, 78, 6, 4);
     b.plat(84, 3, 5);
@@ -261,7 +261,7 @@ export default [
     b.plat(10, 25, 11); b.sweeper(25, 22.5, 3, { omega: 65 });
     b.plat(18, 20, 12); b.sweeper(15, 17.5, 3, { omega: -65 });
     b.plat(10, 15, 11); b.sweeper(25, 12.5, 3, { omega: 70, a0: 90 });
-    b.checkpoint(12, 15);
+    b.checkpoint(11.5, 15);
     b.plat(18, 10, 12); b.sweeper(15, 7.5, 3, { omega: -70, a0: 45 });
     b.plat(10, 5, 11);
     b.plat(14, 0, 22); b.plat(3, 0, 8.5);
@@ -461,7 +461,7 @@ export default [
     b.plat(25, 4, 5); b.switch(27.5, 4);
     b.redWall(32, 0, 8); b.rect(28, 8, 10, 0.8);
     b.thin(30, 10.8, 4); b.shard(32, 4.8);
-    b.checkpoint(40, 0);
+    b.checkpoint(32, 0);
     b.rect(44, 3, 6, 0.8); b.turret(47, 2.4, -1, { P: 2, off: 1 });   // hanging cannon: run under it
     b.thin(52, 3, 3);
     b.rect(58, 0, 1.6, 5); b.turret(58.8, 0.8, -1, { P: 2 }); b.turret(58.8, 3.6, -1, { P: 2, off: 1 });

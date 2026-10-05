@@ -57,6 +57,11 @@ export class Audio {
       case 'fail': this.tone(300, 0.6, 'sawtooth', 0.12, -220); break;
       case 'swing': this.noise(0.12, 0.08, 900); break;
       case 'ui': this.tone(900, 0.05, 'sine', 0.06); break;
+      case 'fling': this.tone(520, 0.18, 'sine', 0.1, 900); this.tone(1040, 0.12, 'triangle', 0.06, 600, 0.04); break;
+      case 'blast': this.noise(0.25, 0.18, 900); this.tone(160, 0.3, 'sawtooth', 0.08, 500); break;
+      case 'barrel': this.tone(240, 0.08, 'square', 0.06); break;
+      case 'zip': this.tone(700, 0.25, 'sine', 0.05, -300); break;
+      case 'unzip': this.tone(600, 0.1, 'triangle', 0.06, 300); break;
       case 'ship': this.noise(2.5, 0.2, 400); this.tone(80, 2.5, 'sawtooth', 0.06, 200); break;
     }
   }

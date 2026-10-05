@@ -1,5 +1,5 @@
 // Game controller: state machine, main loop, UI wiring and the test API.
-import { WORLDS, LEVELS_PER_WORLD, TOTAL_LEVELS, PHYS, MAX_HEALTH, worldIndexOf, subLevelOf, locationOf, levelsInWorld, lastLevelOfWorld } from './core/config.js';
+import { WORLDS, LEVELS_PER_WORLD, TOTAL_LEVELS, PHYS, MAX_HEALTH, worldIndexOf, subLevelOf, locationOf, levelsInWorld, lastLevelOfWorld, BONUS_WORLD } from './core/config.js';
 import { getLevel as generateLevel } from './levels/index.js';
 import { LevelSim } from './core/sim.js';
 import { loadSave, writeSave, recordCompletion, defaultSave, totalScore, totalShards, SHARD_BONUS } from './core/save.js';
@@ -178,7 +178,7 @@ class Game {
       const pct = best && best.total ? Math.round((best.cells / best.total) * 100) : 0;
       const sh = (s.shardIds[n] || []).length;
       const stars = best ? `<span class="stars">${[0, 1, 2].map((i) => `<i class="shard${i < sh ? ' on' : ''}"></i>`).join('')}</span>` : '';
-      if (w.bonus) b.innerHTML = `<span class="n">THE END</span><span class="s">${locked ? 'Clear all 14 worlds to enter' : best ? 'Best ' + best.score.toLocaleString() : 'Level 421 · ~860 units · 7 checkpoints'}</span>${stars}`;
+      if (w.bonus) b.innerHTML = `<span class="n">THE END</span><span class="s">${locked ? 'Clear all 16 worlds to enter' : best ? 'Best ' + best.score.toLocaleString() : `Level ${TOTAL_LEVELS} · ~860 units · 7 checkpoints`}</span>${stars}`;
       else b.innerHTML = `<span class="n">${n}</span>${stars}<span class="s">${best ? best.score.toLocaleString() : locked ? '' : 'new'}</span>${best ? `<span class="bar"><i style="width:${pct}%"></i></span>` : ''}`;
       const L = locked ? null : generateLevel(n);
       b.title = locked ? 'Locked' : `Level ${n} · ${L.name}${L.location ? ' · ' + L.location : ''}`;
@@ -195,11 +195,11 @@ class Game {
     card.className = 'end-card' + (locked ? ' locked' : '') + (best ? ' done' : '');
     const sh = (s.shardIds[n] || []).length;
     card.innerHTML = `<span class="bh-art"><i></i></span>
-      <span class="end-text"><b>THE END</b><small>Bonus level 421 · a gauntlet through every world, inside a black hole</small></span>
-      <span class="end-status">${locked ? '🔒 Clear all 14 worlds to enter' : best ? `Best ${best.score.toLocaleString()} · ${sh}/3 ★` : '▶ Enter the black hole'}</span>`;
+      <span class="end-text"><b>THE END</b><small>Bonus level ${TOTAL_LEVELS} · a gauntlet through every world, inside a black hole</small></span>
+      <span class="end-status">${locked ? '🔒 Clear all 16 worlds to enter' : best ? `Best ${best.score.toLocaleString()} · ${sh}/3 ★` : '▶ Enter the black hole'}</span>`;
     card.onclick = () => {
       this.audio.play('ui');
-      if (locked) { this.selectWorld = 14; this.renderSelect(); this.toast('FINISH CHRONOS (LEVEL 420) TO UNLOCK THE END'); return; }
+      if (locked) { this.selectWorld = BONUS_WORLD; this.renderSelect(); this.toast(`FINISH ALL 16 WORLDS (LEVEL ${TOTAL_LEVELS - 1}) TO UNLOCK THE END`); return; }
       this.startLevel(n);
     };
   }
@@ -331,7 +331,7 @@ class Game {
     $('c-newbest').classList.toggle('hidden', !newBest);
     $('c-shards').textContent = `${(this.save.shardIds[n] || []).length}/3`;
     $('c-earned').textContent = `+${earned}` + (newShards ? ` (${newShards}★)` : '');
-    $('btn-next').textContent = n === TOTAL_LEVELS ? 'Finale' : worldDone ? (worldIndexOf(n + 1) === 14 ? 'Enter the Black Hole 🕳️' : `Fly to ${WORLDS[worldIndexOf(n + 1)].short} 🚀`) : 'Next Level';
+    $('btn-next').textContent = n === TOTAL_LEVELS ? 'Finale' : worldDone ? (worldIndexOf(n + 1) === BONUS_WORLD ? 'Enter the Black Hole 🕳️' : `Fly to ${WORLDS[worldIndexOf(n + 1)].short} 🚀`) : 'Next Level';
     this.show('complete');
     this.updateHUD(true);
   }
@@ -443,7 +443,7 @@ class Game {
     const set = (id, v) => { if (force || this.hudCache[id] !== v) { this.hudCache[id] = v; $(id).textContent = v; } };
     set('hud-level', `Level ${L.index}`);
     set('hud-world', W.name + (L.location ? ` · ${L.location}` : ''));
-    set('hud-sub', L.worldIndex === 14 ? 'Bonus · The Black Hole' : `World ${L.worldIndex + 1} · Stage ${L.sub} of ${LEVELS_PER_WORLD}`);
+    set('hud-sub', L.worldIndex === BONUS_WORLD ? 'Bonus · The Black Hole' : `World ${L.worldIndex + 1} · Stage ${L.sub} of ${LEVELS_PER_WORLD}`);
     set('hud-name', L.name);
     if (force || this.hudCache.sh !== sim.shards) {
       const gained = this.hudCache.sh !== undefined && sim.shards > this.hudCache.sh;
@@ -542,7 +542,7 @@ window.dev = {
       '  dev.unlockAll()        unlock every level in the level select',
       '  dev.skipAll()          unlock everything and jump to the final level',
       '  dev.level(n)           start level n right now',
-      '  dev.world(w)           start the first level of world w (1-14)',
+      '  dev.world(w)           start the first level of world w (1-16; 17 = THE END)',
       '  dev.win()              finish the current level instantly',
       '  dev.cells(n = 5000)    add cells to your wallet for the shop',
       '  dev.allSkins()         own every skin',

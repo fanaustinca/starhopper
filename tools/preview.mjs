@@ -26,7 +26,7 @@ function svgFor(L) {
   const X = (x) => (x - x0) * S, Y = (y) => (y1 - y) * S;
   const el = [];
   const rect = (x, y, w, h, fill, extra = '') => el.push(`<rect x="${X(x)}" y="${Y(y + h)}" width="${w * S}" height="${h * S}" fill="${fill}" ${extra}/>`);
-  el.push(`<rect width="${W}" height="${H}" fill="#10131c"/>`);
+  el.push(`<defs><marker id="ar" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#7af0ff"/></marker></defs><rect width="${W}" height="${H}" fill="#10131c"/>`);
   for (let gx = Math.ceil(x0 / 10) * 10; gx < x1; gx += 10) el.push(`<line x1="${X(gx)}" y1="0" x2="${X(gx)}" y2="${H}" stroke="#1e2433"/><text x="${X(gx) + 2}" y="12" fill="#5a6680" font-size="11">${gx}</text>`);
   for (let gy = Math.ceil(y0 / 5) * 5; gy < y1; gy += 5) el.push(`<line x1="0" y1="${Y(gy)}" x2="${W}" y2="${Y(gy)}" stroke="#1a2030"/><text x="2" y="${Y(gy) - 2}" fill="#5a6680" font-size="11">${gy}</text>`);
   rect(x0, L.floor.y - 2, x1 - x0, 2, L.floor.lethal ? '#6a1a10' : '#222');
@@ -34,7 +34,7 @@ function svgFor(L) {
   for (const z of L.gravZones) rect(z.x, z.y, z.w, z.h, 'rgba(90,160,255,0.15)');
   for (const w of L.winds) rect(w.x, w.y, w.w, w.h, w.gust ? 'rgba(120,255,200,0.12)' : 'rgba(255,255,255,0.08)');
   for (const s of L.solids) {
-    const col = s.crumble ? '#a08060' : s.heat ? '#ff5a20' : s.ice ? '#9ae8ff' : s.blink ? '#c0a0ff' : s.onoff ? (s.onoff === 'red' ? '#e04040' : '#4060ff') : s.button ? '#ffe040' : s.bounce ? '#40ff90' : s.oneWay ? '#8090a0' : s.style === 'basin' ? '#333' : s.conveyor ? '#d09030' : s.style === 'wall' ? '#6a7a90' : '#b8c0cc';
+    const col = s.crumble ? '#a08060' : s.heat ? '#ff5a20' : s.ice ? '#9ae8ff' : s.blink ? '#c0a0ff' : s.onoff ? (s.onoff === 'red' ? '#e04040' : '#4060ff') : s.button ? '#ffe040' : s.bounce ? '#40ff90' : s.oneWay ? '#8090a0' : s.style === 'basin' ? '#333' : s.style === 'boost' ? '#ff3ad8' : s.conveyor ? '#d09030' : s.style === 'wall' ? '#6a7a90' : '#b8c0cc';
     rect(s.x, s.y, s.w, s.h, col);
   }
   for (const h of L.hazards) if (!h.hidden) rect(h.x, h.y, h.w, Math.min(h.h, 18), h.pulse ? 'rgba(255,80,40,0.35)' : h.path ? 'rgba(160,255,60,0.45)' : '#ff3010');
@@ -56,6 +56,10 @@ function svgFor(L) {
     const ex = br.x + Math.cos(br.angle) * 3, ey = br.y + Math.sin(br.angle) * 3;
     el.push(`<circle cx="${X(br.x)}" cy="${Y(br.y)}" r="${0.9 * S}" fill="#c08030"/><line x1="${X(br.x)}" y1="${Y(br.y)}" x2="${X(ex)}" y2="${Y(ey)}" stroke="#ffd04a" stroke-width="3"/>` + (br.spin ? `<circle cx="${X(br.x)}" cy="${Y(br.y)}" r="${1.3 * S}" fill="none" stroke="#ffd04a" stroke-dasharray="3 3"/>` : ''));
   }
+  for (const r of L.rings || []) {
+    const ex = r.x + r.vx * 0.18, ey = r.y + r.vy * 0.18;
+    el.push(`<circle cx="${X(r.x)}" cy="${Y(r.y)}" r="${r.r * S}" fill="none" stroke="#7af0ff" stroke-width="3"/><line x1="${X(r.x)}" y1="${Y(r.y)}" x2="${X(ex)}" y2="${Y(ey)}" stroke="#7af0ff" stroke-width="2" marker-end="url(#ar)"/>`);
+  }
   for (const sw of L.sweepers || []) el.push(`<circle cx="${X(sw.cx)}" cy="${Y(sw.cy)}" r="${sw.len * S}" fill="rgba(255,60,60,0.12)" stroke="#ff4040" stroke-dasharray="4 3"/>`);
   for (const h of L.hazards) if (h.path && h.path.type === 'pendulum') {
     const P = h.path;
@@ -69,7 +73,7 @@ function svgFor(L) {
   for (const k of L.pickups) el.push(k.type === 'shard' ? `<text x="${X(k.x) - 7}" y="${Y(k.y) + 6}" fill="#ffd84a" font-size="18">★</text>` : k.type === 'heart' ? `<text x="${X(k.x) - 6}" y="${Y(k.y) + 5}" fill="#ff4a6a" font-size="14">♥</text>` : `<circle cx="${X(k.x)}" cy="${Y(k.y)}" r="3" fill="#3affc0"/>`);
   el.push(`<rect x="${X(L.spawn.x) - 5}" y="${Y(L.spawn.y + 1.6)}" width="11" height="${1.6 * S}" fill="#fff"/>`);
   el.push(`<circle cx="${X(L.goal.x)}" cy="${Y(L.goal.y + 2)}" r="16" fill="none" stroke="#ffd84a" stroke-width="4"/>`);
-  if (L.checkpoint) el.push(`<line x1="${X(L.checkpoint.x)}" y1="${Y(L.checkpoint.y)}" x2="${X(L.checkpoint.x)}" y2="${Y(L.checkpoint.y + 3)}" stroke="#ff8a3a" stroke-width="3"/>`);
+  for (const c of (L.checkpoints && L.checkpoints.length ? L.checkpoints : L.checkpoint ? [L.checkpoint] : [])) el.push(`<line x1="${X(c.x)}" y1="${Y(c.y)}" x2="${X(c.x)}" y2="${Y(c.y + 3)}" stroke="#ff8a3a" stroke-width="3"/>`);
   el.push(`<text x="10" y="${H - 10}" fill="#fff" font-size="16">L${L.index} · ${L.name} (${L.archetype})${L.chaser ? ' · CHASE' : ''}${L.tide ? ' · TIDE' : ''}</text>`);
   return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${el.join('')}</svg>`, W, H };
 }

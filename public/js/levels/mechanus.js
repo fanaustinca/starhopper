@@ -296,8 +296,8 @@ export default [
     b.plat(25, 3, 4);
     pend(36, 14, 12, 0.6, { phase: 0.5 });
     b.shard(44, 7);                               // fly off the far end of the swing
-    b.plat(45, 3, 5); b.enemy('walker', 45.5, 3, { range: 3.5 });
-    b.checkpoint(47, 3);
+    b.plat(45, 3, 7); b.enemy('walker', 45.5, 3, { range: 3.5 });
+    b.checkpoint(51, 3);
     pend(57, 15, 12, 0.6);
     pend(70, 15, 12, 0.6, { phase: 1 });          // swings opposite: meet it at the top
     b.shard(63.5, 8);
@@ -319,7 +319,7 @@ export default [
     b.plat(23, -1, 3); b.shard(24.5, 0.6);      // a sunken ledge under the second chain
     b.vine(26, 11, 6);
     b.plat(32, 3, 10); b.enemy('walker', 34, 3, { range: 6 });
-    b.checkpoint(40, 3);
+    b.checkpoint(41, 3);
     b.pendulum(50, 15, 11, { amp: 35, T: 4 });  // chain-hung plates over the void
     b.pendulum(63, 15, 11, { amp: 35, T: 4, phase: 0.5 });
     b.shard(56.5, 9);
@@ -457,7 +457,7 @@ export default [
     b.beam('piston', 47, 7, { w: 2.2, h: 4.5, P: 3, on: 0.6, warn: 0.7 }); b.rect(45, 11.5, 4, 1);
     b.pendulum(57, 20, 11, { amp: 30, T: 3.6 });
     b.plat(64, 10, 6);
-    b.checkpoint(67, 10);
+    b.checkpoint(59, 10);
     b.wrecker(68, 18, 5.5, { amp: 48, T: 3, phase: 0.5 });
     b.pendulum(77, 23, 11, { amp: 30, T: 3.6, phase: 0.5 });
     b.plat(84, 13, 6);
@@ -601,7 +601,7 @@ export default [
     b.sweeper(14, 3.4, 4.2, { omega: 55, both: true });
     b.plat(25, 1, 10);
     b.sweeper(30, 4.4, 4.2, { omega: -70, both: true });
-    b.checkpoint(27, 1);
+    b.checkpoint(25.5, 1);
     b.plat(41, 2, 10);
     b.sweeper(46, 5.4, 4.2, { omega: 50, both: true });
     b.sweeper(46, 5.4, 2.6, { omega: -110, both: true });

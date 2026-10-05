@@ -6,7 +6,7 @@ import { makeRng } from '../core/rng.js';
 import { WORLDS } from '../core/config.js';
 import { mat, makeMoverMesh, rockGeo } from './vehicles.js';
 import { planetTexture, ringTexture, glowTexture, windowTexture } from './textures.js';
-import { skyMaterial, sunSurfaceMaterial, plasmaMaterial, liquidMaterial, flickerMaterial, starMaterial, accretionMaterial } from './shaders.js';
+import { skyMaterial, sunSurfaceMaterial, plasmaMaterial, liquidMaterial, flickerMaterial, starMaterial, accretionMaterial, gridMaterial } from './shaders.js';
 import { makeTerrain, cloudSprite } from './terrain.js';
 
 const glow = (c, i = 2) => mat(c, { emissive: c, emissiveIntensity: i });
@@ -27,6 +27,8 @@ const SKY = {
   mechanus: { top: 0x160e05, horizon: 0x9a7040, clouds: 0.55, cloudColor: 0x6a4a28, cloudScale: 0.7, sunSize: 0.02, sunColor: 0xffc070, sunHalo: 0.8 },
   biolumina: { top: 0x010308, horizon: 0x0a3a34, stars: 0.9, aurora: 1.0, neb: 0.2, nebA: 0x104060, nebB: 0x30a080, sunSize: 0.0001, sunHalo: 0 },
   chronos: { top: 0x04020d, horizon: 0x3a2a70, neb: 1.0, nebA: 0xffc040, nebB: 0x6030c0, stars: 1.0, sunSize: 0.01, sunColor: 0xffe8a0 },
+  aerolis: { top: 0x1a4ac8, horizon: 0xffc8d8, clouds: 0.6, cloudColor: 0xfff0f4, cloudScale: 0.9, sunDir: [0.5, 0.15, -1], sunSize: 0.035, sunColor: 0xffd8b0, sunHalo: 1.4 },
+  velocitar: { top: 0x04000f, horizon: 0x5a1080, neb: 0.6, nebA: 0xff3ad8, nebB: 0x3ad8ff, stars: 1.2, sunDir: [0, 0.12, -1], sunSize: 0.09, sunColor: 0xff6ad0, sunHalo: 1.2 },
   blackhole: { top: 0x010005, horizon: 0x1a0626, neb: 1.2, nebA: 0x6020a0, nebB: 0xff7030, stars: 1.4, sunSize: 0.0001, sunHalo: 0 },
 };
 
@@ -92,9 +94,10 @@ export function floorMaterial(type, W, level) {
     case 'water': return liquidMaterial('water', { a: 0x041640, b: 0x16409a, sky: 0x4a78e0, sun: 0xd0e0ff });
     case 'swamp': return liquidMaterial('swamp', { a: 0x02140f, b: 0x30ffc0 });
     case 'rift': return liquidMaterial('rift', { a: 0x3a18b0, b: 0xffc860 });
+    case 'grid': return gridMaterial(0xff3ad8, 0x3ad8ff);
     case 'horizon': return liquidMaterial('rift', { a: 0x12041e, b: 0xff7a20 });
     case 'gas': {
-      const cols = { jupiter: [0xc89868, 0xf0dcc0, 0xfff4e4], saturn: [0xd8c088, 0xf6ead0, 0xfffaf0], uranus: [0x8ad8e0, 0xc8f4f4, 0xffffff], neptune: [0x2a48c0, 0x5a80f0, 0x9ab8ff] }[W.id] || [0xc89868, 0xf0dcc0, 0xffffff];
+      const cols = { jupiter: [0xc89868, 0xf0dcc0, 0xfff4e4], saturn: [0xd8c088, 0xf6ead0, 0xfffaf0], uranus: [0x8ad8e0, 0xc8f4f4, 0xffffff], neptune: [0x2a48c0, 0x5a80f0, 0x9ab8ff], aerolis: [0xf0b8d0, 0xfff0f6, 0xffffff] }[W.id] || [0xc89868, 0xf0dcc0, 0xffffff];
       const red = level && level.redSpot;
       return liquidMaterial('gas', { a: cols[0], b: cols[1], sky: cols[2], swirl: red ? [(level.bounds.minX + level.bounds.maxX) / 2, -160] : [0, 0], swirlR: red ? 140 : 0 });
     }
@@ -881,6 +884,55 @@ export function buildBackdrop(level) {
         const h = rng.range(20, 50);
         add(scen, new THREE.CylinderGeometry(1.5, 3, h, 7), mat(0x0e2a24, { roughness: 1 }), x, fy + h / 2, rng.range(-40, -120));
       });
+      break;
+    }
+    case 'aerolis': {
+      // floating sky islands with waterfalls, puffy sunset clouds and drifting silk ribbons
+      clouds(Math.ceil(span / 9), [0xfff0f4, 0xffd8e8, 0xf0e8ff], fy - 4, fy + 30, -30, -240, 16, 46, 0.9);
+      spread(Math.ceil(span / 26), (x) => {
+        const isle = new THREE.Group();
+        const r = rng.range(5, 14);
+        const rock = new THREE.Mesh(new THREE.ConeGeometry(r, r * 1.6, 7), mat(0x8a7a9a, { roughness: 1, flatShading: true }));
+        rock.rotation.x = Math.PI; rock.position.y = -r * 0.8; isle.add(rock);
+        const grass = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.95, 1.2, 7), mat(0x6ad890, { roughness: 0.8, flatShading: true }));
+        isle.add(grass);
+        for (let k = 0; k < 3; k++) add(isle, new THREE.SphereGeometry(rng.range(1, 2.4), 8, 6), mat(0xff9ad8, { emissive: 0x802050, emissiveIntensity: 0.3, flatShading: true }), rng.range(-r * 0.6, r * 0.6), 1.6, rng.range(-r * 0.4, r * 0.4));
+        const fall = add(isle, new THREE.PlaneGeometry(1.6, r * 2.4), new THREE.MeshBasicMaterial({ color: 0xd8f4ff, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide }), r * 0.7, -r * 1.2, 0.5);
+        isle.position.set(x, fy + rng.range(6, 40), rng.range(-40, -200));
+        scen.add(isle);
+        const ph = rng.next() * 6.28;
+        animated.push((t) => { isle.position.y += Math.sin(t * 0.5 + ph) * 0.004; fall.material.opacity = 0.45 + Math.sin(t * 4 + ph) * 0.1; });
+      });
+      spread(Math.ceil(span / 30), (x) => {
+        const pts = []; const y0 = fy + rng.range(10, 30), z = rng.range(-30, -110);
+        for (let i = 0; i <= 20; i++) pts.push(new THREE.Vector3(x + i * 3, y0 + Math.sin(i * 0.5) * 3, z));
+        const rib = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, 0.25, 4), glow([0xff7ad8, 0x7af0ff, 0xffd87a][rng.int(0, 2)], 1.2));
+        scen.add(rib);
+        const ph = rng.next() * 6.28;
+        animated.push((t) => { rib.position.y = Math.sin(t * 0.6 + ph) * 2; rib.position.x = Math.sin(t * 0.2 + ph) * 4; });
+      });
+      break;
+    }
+    case 'velocitar': {
+      // neon synthwave speedway: arches, holo towers, light trails racing past
+      spread(Math.ceil(span / 18), (x) => {
+        const arch = new THREE.Mesh(new THREE.TorusGeometry(rng.range(10, 22), 0.35, 8, 48, Math.PI), glow(rng.chance(0.5) ? 0xff3ad8 : 0x3ad8ff, 1.8));
+        arch.position.set(x, fy, rng.range(-30, -140));
+        scen.add(arch);
+      });
+      spread(Math.ceil(span / 12), (x) => {
+        const h = rng.range(15, 70), w = rng.range(4, 9);
+        const z = rng.range(-60, -220);
+        add(scen, new THREE.BoxGeometry(w, h, w), mat(0x0a0820, { roughness: 0.4, metalness: 0.6 }), x, fy + h / 2, z);
+        const edge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w, h, w)), new THREE.LineBasicMaterial({ color: rng.chance(0.5) ? 0xff3ad8 : 0x3ad8ff }));
+        edge.position.set(x, fy + h / 2, z); scen.add(edge);
+      });
+      for (let k = 0; k < 10; k++) {
+        const trail = new THREE.Mesh(new THREE.BoxGeometry(14, 0.15, 0.15), new THREE.MeshBasicMaterial({ color: k % 2 ? 0xff3ad8 : 0x3ad8ff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
+        const y = fy + rng.range(2, 30), z = rng.range(-20, -120), sp = rng.range(40, 90), off = rng.range(0, span);
+        scen.add(trail);
+        animated.push((t) => { trail.position.set(x0 + (((off + t * sp) % span) + span) % span, y, z); });
+      }
       break;
     }
     case 'blackhole': {

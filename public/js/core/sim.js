@@ -143,7 +143,7 @@ export class LevelSim {
     this.gravState = level.gravZones.map((z) => ({ def: z, low: true }));
     this.zips = level.zips || [];
     this.barrels = level.barrels || [];
-    this.world = { colliders: this.colliders, vines: this.vines, zips: this.zips, barrels: this.barrels, time: 0 };
+    this.world = { colliders: this.colliders, vines: this.vines, zips: this.zips, barrels: this.barrels, rings: level.rings || [], time: 0 };
     this.checkpointIdx = -1;
     this.sweepState = (level.sweepers || []).map((d) => ({ def: d, a: d.a0 || 0 }));
     this.crumbles = this.colliders.filter((c) => c.crumble);
@@ -337,7 +337,7 @@ export class LevelSim {
   placePlayer(x, y) {
     const p = this.player;
     p.x = x; p.y = y + 0.05; p.vx = 0; p.vy = 0; p.extVx = 0;
-    p.hang = null; p.climb = null; p.zip = null; p.barrel = null;
+    p.hang = null; p.climb = null; p.zip = null; p.barrel = null; p.lastRing = null;
     if (p.swing) { p.swing.vine.grabbed = false; p.swing = null; }
     p.onGround = false; p.ground = null; p.jumps = 0;
   }

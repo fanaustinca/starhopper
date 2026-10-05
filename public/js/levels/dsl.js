@@ -32,7 +32,7 @@ export class LevelBuilder {
     this.winds = []; this.gravZones = []; this.vines = []; this.bridges = [];
     this.doors = []; this.meteors = []; this.pickups = []; this.roads = [];
     this.gears = []; this.mirrors = []; this.towers = []; this.enemies = []; this.turrets = [];
-    this.zips = []; this.barrels = []; this.sweepers = []; this.checkpointList = [];
+    this.zips = []; this.barrels = []; this.sweepers = []; this.checkpointList = []; this.rings = [];
     this.spawn = null; this.goalPos = null; this.checkpointPos = null;
     this.chaser = null; this.tide = null; this.globalWind = null;
   }
@@ -196,6 +196,14 @@ export class LevelBuilder {
     this.hazards.push({ id: this.id('h'), type: 'wrecker', w: r * 2, h: r * 2, x: px - r, y: py - len - r * 2,
       path: { type: 'pendulum', px, py, len, amp: (o.amp ?? 55) * Math.PI / 180, T: o.T ?? 3.2, phase: o.phase ?? 0 }, rope: { px, py } });
   }
+  // fling ring: fly (or run) through the hoop centred at (x,y) to be launched at `speed` toward `angle` degrees.
+  // You keep moving (no stop like a barrel) and your double jump is restored.
+  ring(x, y, o = {}) {
+    const a = (o.angle ?? 35) * Math.PI / 180, sp = o.speed ?? 17;
+    this.rings.push({ id: this.id('rg'), x, y, r: o.r ?? 1.1, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, angle: a });
+  }
+  // boost lane: a fast conveyor; its speed carries into your jumps
+  boost(x, top, w, speed = 12) { return this.plat(x, top, w, { conveyor: speed, style: 'boost' }); }
   // rotating beam around (cx,cy): length len, degrees/second omega; both:true = full bar through the centre
   sweeper(cx, cy, len, o = {}) { this.sweepers.push({ id: this.id('sw'), cx, cy, len, omega: (o.omega ?? 60) * Math.PI / 180, a0: (o.a0 ?? 0) * Math.PI / 180, width: o.width ?? 0.6, both: !!o.both }); }
   // travelling tornado / dust devil: an updraft column drifting between x0 and x1
@@ -262,7 +270,7 @@ export class LevelBuilder {
       winds: this.winds, gravZones: this.gravZones, vines: this.vines, bridges: this.bridges,
       doors: this.doors, meteors: this.meteors, pickups: this.pickups, roads: this.roads,
       gears: this.gears, mirrors: this.mirrors, towers: this.towers, enemies: this.enemies, turrets: this.turrets,
-      zips: this.zips, barrels: this.barrels, sweepers: this.sweepers, checkpoints: this.checkpointList,
+      zips: this.zips, barrels: this.barrels, sweepers: this.sweepers, checkpoints: this.checkpointList, rings: this.rings,
       totalCells: this.pickups.filter((p) => p.type === 'cell').length,
       totalShards: this.pickups.filter((p) => p.type === 'shard').length,
     };

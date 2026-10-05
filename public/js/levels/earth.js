@@ -237,7 +237,7 @@ export default [
     const up = [[72, 9.5], [76.5, 11.5], [81, 13.5], [85.5, 15.5]];
     for (const [x, y] of up) b.thin(x, y, 2.5);
     b.rect(89, 4.5, 6, 13);                                              // far tower: low portal
-    b.checkpoint(92, 17.5);
+    b.checkpoint(90.5, 17.5);
     b.thin(97, 14, 2.5); b.thin(101.5, 11, 2.5); b.thin(106, 8, 2.5);
     b.enemy('flyer', 55, 17, { ax: 3, ay: 1, T: 3.4 });
     b.enemy('flyer', 79, 15, { ax: 2, ay: 1.5, T: 2.8 });

@@ -430,7 +430,7 @@ export default [
     b.wind(38.4, 0, 18, 13, 10, GUST(3.2, 1.6, 0.8));
     b.rect(57, 0, 2, 7); b.turret(57, 5.8, -1, { P: 2.2 });
     b.plat(52, 5, 5);
-    b.checkpoint(54, 5);
+    b.checkpoint(59, 8);
     b.cells(41, 9, 50, 8, 4);
     b.shard(47, 9.6);
     b.plat(57, 8, 6);                                                   // cap of the cannon rock
@@ -645,7 +645,7 @@ export default [
     b.beam('lightning', 40, 1, { P: 2.8, on: 0.6 });
     b.plat(46, 1, 3); b.spring(47, 1, 5);
     b.plat(52, 6, 10);
-    b.checkpoint(55, 6);
+    b.checkpoint(53.5, 6);
     b.sweeper(58, 9.4, 3.2, { omega: 60, both: true });     // a full bar turning over the ledge
     b.shard(64, 4.4);
     b.pendulum(70, 15, 7, { amp: 40, T: 3.4 });

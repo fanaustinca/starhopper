@@ -1,6 +1,6 @@
 # Starhopper
 
-A 2.5D robot platformer for the browser, built with Three.js. You play a small glossy robot hopping across **14 worlds and 420 levels** (30 per world), plus a bonus 421st level, **THE END**, inside a black hole,: the Sun, the eight planets plus the Asteroid Belt, and four alien worlds.
+A 2.5D robot platformer for the browser, built with Three.js. You play a small glossy robot hopping across **16 worlds and 480 levels** (30 per world), plus a bonus 481st level, **THE END**, inside a black hole. The worlds are the Sun, the eight planets plus the Asteroid Belt, four alien worlds and two speed-run worlds.
 
 **Play:** https://fanaustinca.github.io/starhopper/
 
@@ -20,7 +20,9 @@ A 2.5D robot platformer for the browser, built with Three.js. You play a small g
 | 12 | Mechanus | 331–360 | giant rotating gears, conveyor belts, crushing pistons, steam exhaust |
 | 13 | Bio-Lumina | 361–390 | bouncy mushrooms, swinging vines, carnivorous plant doors |
 | 14 | Chronos | 391–420 | platforms that run fast-forward, freeze or reverse; erratic gravity zones |
-| ★ | The Black Hole | 421 | **THE END**: a ~860-unit gauntlet with a section from every world in order and 7 checkpoints, ending in an Event Horizon chase. Big Ben, buses, rovers, gears and clocks spiral into the accretion disk around you |
+| 15 | Aerolis | 421–450 | **speed-run world**: sky islands where fling rings, ribbon swings, boost lanes, auto-firing pods and long zip cables chain into one continuous line |
+| 16 | Velocitar | 451–480 | **speed-run world**: a synthwave hyperlane of boost strips, ring tunnels, auto cannons and neon rails, where fast movers never make you wait |
+| ★ | The Black Hole | 481 | **THE END**: a ~860-unit gauntlet with a section from every world in order and 7 checkpoints, ending in an Event Horizon chase. Big Ben, buses, rovers, gears and clocks spiral into the accretion disk around you |
 
 Every jump plays a random air trick: flips, cartwheels, corkscrews, star jumps and more.
 
@@ -28,7 +30,7 @@ When you first press Play, a multi-deck mothership flies in to the Sun, lands, l
 
 ### Hand-written levels
 
-All 420 levels are **hand-written** as explicit layouts in `public/js/levels/<world>.js`, using a small authoring DSL (`public/js/levels/dsl.js`, documented in `public/js/levels/README.md`). There's no procedural generation and no randomness. Each level is built around its own idea, for example *Sunspot Checkers*, *Hop-On at the Back*, *Paradox Stair*, *Facet Chimneys* or *Heart of the Machine*. Each world has an intro, two chase levels, a rising-tide climb, a hard level 29 and a finale.
+All 481 levels are **hand-written** as explicit layouts in `public/js/levels/<world>.js`, using a small authoring DSL (`public/js/levels/dsl.js`, documented in `public/js/levels/README.md`). There's no procedural generation and no randomness. Each level is built around its own idea, for example *Sunspot Checkers*, *Hop-On at the Back*, *Paradox Stair*, *Facet Chimneys* or *Heart of the Machine*. Each world has an intro, two chase levels, a rising-tide climb, a hard level 29 and a finale.
 
 Moving things are everywhere. Each world uses them in its own style:
 - **zip lines** (canyon cables, ski lifts, spider silk)
@@ -39,14 +41,18 @@ Moving things are everywhere. Each world uses them in its own style:
 - **sweeping beams**
 - **travelling tornadoes** (dust devils, waterspouts)
 - **swing ropes** drawn per world (vines, plasma tethers, crane hooks, chains, light strands)
+- **fling rings**, which catch you mid-air and throw you along their arrow
+- **boost lanes**, chevron strips that rush you forward
 
 Other mechanics include stompable walker enemies, spiky enemies you can't stomp, hovering drones, turrets, floor switches that swap red/blue blocks, blinking platforms, crumbling platforms, multi-point looping rides, ferris wheels, vehicles, vines, light bridges, gravity zones, time-warp platforms, wall-jump chimneys and ceilings/tunnels.
 
 Every level hides **3 Star Shards**.
 
-**Solver bot.** `tools/solver.mjs` plays every level with the real player controller. From each reachable surface it tries runs, jumps, double jumps, springs, vents, vine swings, wall-climbs and rides on moving platforms, breadth-first, until it reaches the goal. The unit tests require all 420 levels to be solved.
+**Solver bot.** `tools/solver.mjs` plays every level with the real player controller. From each reachable surface it tries runs, jumps, double jumps, springs, vents, vine swings, wall-climbs and rides on moving platforms, breadth-first, until it reaches the goal. The unit tests require all 481 levels to be solved.
 
 What the solver does not check: enemy, turret and hazard timing, and the chase/tide pacing. Those were designed by hand.
+
+**Bug sweeps.** `node tools/sweep.mjs [world]` runs every level under chaotic scripted input and checks for NaNs, kill-plane escapes and runaway velocities. It also checks that every checkpoint is on solid ground and that standing still there for 4 s is safe. `node tools/rendersweep.mjs` loads, plays and renders every level and every cutscene in headless Chromium and reports any JS error.
 
 ```bash
 node tools/validate.mjs <world|level…>   # solve levels, warn about unreachable shards
@@ -85,12 +91,12 @@ npm run serve        # http://localhost:8000
 
 ```bash
 npm test             # unit + e2e
-npm run test:unit    # Node: physics, mechanics, solver bot over all 420 levels
+npm run test:unit    # Node: physics, mechanics, solver bot over all 481 levels
 npm run test:e2e     # Playwright + headless Chromium against ./public
 npm run test:live    # e2e against the deployed GitHub Pages build
 ```
 
-- **Unit tests** (`tests/unit.mjs`) cover the controller physics: jump heights, double jump, ledge grab, one-way platforms, moving-platform carry, and no tunnelling. They also build all 420 hand-written levels and run the **solver bot on every one**. They check that each level has 3 shards and a checkpoint, that no two layouts repeat within a world, and that the level files contain no randomness.
+- **Unit tests** (`tests/unit.mjs`) cover the controller physics: jump heights, double jump, ledge grab, one-way platforms, moving-platform carry, and no tunnelling. They also build all 481 hand-written levels and run the **solver bot on every one**. They check that each level has 3 shards and a checkpoint, that no two layouts repeat within a world, and that the level files contain no randomness.
 - **E2E tests** (`tests/e2e.mjs`) drive the real game in a headless browser through `window.SH`, a small test API that steps the fixed-timestep simulation deterministically. They cover boot, menus, movement by input, collision, hazards and respawn, level completion and unlocking, save persistence, pause, the level selector, world-transition cutscenes (including skipping), Earth vehicles carrying the robot, each world's signature mechanic, a render of every world, and the mobile layout. Screenshots go to `tests/screenshots/`.
 
 CI (`.github/workflows/deploy.yml`) runs both suites on every push and deploys `public/` to GitHub Pages only if they pass.
@@ -100,7 +106,7 @@ CI (`.github/workflows/deploy.yml`) runs both suites on every push and deploys `
 ```
 public/js/
   core/        DOM-free, runs in Node too
-    config.js    physics constants + the 14 world definitions
+    config.js    physics constants + the 16 world definitions + the bonus
     physics.js   player controller, swept AABB collision, jump envelope
     sim.js       LevelSim: movers, vehicles, hazards, pickups, goal (fixed 120 Hz step)
     save.js / input.js / audio.js

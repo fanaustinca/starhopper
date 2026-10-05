@@ -119,6 +119,22 @@ b.tornado(x0, x1, y, {rise, h, T, w})   updraft column drifting back and forth b
 b.checkpoint(x, top)                    can be called several times for long levels
 ```
 
+Speed-run kit (Aerolis and Velocitar, usable anywhere):
+
+```
+b.ring(x, y, {angle, speed, r})   fling ring: pass through the hoop centred at (x,y) and get launched toward
+                                  `angle` degrees at `speed` (default 35°, 17). No stop like a barrel, and your
+                                  double jump is restored. Ring → ring chains keep you airborne.
+b.boost(x, top, w, speed)         boost lane: a fast conveyor (default 12) whose speed carries into your jump,
+                                  so you clear much longer gaps
+```
+
+**Speed-run design rules.** A level should be one continuous line of motion: vine → zip → ring → barrel → boost → vine. The player should NEVER stand and wait.
+- Barrels on the main line should be `auto: true` or fixed (fire on press). Avoid slow rotating aim.
+- Moving platforms should be fast (short T, high speed). Don't use doors, timed waits or slow lifts.
+- Aim each launch so the robot lands, or catches the next rope, ring or cable, mid-stride.
+- Use static platforms mostly as brief touch-downs. Keep the route readable, and put optional harder lines (with shards) above or below it.
+
 The solver understands all of these: it rides zips, chains barrels (aiming rotating ones), samples pendulums, weights and tornadoes. Barrels and zips can bridge gaps far wider than a jump.
 
 Flow:

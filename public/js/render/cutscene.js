@@ -200,7 +200,7 @@ export class Cutscene {
     if (this.kind === 'intro' && shot === 'cruise' && k < 2.8) return { big: 'STARHOPPER', small: 'NOW APPROACHING · THE SUN' };
     if (shot === 'depart' && k < 1.8) return { big: this.from.name.toUpperCase(), small: 'WORLD COMPLETE' };
     if (shot === 'cruise' && this.to && this.kind !== 'intro' && k > 0.6) return { big: this.to.name.toUpperCase(), small: this.to.bonus ? 'NO TURNING BACK' : 'NEXT STOP' };
-    if (shot === 'cruise' && !this.to && k > 2.2) return { big: 'THE END', small: 'YOU ESCAPED THE BLACK HOLE · ALL 421 LEVELS' };
+    if (shot === 'cruise' && !this.to && k > 2.2) return { big: 'THE END', small: 'YOU ESCAPED THE BLACK HOLE · ALL 481 LEVELS' };
     if (shot === 'arrive' && k > 3.8) return this.to.bonus ? { big: 'THE END', small: 'BONUS LEVEL · INSIDE THE BLACK HOLE' } : { big: this.to.name.toUpperCase(), small: `WORLD ${this.toIdx + 1}` };
     return null;
   }

@@ -124,6 +124,8 @@ export class Weather {
       mechanus: { n: 200, color: 0xffc070, size: 2, vx: 0.4, vy: 1.4, add: true },
       biolumina: { n: 500, color: 0x6affd0, size: 3, vx: 0.3, vy: 0.5, add: true },
       chronos: { n: 300, color: 0xffe08a, size: 2.4, vx: -0.6, vy: 0.3, add: true },
+      aerolis: { n: 400, color: 0xffd8f0, size: 2.4, vx: 5, vy: 0.6, add: true },
+      velocitar: { n: 500, color: 0x3ad8ff, size: 2.0, vx: -14, vy: 0, add: true },
       blackhole: { n: 700, color: 0xffb070, size: 2.2, vx: 6, vy: 1.5, add: true },
     }[worldId];
     if (!cfg) return;

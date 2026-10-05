@@ -20,7 +20,7 @@ const CHASER_COLORS = {
   sun: [0xff3a00, 0xffd060], mercury: [0xffffff, 0xffe8b0], venus: [0x7aff20, 0xe0ff80], earth: [0xff3030, 0xffd040],
   mars: [0xb04a20, 0xffa060], asteroids: [0x8a6a50, 0xffa060], jupiter: [0xc06030, 0xffd0a0], saturn: [0xe0c080, 0xffffff],
   uranus: [0x60e0ff, 0xffffff], neptune: [0x3060ff, 0xb0e0ff], prismara: [0xff40d0, 0x80c0ff], mechanus: [0xff8a20, 0xffe0a0],
-  biolumina: [0x30ffa0, 0xff60e0], chronos: [0x8040ff, 0xffd060], blackhole: [0x200030, 0xff7a20],
+  biolumina: [0x30ffa0, 0xff60e0], chronos: [0x8040ff, 0xffd060], blackhole: [0x200030, 0xff7a20], aerolis: [0x7af0ff, 0xffffff], velocitar: [0xff3ad8, 0x3ad8ff],
 };
 
 const DEPTH = 3;
@@ -155,7 +155,7 @@ export class Renderer {
     this.sun.color.setHex(W.light);
     this.sun.intensity = W.id === 'biolumina' ? 1.1 : 1.9;
     this.hemi.intensity = W.id === 'biolumina' || W.id === 'chronos' ? 0.65 : 0.85;
-    this.bloom.strength = W.id === 'sun' ? 0.6 : ['biolumina', 'prismara', 'chronos', 'blackhole'].includes(W.id) ? 0.75 : 0.45;
+    this.bloom.strength = W.id === 'sun' ? 0.6 : ['biolumina', 'prismara', 'chronos', 'blackhole', 'velocitar'].includes(W.id) ? 0.75 : 0.45;
     const underLight = { sun: [0xff8a30, 1.6], mars: [0xff6a20, 0.5], venus: [0xa0ff40, 0.4], biolumina: [0x30ffc0, 0.8], mercury: [0xd0d8e0, 0.4] }[W.id];
     this.under.color.setHex(underLight ? underLight[0] : 0xffffff);
     this.under.intensity = underLight ? underLight[1] : 0;
@@ -279,6 +279,8 @@ export class Renderer {
       biolumina: { rope: 0x2a8a4a, knob: 0x1a4a2a, tip: 0xff5ad0, deco: 'leaves' },
       chronos: { rope: 0xd8b040, metal: true, knob: 0xf0e8d0, tip: 0xffd86a, deco: 'chain' },
       blackhole: { rope: 0xb08aff, glow: 1.6, knob: 0x2a1a4a, tip: 0xffb040, deco: 'sparks' },
+      aerolis: { rope: 0xff9ad8, glow: 1.0, knob: 0xf0f4ff, tip: 0x7af0ff, deco: 'crystal' },
+      velocitar: { rope: 0xff3ad8, glow: 2.0, knob: 0x1a1a3a, tip: 0x3ad8ff, deco: 'sparks' },
     };
     const RS = ROPE[W.id] || ROPE.biolumina;
     this.vineMeshes = level.vines.map((v) => {
@@ -338,6 +340,18 @@ export class Renderer {
       arrow.rotation.z = -Math.PI / 2;
       addMesh(g, new THREE.SphereGeometry(0.4, 12, 10), mat(0x3a3f4a, { metalness: 0.8 }), 0, 0, -0.8);
       g.userData = { aim, def: br };
+      G.add(g);
+      return g;
+    });
+    // fling rings: glowing hoops with an arrow showing the launch direction
+    this.ringMeshes = (level.rings || []).map((rg) => {
+      const g = new THREE.Group();
+      g.position.set(rg.x, rg.y, 0);
+      const hoop = addMesh(g, new THREE.TorusGeometry(rg.r, 0.14, 12, 40), glowMat(W.id === 'velocitar' ? 0x3ad8ff : 0x7af0ff, 2.2), 0, 0, 0, false);
+      const inner = addMesh(g, new THREE.CircleGeometry(rg.r * 0.95, 32), additive(0xffffff, 0.12), 0, 0, 0, false);
+      const arrow = new THREE.Group(); arrow.rotation.z = rg.angle; g.add(arrow);
+      for (let k = 0; k < 3; k++) { const c = addMesh(arrow, new THREE.ConeGeometry(0.22, 0.45, 10), glowMat(0xffffff, 2), 0.2 + k * 0.45, 0, 0, false); c.rotation.z = -Math.PI / 2; }
+      g.userData = { hoop, inner, def: rg };
       G.add(g);
       return g;
     });
@@ -576,8 +590,8 @@ export class Renderer {
     // tops are toned down from the palette's near-white so platforms never glare
     const topCol = new THREE.Color(s.ice ? 0xbfe6ee : W.platTop).lerp(new THREE.Color(W.plat), 0.35).multiplyScalar(0.78);
     let topMat = mat(topCol.getHex(), { roughness: s.ice ? 0.1 : 0.55, metalness: s.ice ? 0.3 : 0.05 });
-    if (s.style === 'conveyor') {
-      const tex = stripeTexture('#ffb040', '#2a2018');
+    if (s.style === 'conveyor' || s.style === 'boost') {
+      const tex = s.style === 'boost' ? stripeTexture('#ff3ad8', '#10061e') : stripeTexture('#ffb040', '#2a2018');
       tex.repeat.set(s.w / 2, 1);
       topMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 });
       g.userData.belt = tex;
@@ -588,7 +602,7 @@ export class Renderer {
       }
     }
     addMesh(g, new RoundedBoxGeometry(s.w + 0.06, 0.2, DEPTH + 0.06, 2, 0.07), topMat, cx, top - 0.1, 0);
-    addMesh(g, new THREE.BoxGeometry(Math.max(0.2, s.w - 0.4), 0.07, 0.04), glowMat(s.style === 'conveyor' ? 0xffb040 : W.accent, 1.0), cx, top - 0.32, DEPTH / 2 + 0.02, false);
+    addMesh(g, new THREE.BoxGeometry(Math.max(0.2, s.w - 0.4), 0.07, 0.04), glowMat(s.style === 'conveyor' ? 0xffb040 : s.style === 'boost' ? 0x3ad8ff : W.accent, s.style === 'boost' ? 2.2 : 1.0), cx, top - 0.32, DEPTH / 2 + 0.02, false);
     if (!slab && bodyH > 4 && W.id !== 'earth') {
       for (let y = top - 3; y > s.y + 1; y -= 3) addMesh(g, new THREE.BoxGeometry(s.w + 0.02, 0.12, DEPTH + 0.02), mat(0x000000, { transparent: true, opacity: 0.18 }), cx, y, 0, false);
     }
@@ -837,6 +851,7 @@ export class Renderer {
         case 'blast': this.robot.trigger('launch'); this.fx.burst('launch', p.x, p.y, 0xffd04a); this.shake = 0.15; break;
         case 'barrel': this.fx.burst('sparkle', p.x, p.y + 0.8, 0xffffff); break;
         case 'zip': this.fx.burst('sparkle', p.x, p.y + 1.6, 0xffffff); break;
+        case 'fling': this.robot.trigger('launch'); this.fx.burst('ring', p.x, p.y + 0.8); this.fx.burst('launch', p.x, p.y, 0x7af0ff); break;
         case 'stomp': this.fx.burst('sparkle', e.x, e.y, 0xffd84a); this.robot.trigger('launch'); break;
         case 'switch': this.fx.burst('flash', p.x, p.y, e.state ? 0x3a7aff : 0xff3a4a); this.shake = 0.12; break;
         case 'walljump': this.robot.trigger('walljump'); this.fx.burst('dust', p.x + p.facing * -0.4, p.y + 0.8); break;
@@ -1067,6 +1082,7 @@ export class Renderer {
       line.rotation.z = Math.atan2(ey - py, ex - px) - Math.PI / 2;
     });
     sim.sweepState.forEach((sw, i) => { this.sweepMeshes[i].rotation.z = sw.a; });
+    this.ringMeshes.forEach((rm, i) => { const k = 1 + Math.sin(t * 5 + i) * 0.06; rm.userData.hoop.scale.setScalar(k); rm.userData.inner.material.opacity = 0.08 + Math.abs(Math.sin(t * 3 + i)) * 0.1; });
     if (this.chaserMesh) {
       const ch = sim.chaser;
       this.chaserMesh.visible = !!(ch && ch.active);

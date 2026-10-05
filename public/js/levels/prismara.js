@@ -284,7 +284,7 @@ export default [
     b.sweeper(14, 18.6, 2.4, { omega: 70 });             // a turning prism in the crawler's chamber
     b.plat(28.5, 15, 4); b.shard(31, 16.5);              // out through the window
     b.plat(12, 10, 15); b.turret(7.6, 10.8, 1, { P: 2.4 });
-    b.checkpoint(22, 10);
+    b.checkpoint(15, 5);
     b.cells(13, 11, 25, 11, 5);
     b.plat(7.5, 5, 13); b.cells(9, 6, 19, 6, 4);
     b.plat(7.5, 0, 24);
@@ -567,7 +567,7 @@ export default [
     pend(29, 0, 3.4, 0.5);
     b.plat(35.5, 2, 5); b.rect(39, 2, 1.4, 3); b.turret(39, 2.8, -1, { P: 2.4 });
     b.shard(39.7, 6.6);
-    b.checkpoint(37, 2);
+    b.checkpoint(40, 2);
     b.wrecker(18, 10.5, 5.2, { amp: 45, T: 3 });         // a geode guarding the first shard
     b.sweeper(56.5, 10, 2.4, { omega: 70 });
     pend(47, 2, 3.2, 0.25);

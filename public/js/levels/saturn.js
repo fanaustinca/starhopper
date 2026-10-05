@@ -330,7 +330,7 @@ export default [
     b.plat(40.5, 7.95, 5);
     b.plat(48, 3, 9); b.vent(54, 3, 3.5, { type: 'geyser', P: 2.4, on: 1.2, off: 1.2 });
     b.wrecker(51, 11, 5, { amp: 50, T: 3.4 });
-    b.checkpoint(49, 3);
+    b.checkpoint(55.5, 3);
     b.plat(56, 9.5, 3);
     b.vent(60.5, 9.5, 7, { type: 'geyser', P: 3, on: 1.4 });
     b.plat(59, 9.5, 3);

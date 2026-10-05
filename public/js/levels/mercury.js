@@ -96,7 +96,7 @@ export default [
     b.cells(20.7, 13, 20.7, 22, 4);
     b.shard(20.7, 18);
     b.plat(12, 18, 4); b.cells(13, 19.5, 15, 19.5, 2);
-    b.checkpoint(30, 24);
+    b.checkpoint(34, 24);
     b.enemy('walker', 25, 24, { range: 8 });
     b.zip(35, 27.5, 52, 18.5);                // survey cable off the scarp top
     b.cells(39, 25.4, 48, 20.6, 4);
@@ -545,7 +545,7 @@ export default [
     b.cells(14, 5, 38, 5, 8);
     b.shard(26, 11);                          // above the middle crane, a double-jump hop
     b.plat(45, 2, 10);
-    b.checkpoint(47, 2);
+    b.checkpoint(45.5, 2);
     b.wrecker(54, 16, 12.5, { amp: 38, T: 4.2 });   // the boulder gate: slip past on the beat
     b.plat(58, 2, 8);
     b.cells(46, 3.5, 64, 3.5, 7);

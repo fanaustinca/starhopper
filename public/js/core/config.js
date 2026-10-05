@@ -181,6 +181,24 @@ export const WORLDS = [
     signature: 'warp',
   },
   {
+    id: 'aerolis', name: 'Aerolis', short: 'Aerolis', alien: true, speedrun: true,
+    blurb: 'A windswept sky of ribbons and rings: swing, fling and never stop.',
+    gravity: 0.9, floor: 'gas', floating: true,
+    sky: [0x2a5ad8, 0xffc8d8], fog: 0xf0d0e0, fogDensity: 0.003,
+    plat: 0x6a78a8, platTop: 0xeef2ff, accent: 0x7af0ff, light: 0xfff0e8, ambient: 0x8070b0,
+    planet: { color: 0x9ad8ff, size: 1.2, bands: true },
+    pool: {}, signature: 'ring',
+  },
+  {
+    id: 'velocitar', name: 'Velocitar', short: 'Velocitar', alien: true, speedrun: true,
+    blurb: 'A neon hyperspeed planet built for one thing: going fast.',
+    gravity: 1.0, floor: 'grid', floating: true,
+    sky: [0x05001a, 0x6a1a8a], fog: 0x2a0840, fogDensity: 0.004,
+    plat: 0x1a1a3a, platTop: 0x8a8ac8, accent: 0xff3ad8, light: 0xf0e8ff, ambient: 0x402060,
+    planet: { color: 0xff3ad8, size: 1.1, bands: true },
+    pool: {}, signature: 'boost',
+  },
+  {
     id: 'blackhole', name: 'The Black Hole', short: 'Black Hole', alien: true, bonus: true,
     blurb: 'The End: everything you have ever jumped on, falling into the dark.',
     gravity: 1.0, floor: 'horizon', floating: true,
@@ -191,8 +209,9 @@ export const WORLDS = [
   },
 ];
 
-// 14 worlds × 30, plus the single bonus level inside the black hole (421)
-export const TOTAL_LEVELS = 14 * LEVELS_PER_WORLD + 1;
+// 16 worlds × 30, plus the single bonus level inside the black hole (481)
+export const TOTAL_LEVELS = (WORLDS.length - 1) * LEVELS_PER_WORLD + 1;   // 16 worlds × 30 + THE END = 481
+export const BONUS_WORLD = WORLDS.length - 1;
 export const levelsInWorld = (wi) => (WORLDS[wi].bonus ? 1 : LEVELS_PER_WORLD);
 export const lastLevelOfWorld = (wi) => Math.min(TOTAL_LEVELS, wi * LEVELS_PER_WORLD + levelsInWorld(wi));
 export const RED_SPOT_FROM = 25;        // Jupiter levels 25-30 are inside the Great Red Spot
@@ -214,6 +233,8 @@ export const WORLD_FLAVOR = {
   mechanus: { words: ['Cog', 'Piston', 'Escapement', 'Gear', 'Boiler', 'Spring', 'Ratchet', 'Brass'], chaser: 'Crusher Wall' },
   biolumina: { words: ['Glowcap', 'Spore', 'Canopy', 'Fungal', 'Luminous', 'Tangle', 'Bloom', 'Vine'], chaser: 'Spore Swarm' },
   chronos: { words: ['Tick', 'Paradox', 'Epoch', 'Hourglass', 'Rewind', 'Moment', 'Eon', 'Clockwork'], chaser: 'Time Rift' },
+  aerolis: { words: ['Zephyr', 'Ribbon', 'Gale', 'Skylark', 'Updraft', 'Halo', 'Aurora', 'Featherfall'], chaser: 'Jet Stream' },
+  velocitar: { words: ['Overdrive', 'Neon', 'Hyperlane', 'Afterburner', 'Redline', 'Warp', 'Nitro', 'Slipstream'], chaser: 'Overdrive Wave' },
   blackhole: { words: ['Singularity', 'Horizon', 'Spaghetti', 'Accretion'], chaser: 'Event Horizon' },
 };
 

@@ -9,7 +9,7 @@ import { solveLevel } from './solver.mjs';
 const args = process.argv.slice(2);
 let list = [];
 if (!args.length) { for (let wi = 0; wi < WORLDS.length; wi++) (await worldDefs(wi)).forEach((_, i) => list.push(wi * LEVELS_PER_WORLD + i + 1)); }
-if (args[0] === 'blackhole') args.length = 0, list = [421];
+if (args[0] === 'blackhole') args.length = 0, list = [(WORLDS.length - 1) * LEVELS_PER_WORLD + 1];
 else if (isNaN(+args[0])) { const wi = WORLDS.findIndex((w) => w.id === args[0]); list = (await worldDefs(wi)).map((_, i) => wi * LEVELS_PER_WORLD + i + 1); }
 else list = args.map(Number);
 let bad = 0;

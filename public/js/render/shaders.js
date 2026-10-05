@@ -352,3 +352,24 @@ export function accretionMaterial() {
       }`,
   });
 }
+
+// Synthwave neon grid floor (Velocitar): glowing lines scrolling toward you.
+export function gridMaterial(a = 0xff3ad8, b = 0x3ad8ff) {
+  const u = timed(THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { t: { value: 0 }, colA: { value: new THREE.Color(a) }, colB: { value: new THREE.Color(b) } }]));
+  return new THREE.ShaderMaterial({
+    fog: true, uniforms: u, vertexShader: worldVert,
+    fragmentShader: /* glsl */`
+      ${FOG_F}
+      uniform float t; uniform vec3 colA, colB; varying vec3 vW; varying vec3 vView;
+      void main(){
+        vec2 p = vW.xz * 0.25 + vec2(0.0, t * 1.5);
+        vec2 g = abs(fract(p - 0.5) - 0.5) / fwidth(p);
+        float line = 1.0 - min(min(g.x, g.y), 1.0);
+        float dist = length(vView);
+        vec3 c = vec3(0.02, 0.0, 0.06) + mix(colA, colB, 0.5 + 0.5 * sin(vW.x * 0.02 + t * 0.3)) * line * 1.8 * (1.0 - smoothstep(60.0, 260.0, dist));
+        c += colA * 0.15 * (1.0 - smoothstep(0.0, 300.0, dist));
+        gl_FragColor = vec4(c, 1.0);
+        #include <fog_fragment>
+      }`,
+  });
+}
