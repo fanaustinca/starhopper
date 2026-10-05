@@ -153,17 +153,18 @@ class Game {
     WORLDS.forEach((w, i) => {
       const locked = i * LEVELS_PER_WORLD + 1 > s.unlocked;
       const b = document.createElement('button');
-      b.className = 'world-tab' + (i === this.selectWorld ? ' active' : '') + (locked ? ' locked' : '');
-      b.innerHTML = `<span class="dot" style="background:${hex(w.planet.color)}"></span>${i + 1}. ${w.short}`;
+      b.className = 'world-tab' + (i === this.selectWorld ? ' active' : '') + (locked ? ' locked' : '') + (w.bonus ? ' bonus' : '');
+      b.innerHTML = w.bonus ? '<span class="dot bh"></span>★ THE END' : `<span class="dot" style="background:${hex(w.planet.color)}"></span>${i + 1}. ${w.short}`;
       b.dataset.world = i;
       b.addEventListener('click', () => { this.selectWorld = i; this.audio.play('ui'); this.renderSelect(); });
       tabs.appendChild(b);
     });
+    this.renderEndCard();
     const w = WORLDS[this.selectWorld];
     const first = this.selectWorld * LEVELS_PER_WORLD + 1;
     const cleared = Array.from({ length: levelsInWorld(this.selectWorld) }, (_, k) => s.best[first + k]).filter(Boolean).length;
-    $('world-banner').innerHTML = `<div class="planet" style="background:radial-gradient(circle at 35% 35%, ${hex(w.planet.color)}, ${hex(w.sky[0])});--glow:${hex(w.planet.color)}66"></div>
-      <div><h3>World ${this.selectWorld + 1} · ${w.name}${w.alien ? ' <small style="color:var(--muted);font-size:12px">(alien)</small>' : ''}</h3><p>${w.blurb} Levels ${first}–${first + levelsInWorld(this.selectWorld) - 1} · ${cleared}/${levelsInWorld(this.selectWorld)} cleared</p></div>`;
+    $('world-banner').innerHTML = `<div class="planet" style="background:${w.bonus ? 'radial-gradient(circle, #000 34%, #ffd8a0 38%, #ff7a20 46%, rgba(160,40,120,0.6) 60%, rgba(0,0,0,0) 72%)' : `radial-gradient(circle at 35% 35%, ${hex(w.planet.color)}, ${hex(w.sky[0])})`};--glow:${w.bonus ? '#ff7a2066' : hex(w.planet.color) + '66'}"></div>
+      <div>${w.bonus ? `<h3>Bonus · THE END</h3><p>${w.blurb} Level ${first} · ${cleared ? 'cleared' : 'not yet cleared'}</p>` : `<h3>World ${this.selectWorld + 1} · ${w.name}${w.alien ? ' <small style="color:var(--muted);font-size:12px">(alien)</small>' : ''}</h3><p>${w.blurb} Levels ${first}–${first + levelsInWorld(this.selectWorld) - 1} · ${cleared}/${levelsInWorld(this.selectWorld)} cleared</p>`}</div>`;
     $('select-meta').textContent = `Unlocked: ${s.unlocked} / ${TOTAL_LEVELS}`;
     const grid = $('level-grid');
     grid.innerHTML = '';
@@ -172,17 +173,35 @@ class Game {
       const best = s.best[n];
       const locked = n > s.unlocked;
       const b = document.createElement('button');
-      b.className = 'lvl' + (best ? ' done' : '') + (locked ? ' locked' : '') + (n === s.unlocked ? ' current' : '');
+      b.className = 'lvl' + (best ? ' done' : '') + (locked ? ' locked' : '') + (n === s.unlocked ? ' current' : '') + (w.bonus ? ' lvl-end' : '');
       b.dataset.level = n;
       const pct = best && best.total ? Math.round((best.cells / best.total) * 100) : 0;
       const sh = (s.shardIds[n] || []).length;
       const stars = best ? `<span class="stars">${[0, 1, 2].map((i) => `<i class="shard${i < sh ? ' on' : ''}"></i>`).join('')}</span>` : '';
-      b.innerHTML = `<span class="n">${n}</span>${stars}<span class="s">${best ? best.score.toLocaleString() : locked ? '' : 'new'}</span>${best ? `<span class="bar"><i style="width:${pct}%"></i></span>` : ''}`;
+      if (w.bonus) b.innerHTML = `<span class="n">THE END</span><span class="s">${locked ? 'Clear all 14 worlds to enter' : best ? 'Best ' + best.score.toLocaleString() : 'Level 421 · ~860 units · 7 checkpoints'}</span>${stars}`;
+      else b.innerHTML = `<span class="n">${n}</span>${stars}<span class="s">${best ? best.score.toLocaleString() : locked ? '' : 'new'}</span>${best ? `<span class="bar"><i style="width:${pct}%"></i></span>` : ''}`;
       const L = locked ? null : generateLevel(n);
       b.title = locked ? 'Locked' : `Level ${n} · ${L.name}${L.location ? ' · ' + L.location : ''}`;
       if (!locked) b.addEventListener('click', () => { this.audio.play('ui'); this.startLevel(n); });
       grid.appendChild(b);
     }
+  }
+
+  // featured card for the bonus level, pinned at the top of the level select
+  renderEndCard() {
+    const s = this.save, n = TOTAL_LEVELS;
+    const locked = n > s.unlocked, best = s.best[n];
+    const card = $('end-card');
+    card.className = 'end-card' + (locked ? ' locked' : '') + (best ? ' done' : '');
+    const sh = (s.shardIds[n] || []).length;
+    card.innerHTML = `<span class="bh-art"><i></i></span>
+      <span class="end-text"><b>THE END</b><small>Bonus level 421 · a gauntlet through every world, inside a black hole</small></span>
+      <span class="end-status">${locked ? '🔒 Clear all 14 worlds to enter' : best ? `Best ${best.score.toLocaleString()} · ${sh}/3 ★` : '▶ Enter the black hole'}</span>`;
+    card.onclick = () => {
+      this.audio.play('ui');
+      if (locked) { this.selectWorld = 14; this.renderSelect(); this.toast('FINISH CHRONOS (LEVEL 420) TO UNLOCK THE END'); return; }
+      this.startLevel(n);
+    };
   }
 
   // ------------------------------------------------------------- shop

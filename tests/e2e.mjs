@@ -243,6 +243,18 @@ await test('finishing a world plays the ship cutscene and lands on the next plan
   assert((await page.textContent('#hud-world')).includes('Mercury'));
 });
 
+await test('level select features THE END: locked card until 420 is cleared, then it launches level 421', async () => {
+  await boot('test&fresh&unlock=40');
+  await S(() => SH.openSelect());
+  assert((await page.textContent('#end-card')).includes('Clear all 14 worlds'), 'locked card shown');
+  await page.click('#end-card');
+  assert((await S(() => SH.state())).mode !== 'playing', 'locked card does not start the level');
+  await boot('test&fresh&unlock=421');
+  await S(() => SH.openSelect());
+  await page.click('#end-card');
+  await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 421);
+});
+
 await test('cutscene can be skipped with Space', async () => {
   await S(() => SH.startLevel(60));
   await S(() => SH.manual(true));
