@@ -96,6 +96,7 @@ export class Renderer {
     this.cam = { x: 0, y: 0 };
     this.shake = 0;
     this.quality = 'high';
+    this.dynScale = 1;
     this.setQuality(opts.quality || 'high');
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -103,13 +104,30 @@ export class Renderer {
 
   setQuality(q) {
     this.quality = q;
-    const pr = q === 'low' ? 1 : Math.min(window.devicePixelRatio || 1, q === 'high' ? 2 : 1.5);
-    this.renderer.setPixelRatio(pr);
+    this.basePR = q === 'low' ? 1 : Math.min(window.devicePixelRatio || 1, q === 'high' ? 2 : 1.5);
+    this.applyPixelRatio();
     this.renderer.shadowMap.enabled = q !== 'low';
     this.sun.shadow.mapSize.set(q === 'high' ? 2048 : 1024, q === 'high' ? 2048 : 1024);
     if (this.sun.shadow.map) { this.sun.shadow.map.dispose(); this.sun.shadow.map = null; }
     this.useBloom = q !== 'low';
     this.resize();
+  }
+
+  // dynamic resolution: the game drops render resolution (never below 0.6x) when frames run
+  // slow and climbs back when there's headroom, so slower GPUs stay smooth instead of lagging
+  applyPixelRatio() {
+    const pr = Math.max(0.6, (this.basePR || 1) * (this.dynScale ?? 1));
+    this.renderer.setPixelRatio(pr);
+    // the bloom composer has always drawn the scene at 1x (it keeps its own ratio): hold that
+    // ceiling so retina screens don't pay 4x the pixels, and let the governor go below it
+    this.composer.setPixelRatio(Math.min(1, pr));
+    this.resize();
+  }
+  setDynScale(k) {
+    k = Math.min(1, Math.max(0.5, k));
+    if (Math.abs(k - (this.dynScale ?? 1)) < 0.01) return;
+    this.dynScale = k;
+    this.applyPixelRatio();
   }
 
   resize() {
@@ -218,9 +236,11 @@ export class Renderer {
       plane.position.set(-13, H / 2 - 10, 0.5);
       g.add(plane);
       const plane2 = plane.clone(); plane2.position.z = -3; plane2.scale.x = 1.2; g.add(plane2);
-      const light = new THREE.PointLight(b, 30, 30, 1.6);
-      light.position.set(-2, 0, 3);
-      g.add(light);
+      // the wall's glow lives outside the hidden group and just sits at 0 until the chase starts:
+      // toggling a light on/off changes the light count and recompiles every material (a big hitch)
+      const light = new THREE.PointLight(b, 0, 30, 1.6);
+      light.position.set(level.spawn.x - 40, level.floor.y, 3);
+      G.add(light);
       g.userData = { light };
       g.position.y = level.floor.y;
       g.visible = false;
@@ -1086,10 +1106,12 @@ export class Renderer {
     if (this.chaserMesh) {
       const ch = sim.chaser;
       this.chaserMesh.visible = !!(ch && ch.active);
+      const light = this.chaserMesh.userData.light;
       if (ch && ch.active) {
         this.chaserMesh.position.x = ch.x;
-        this.chaserMesh.userData.light.intensity = 25 + Math.sin(t * 13) * 8;
-      }
+        light.position.x = ch.x - 2;
+        light.intensity = 25 + Math.sin(t * 13) * 8;
+      } else light.intensity = 0;
     }
     if (L.tide && this.backdrop.floor) this.backdrop.floor.position.y = sim.floorY;
 
@@ -1172,6 +1194,26 @@ export class Renderer {
     const p = sim.player, L = this.level;
     this.cam.x = Math.max(L.bounds.minX + 10, Math.min(L.bounds.maxX - 6, p.x + p.facing * 2.2));
     this.cam.y = Math.max(L.floor.y + 4, p.y + 1.2);
+  }
+
+  // Compile every shader the level can need *now*, behind the fade-in, instead of hitching
+  // the first time each thing scrolls into view. Renders the whole level once with every
+  // mesh/sprite forced visible and un-culled (lights untouched so the programs match play).
+  warmup() {
+    const shown = [], culled = [];
+    const holdsLight = (o) => { let h = false; o.traverse((c) => { if (c.isLight) h = true; }); return h; };
+    this.scene.traverse((o) => {
+      if (o.isLight) return;
+      if (!o.visible && !holdsLight(o)) { shown.push(o); o.visible = true; }
+      if (o.frustumCulled) { culled.push(o); o.frustumCulled = false; }
+    });
+    try {
+      this.renderer.shadowMap.needsUpdate = true;
+      this.render();
+    } finally {
+      for (const o of shown) o.visible = false;
+      for (const o of culled) o.frustumCulled = true;
+    }
   }
 
   render() {

@@ -1,7 +1,7 @@
 // LevelSim: the deterministic runtime of one level (entities, hazards,
 // pickups, goal). Pure logic, no rendering — the renderer just reads it.
 
-import { PHYS, MAX_HEALTH } from './config.js';
+import { PHYS, MAX_HEALTH, WORLDS } from './config.js';
 import { createPlayer, stepPlayer } from './physics.js';
 
 const WARP_MODES = [1, 2.6, 0, -1];       // normal, fast-forward, frozen, reverse
@@ -105,6 +105,8 @@ export class LevelSim {
     this.invuln = 0;
     this.player = createPlayer(level.spawn.x, level.spawn.y);
     this.lastSafe = { x: level.spawn.x, y: level.spawn.y };
+    // speed-run worlds also remember footing on moving platforms, so a fall puts you back on the ride
+    this.moverRespawn = !!(WORLDS[level.worldIndex] && WORLDS[level.worldIndex].speedrun);
     this.colliders = [];
     this.byId = new Map();
 
@@ -318,8 +320,16 @@ export class LevelSim {
       return;
     }
     if (respawn) {
-      this.placePlayer(this.lastSafe.x, this.lastSafe.y);
-      this.relieve(this.lastSafe.x, this.lastSafe.y);
+      let at = this.lastSafe;
+      if (at.ground) {
+        // back onto the moving platform wherever it is now (or the last fixed footing if it has vanished)
+        const g = at.ground;
+        at = g.active ? { x: g.x + at.off, y: g.y + g.h } : at.fallback;
+      }
+      this.placePlayer(at.x, at.y);
+      // arrive already riding it, flush on the deck, so it carries you from the very first tick
+      if (this.lastSafe.ground && this.lastSafe.ground.active) { p.y = at.y; p.onGround = true; p.ground = this.lastSafe.ground; }
+      this.relieve(at.x, at.y);
       this.emit('respawn', {});
     } else if (damage) {
       p.vy = 9; p.vx = -p.facing * 7; p.onGround = false;
@@ -384,6 +394,13 @@ export class LevelSim {
     if (p.onGround && p.ground && p.ground.static && !p.ground.bounce && !p.ground.crumble && !p.ground.heat && !p.ground.oneWay && !p.ground.blink && !p.ground.onoff && !p.ground.button) {
       const g = p.ground;
       this.lastSafe = { x: Math.min(Math.max(p.x, g.x + 0.7), g.x + g.w - 0.7), y: g.y + g.h };
+    } else if (this.moverRespawn && p.onGround && p.ground && p.ground.mover && p.ground.active) {
+      const st = this.moverById.get(p.ground.mover);
+      // not vehicle streams (they wrap off-screen) or time-warped pads
+      if (st && st.def.path.type !== 'stream' && !st.def.warp) {
+        const g = p.ground;
+        this.lastSafe = { x: p.x, y: g.y + g.h, ground: g, off: Math.min(Math.max(p.x - g.x, 0.5), g.w - 0.5), fallback: this.lastSafe.ground ? this.lastSafe.fallback : this.lastSafe };
+      }
     }
 
     // launchers (vents / geysers / updrafts)

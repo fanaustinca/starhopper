@@ -90,6 +90,23 @@ export class Cutscene {
     this.camera = new THREE.PerspectiveCamera(42, 16 / 9, 0.3, 40000);
     this.shotName = null;
     this.scene = null;
+    this.precompile();
+  }
+
+  // Compile the ship + robot (and everything else) for each of the three scenes up front:
+  // fog and lights differ per scene, so otherwise every shot change hitches mid-flight.
+  precompile() {
+    if (!this.r.compile) return;
+    const movers = [this.ship, this.robot.root];
+    const parents = movers.map((o) => o.parent);
+    try {
+      for (const G of [this.departScene, { scene: this.space }, this.arriveScene]) {
+        if (!G || !G.scene) continue;
+        for (const o of movers) G.scene.add(o);
+        this.r.compile(G.scene, this.camera);
+      }
+    } catch (e) { /* best effort: a failed precompile just means the old on-demand compile */ }
+    movers.forEach((o, i) => { if (parents[i]) parents[i].add(o); else if (o.parent) o.parent.remove(o); });
   }
 
   // ------------------------------------------------------------------ ground (depart / arrive)

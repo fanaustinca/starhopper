@@ -427,6 +427,22 @@ await test('robot shop: buy and equip a skin with cells; skin persists', async (
   assert(await S(() => SH.game.renderer.robot.skin.id === 'ninja'), 'robot wears it');
 });
 
+await test('no lag spikes: level warm-up compiles every shader up front, even through a chase', async () => {
+  await boot('test&fresh&unlock=481');
+  for (const n of [1, 30]) {
+    const r = await S(async (n) => {
+      const g = SH.game, R = g.renderer; g.warmupInTests = true; R.setQuality('high');
+      await SH.startLevel(n); SH.manual(true);
+      const before = R.renderer.info.programs.length, L = SH.level();
+      for (let x = L.spawn.x; x < L.goal.x; x += 6) { SH.teleport(x, L.goal.y + 2); SH.step(2); R.update(g.sim, 1 / 60); R.render(); }
+      return { added: R.renderer.info.programs.length - before, chase: !!(g.sim.chaser && g.sim.chaser.active) };
+    }, n);
+    assert(r.added === 0, `level ${n}: ${r.added} shaders compiled mid-level`);
+    if (n === 30) assert(r.chase, 'the chase ran');
+  }
+  await S(() => { SH.game.warmupInTests = false; SH.game.renderer.setQuality('low'); });
+});
+
 await test('dev console: dev.unlockAll() and dev.level(n) skip ahead', async () => {
   await boot('test&fresh');
   const msg = await S(() => dev.unlockAll());

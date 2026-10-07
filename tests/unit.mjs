@@ -407,6 +407,27 @@ test('pendulums swing, floaters rise under you, sinkers drop, sweepers hurt', ()
   for (let i = 0; i < 500 && sim.health === h0; i++) sim.step(idle());
   assert.ok(sim.health < h0, 'sweeper beam hurts');
 });
+test('speed-run worlds: falling off respawns you back on the moving platform you last rode', () => {
+  const L = levels.find((l) => l.world === 'aerolis' && l.movers.some((m) => m.path.type !== 'stream' && !m.warp));
+  const m = L.movers.find((q) => q.path.type !== 'stream' && !q.warp);
+  const sim = new LevelSim(generateLevel(L.index));
+  const c = sim.moverById.get(m.id).colliders[0];
+  sim.teleport(c.x + c.w / 2, c.y + c.h + 0.2);
+  for (let i = 0; i < 30; i++) sim.step(idle());
+  assert.equal(sim.player.ground, c, 'standing on the mover');
+  sim.player.y = L.killY - 5; sim.step(idle());
+  for (let i = 0; i < 5; i++) sim.step(idle());
+  assert.equal(sim.player.ground, c, 'respawned riding the same mover');
+  assert.ok(Math.abs(sim.player.x - (c.x + c.w / 2)) < c.w / 2, 'on its deck, wherever it moved to');
+  // ordinary worlds keep the old rule: only fixed footing counts
+  const Lo = levels.find((l) => l.world === 'jupiter' && l.movers.some((q) => q.path.type === 'line'));
+  const mo = Lo.movers.find((q) => q.path.type === 'line');
+  const so = new LevelSim(generateLevel(Lo.index));
+  const co = so.moverById.get(mo.id).colliders[0];
+  so.teleport(co.x + co.w / 2, co.y + co.h + 0.2);
+  for (let i = 0; i < 30; i++) so.step(idle());
+  assert.ok(!so.lastSafe.ground, 'non-speed-run worlds do not record movers');
+});
 test('blink platforms vanish and return', () => {
   const L = levels.find((l) => l.solids.some((s) => s.blink));
   const sim = new LevelSim(generateLevel(L.index));

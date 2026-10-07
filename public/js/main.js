@@ -279,6 +279,8 @@ class Game {
       this.levelNum = n;
       this.sim = new LevelSim(L);
       this.renderer.loadLevel(L);
+      this.renderer.update(this.sim, 0);
+      if (!TEST || this.warmupInTests) this.renderer.warmup();
       this.mode = 'playing';
       this.backStack = [];
       this.hudCache = {};
@@ -373,6 +375,7 @@ class Game {
     let dt = (now - this.last) / 1000;
     this.last = now;
     if (!(dt > 0)) dt = 0;
+    this.governor(dt);
     dt = Math.min(dt, 0.1);
     try {
       this.tick(dt);
@@ -381,6 +384,21 @@ class Game {
       console.error(err);
     }
     if (!this.booted) { this.booted = true; $('loading').classList.add('gone'); }
+  }
+
+  // Frame-rate governor: watch real frame times while playing and trade render resolution
+  // for smoothness (down fast when slow, back up slowly when there's headroom).
+  governor(dt) {
+    const g = this.gov || (this.gov = { ema: 1 / 60, t: 0, good: 0 });
+    if (TEST || this.mode !== 'playing' || !(dt > 0) || dt > 0.25) return;   // ignore tab switches and load hitches
+    g.ema += (dt - g.ema) * 0.05;
+    g.t += dt;
+    if (g.t < 1) return;
+    g.t = 0;
+    const R = this.renderer;
+    if (g.ema > 1 / 48) { g.good = 0; R.setDynScale(R.dynScale - 0.15); }
+    else if (g.ema < 1 / 57) { if (++g.good >= 4) { g.good = 0; R.setDynScale(R.dynScale + 0.1); } }
+    else g.good = 0;
   }
 
   stepSim(input) {

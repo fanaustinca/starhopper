@@ -275,7 +275,7 @@ export function chaserMaterial(a, b) {
       ${NOISE}
       uniform float t; uniform vec3 colA, colB; varying vec2 vUv; varying vec3 vW;
       void main(){
-        float n = fbm(vec3(vW.x*0.25 - t*1.5, vW.y*0.12 - t*0.6, t*0.4));
+        float n = fbm3(vec3(vW.x*0.25 - t*1.5, vW.y*0.12 - t*0.6, t*0.4));   // 3 octaves: same look, ~40% cheaper over a big area
         float edge = pow(vUv.x, 3.0);                          // brightest at the leading edge
         float tongues = smoothstep(0.0, 0.6, n + vUv.x - 0.5);
         vec3 c = mix(colA, colB, smoothstep(-0.2, 0.6, n));
