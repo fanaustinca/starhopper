@@ -8,6 +8,8 @@ import { mat, makeMoverMesh, rockGeo } from './vehicles.js';
 import { planetTexture, ringTexture, glowTexture, windowTexture } from './textures.js';
 import { skyMaterial, sunSurfaceMaterial, plasmaMaterial, liquidMaterial, flickerMaterial, starMaterial, accretionMaterial, gridMaterial } from './shaders.js';
 import { makeTerrain, cloudSprite } from './terrain.js';
+import { makePlanet } from './planets.js';
+import { variantOf } from './variants.js';
 
 const glow = (c, i = 2) => mat(c, { emissive: c, emissiveIntensity: i });
 
@@ -37,8 +39,8 @@ const TERRAIN = {
   uranus: ['ice', -40], prismara: ['crystal', -70], mechanus: ['brass', -70], biolumina: ['jungle', -45],
 };
 
-function skyDome(worldId) {
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 24), skyMaterial(SKY[worldId]));
+function skyDome(cfg) {
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(1500, 48, 24), skyMaterial(cfg));
   mesh.renderOrder = -10;
   mesh.frustumCulled = false;
   return mesh;
@@ -74,6 +76,12 @@ function planetMesh(world, radius, seed) {
   return g;
 }
 
+function skyPlanet(world, radius, seed, segs = 56) {
+  const p = makePlanet(world, { segs, seed, fog: false, lite: true });
+  p.scale.setScalar(radius);
+  return p;
+}
+
 function sunGlow(size, color = 0xfff2d0) {
   const g = new THREE.Group();
   const core = new THREE.Mesh(new THREE.SphereGeometry(size * 0.25, 24, 16), new THREE.MeshBasicMaterial({ color, fog: false }));
@@ -86,33 +94,35 @@ function sunGlow(size, color = 0xfff2d0) {
 
 
 // ---------------------------------------------------------------- floors
-export function floorMaterial(type, W, level) {
+export function floorMaterial(type, W, level, F = {}) {
+  // F: the backdrop variant's floor palette (tints the same surface for dusk / night / storms)
+  const liquid = (mode, base) => liquidMaterial(mode, { ...base, ...F });
   switch (type) {
-    case 'sun': return sunSurfaceMaterial();
-    case 'lava': return liquidMaterial('lava', { a: 0xc82400, b: 0xffb030 });
-    case 'acid': return liquidMaterial('acid', { a: 0x3a3a06, b: 0xc8d030, sky: 0xb07038, sun: 0xffd8a0 });
-    case 'water': return liquidMaterial('water', { a: 0x041640, b: 0x16409a, sky: 0x4a78e0, sun: 0xd0e0ff });
-    case 'swamp': return liquidMaterial('swamp', { a: 0x02140f, b: 0x30ffc0 });
-    case 'rift': return liquidMaterial('rift', { a: 0x3a18b0, b: 0xffc860 });
-    case 'grid': return gridMaterial(0xff3ad8, 0x3ad8ff);
+    case 'sun': return sunSurfaceMaterial(F);
+    case 'lava': return liquid('lava', { a: 0xc82400, b: 0xffb030 });
+    case 'acid': return liquid('acid', { a: 0x3a3a06, b: 0xc8d030, sky: 0xb07038, sun: 0xffd8a0 });
+    case 'water': return liquid('water', { a: 0x041640, b: 0x16409a, sky: 0x4a78e0, sun: 0xd0e0ff });
+    case 'swamp': return liquid('swamp', { a: 0x02140f, b: 0x30ffc0 });
+    case 'rift': return liquid('rift', { a: 0x3a18b0, b: 0xffc860 });
+    case 'grid': return gridMaterial(F.a ?? 0xff3ad8, F.b ?? 0x3ad8ff);
     case 'horizon': return liquidMaterial('rift', { a: 0x12041e, b: 0xff7a20 });
     case 'gas': {
-      const cols = { jupiter: [0xc89868, 0xf0dcc0, 0xfff4e4], saturn: [0xd8c088, 0xf6ead0, 0xfffaf0], uranus: [0x8ad8e0, 0xc8f4f4, 0xffffff], neptune: [0x2a48c0, 0x5a80f0, 0x9ab8ff], aerolis: [0xf0b8d0, 0xfff0f6, 0xffffff] }[W.id] || [0xc89868, 0xf0dcc0, 0xffffff];
+      const cols = F.cols || { jupiter: [0xc89868, 0xf0dcc0, 0xfff4e4], saturn: [0xd8c088, 0xf6ead0, 0xfffaf0], uranus: [0x8ad8e0, 0xc8f4f4, 0xffffff], neptune: [0x2a48c0, 0x5a80f0, 0x9ab8ff], aerolis: [0xf0b8d0, 0xfff0f6, 0xffffff] }[W.id] || [0xc89868, 0xf0dcc0, 0xffffff];
       const red = level && level.redSpot;
       return liquidMaterial('gas', { a: cols[0], b: cols[1], sky: cols[2], swirl: red ? [(level.bounds.minX + level.bounds.maxX) / 2, -160] : [0, 0], swirlR: red ? 140 : 0 });
     }
-    case 'mercury': return new THREE.MeshStandardMaterial({ color: 0x9aa2ac, metalness: 1, roughness: 0.1, envMapIntensity: 0.35 });
-    case 'street': return new THREE.MeshStandardMaterial({ color: 0x2e3238, roughness: 0.92 });
-    case 'ice': return new THREE.MeshStandardMaterial({ color: 0xbff0ff, roughness: 0.12, metalness: 0.25 });
-    case 'crystal': return new THREE.MeshStandardMaterial({ color: 0x6a4ac8, roughness: 0.06, metalness: 0.6, emissive: 0x24104a });
+    case 'mercury': return new THREE.MeshStandardMaterial({ color: F.color ?? 0x9aa2ac, metalness: 1, roughness: 0.1, envMapIntensity: 0.35 });
+    case 'street': return new THREE.MeshStandardMaterial({ color: F.color ?? 0x2e3238, roughness: F.rough ?? 0.92, metalness: F.metal ?? 0 });
+    case 'ice': return new THREE.MeshStandardMaterial({ color: F.color ?? 0xbff0ff, roughness: 0.12, metalness: 0.25, emissive: F.emissive ?? 0x000000, envMapIntensity: F.env ?? 1 });
+    case 'crystal': return new THREE.MeshStandardMaterial({ color: F.color ?? 0x6a4ac8, roughness: 0.06, metalness: 0.6, emissive: F.emissive ?? 0x24104a, envMapIntensity: F.env ?? 1 });
     default: return null;
   }
 }
 
-function floorMesh(level, W, x0, x1) {
+function floorMesh(level, W, x0, x1, F) {
   let type = level.floor.type;
   if (W.id === 'sun') type = 'sun';
-  const m = floorMaterial(type, W, level);
+  const m = floorMaterial(type, W, level, F);
   if (!m) return null;
   const geo = new THREE.PlaneGeometry(x1 - x0 + 900, 700, 1, 1);
   geo.rotateX(-Math.PI / 2);
@@ -646,7 +656,10 @@ export function buildBackdrop(level) {
   const span = x1 - x0;
   const spread = (n, fn) => { for (let i = 0; i < n; i++) fn(x0 + (i + rng.next() * 0.8) * (span / n), i); };
 
-  group.add(skyDome(W.id));
+  // which of the world's three looks this level gets (levels 1-10 / 11-20 / 21-30)
+  const V = variantOf(level);
+  const dome = skyDome({ ...SKY[W.id], ...(V.sky || {}) });
+  group.add(dome);
 
   // celestial objects, parallax-locked to the camera
   const sky = new THREE.Group();
@@ -666,15 +679,14 @@ export function buildBackdrop(level) {
     sky.add(bh);
     animated.push((t) => { disk.rotation.z = -t * 0.05; ring.scale.setScalar(1 + Math.sin(t * 2) * 0.01); });
   } else if (W.id === 'sun') {
-    const next = planetMesh(WORLDS[1], 26, 2);
+    const next = skyPlanet(WORLDS[1], 22, 2);
     next.position.set(240, 260, -900);
     sky.add(next);
   } else if (W.alien) {
-    const host = planetMesh({ ...W, planet: { ...W.planet, rings: W.id !== 'biolumina', size: 2 } }, 150, level.worldIndex);
+    const host = skyPlanet(W, 120, level.worldIndex, 72);
     host.position.set(280, 210, -1000);
     sky.add(host);
-    animated.push((t) => { host.userData.sphere.rotation.y = t * 0.02; });
-    const moon = planetMesh({ ...WORLDS[1], planet: { color: W.accent, size: 0.3 } }, 30, 9);
+    const moon = skyPlanet(WORLDS[1], 26, 9);
     moon.position.set(-330, 360, -950);
     sky.add(moon);
   } else if (['jupiter', 'saturn', 'uranus', 'neptune'].includes(W.id)) {
@@ -685,24 +697,26 @@ export function buildBackdrop(level) {
       rings.rotation.z = W.planet.tilt ? 1.0 : 0.12;
       sky.add(rings);
     }
-    const moon = planetMesh(WORLDS[5], 36, 3);
+    const moon = skyPlanet(WORLDS[5], 30, 3);
     moon.position.set(320, 330, -1000);
     sky.add(moon);
   } else if (W.id === 'earth') {
-    const moon = planetMesh(WORLDS[1], 20, 5);
+    const moon = skyPlanet(WORLDS[1], 18, 5);
     moon.position.set(330, 380, -1000);
     sky.add(moon);
   } else if (W.id === 'mars') {
-    const ph = planetMesh(WORLDS[5], 14, 6);
+    const ph = skyPlanet(WORLDS[5], 12, 6);
     ph.position.set(260, 300, -1000);
     sky.add(ph);
   } else if (W.id === 'asteroids') {
-    const jup = planetMesh(WORLDS[6], 130, 7);
+    const jup = skyPlanet(WORLDS[6], 120, 7, 64);
     jup.position.set(360, 160, -1100);
     sky.add(jup);
   }
+  // every 3D sky planet spins / animates its clouds, rings and gears
+  sky.traverse((o) => { if (o.userData.planet && o.userData.update) animated.push((t) => o.userData.update(t)); });
 
-  const floor = floorMesh(level, W, x0, x1);
+  const floor = floorMesh(level, W, x0, x1, V.floor || {});
   if (floor) group.add(floor);
 
   const ter = TERRAIN[W.id];
@@ -990,10 +1004,15 @@ export function buildBackdrop(level) {
     }
   }
 
+  if (V.extras) V.extras({ scen, sky, animated, rng, x0, x1, fy, span, level, W, skyMat: dome.material });
+  // night variants light up every window in the city
+  if (V.light && V.light.windows) scen.traverse((o) => { if (o.material && o.material.emissiveMap) o.material.emissiveIntensity = Math.min(1.6, Math.max(0.15, o.material.emissiveIntensity) * V.light.windows * 4); });
+
   return {
     group,
     sky,
     floor,
+    variant: V,
     update(t, camX, camY) {
       sky.position.set(camX * 0.95, camY * 0.6, 0);
       for (const f of animated) f(t, camX, camY);

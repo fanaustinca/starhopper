@@ -60,7 +60,7 @@
       <div class="tagline">A robot's journey across 16 worlds · 481 levels</div>
       <div class="menu-buttons">
         <button class="btn primary" id="btn-play">Play</button>
-        <button class="btn" id="btn-select">Level Select</button>
+        <button class="btn" id="btn-select">Star Map</button>
         <button class="btn" id="btn-shop">Robot Shop <span class="wallet-pill" id="menu-wallet"></span></button>
         <button class="btn" id="btn-settings">Settings</button>
         <button class="btn ghost" id="btn-help">How to Play</button>
@@ -69,19 +69,27 @@
     </div>
   </section>
 
-  <!-- level select -->
-  <section id="select" class="screen hidden">
-    <div class="panel wide">
-      <div class="panel-head">
-        <button class="btn icon" data-back>←</button>
-        <h2>Level Select</h2>
-        <div class="panel-meta" id="select-meta"></div>
-      </div>
-      <button class="end-card" id="end-card"></button>
-      <div class="world-tabs" id="world-tabs"></div>
-      <div class="world-banner" id="world-banner"></div>
+  <!-- level select: the 3D star map -->
+  <section id="select" class="screen hidden map-screen">
+    <div id="map-labels" class="map-labels"></div>
+    <header class="map-top">
+      <button class="btn icon" data-back aria-label="Back">←</button>
+      <div class="map-title"><h2>Star Map</h2><div class="map-meta" id="select-meta"></div></div>
+      <nav class="map-systems" id="map-systems" aria-label="Star systems">
+        <button data-sys="sol"><span class="sys-dot sol"></span>Sol</button>
+        <button data-sys="vesper"><span class="sys-dot vesper"></span>Vesper</button>
+        <button data-sys="void" class="end"><span class="sys-dot bh"></span>The End</button>
+      </nav>
+      <button class="btn primary small" id="map-continue">Continue</button>
+    </header>
+    <div class="map-hint" id="map-hint"><b>Drag</b> to orbit · <b>Scroll</b> or pinch to zoom · <b>Click</b> a planet</div>
+    <aside id="planet-panel" class="planet-panel" aria-hidden="true">
+      <button class="btn icon panel-close" id="panel-close" aria-label="Close">✕</button>
+      <div class="pp-head" id="world-banner"></div>
+      <div class="pp-stats" id="panel-stats"></div>
+      <button class="btn primary pp-play" id="panel-play">Play</button>
       <div class="level-grid" id="level-grid"></div>
-    </div>
+    </aside>
   </section>
 
   <!-- shop -->
@@ -92,7 +100,8 @@
         <h2>Robot Shop</h2>
         <div class="panel-meta wallet"><span class="cell-icon"></span><b id="shop-wallet">0</b></div>
       </div>
-      <p class="shop-hint">Spend energy cells on new looks. Every cell you collect is banked when you finish a level, and each new Star Shard pays a 50-cell bonus.</p>
+      <div class="shop-tabs" id="shop-tabs" role="tablist" aria-label="Shop categories"></div>
+      <p class="shop-hint" id="shop-hint"></p>
       <div class="skin-grid" id="skin-grid"></div>
       <div class="shop-actions">
         <div class="shop-sel"><b id="shop-name">Classic</b><span id="shop-price"></span></div>
@@ -138,7 +147,7 @@
       <div class="menu-buttons">
         <button class="btn primary" id="btn-resume">Resume</button>
         <button class="btn" id="btn-restart">Restart Level</button>
-        <button class="btn" id="btn-pause-select">Level Select</button>
+        <button class="btn" id="btn-pause-select">Star Map</button>
         <button class="btn ghost" id="btn-quit">Main Menu</button>
       </div>
     </div>
@@ -161,7 +170,7 @@
       <div class="menu-buttons row">
         <button class="btn primary" id="btn-next">Next Level</button>
         <button class="btn" id="btn-replay">Replay</button>
-        <button class="btn ghost" id="btn-complete-select">Levels</button>
+        <button class="btn ghost" id="btn-complete-select">Star Map</button>
       </div>
     </div>
   </section>

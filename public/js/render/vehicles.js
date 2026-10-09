@@ -254,13 +254,14 @@ export { rockGeo };
 // ramp on the camera side. Nose points +x. Origin = hull centre; landed, the
 // feet touch y = -LEG_DROP.
 export const SHIP_LEG_DROP = 4.6;
-export function makeMothership() {
+export function makeMothership(livery = {}) {
   const outer = new THREE.Group();
   const inner = new THREE.Group();          // inner.rotation lets outer.lookAt() aim the nose
   outer.add(inner);
-  const hullMat = mat(0xd8dde6, { physical: true, roughness: 0.32, metalness: 0.35, clearcoat: 0.7 });
-  const darkMat = mat(0x3a4150, { metalness: 0.7, roughness: 0.35 });
-  const accent = mat(0x1e7bff, { emissive: 0x1e5ad0, emissiveIntensity: 0.9 });
+  // livery from the shop (core/shop.js ITEMS.ship)
+  const hullMat = mat(livery.hull ?? 0xd8dde6, { physical: true, roughness: livery.metal ? 0.18 : 0.32, metalness: livery.metal ?? 0.35, clearcoat: 0.7, emissive: livery.galaxy ? 0x1a0a40 : 0x000000 });
+  const darkMat = mat(livery.trim ?? 0x3a4150, { metalness: 0.7, roughness: 0.35 });
+  const accent = mat(livery.accent ?? 0x1e7bff, { emissive: livery.accent ?? 0x1e5ad0, emissiveIntensity: 0.9 });
   const windowMat = mat(0xffe2a0, { emissive: 0xffc860, emissiveIntensity: 1.6 });
   const glassMat = mat(0x0a1a30, { physical: true, roughness: 0.05, metalness: 0.4, clearcoat: 1 });
   const add = (geo, m, x = 0, y = 0, z = 0, parent = inner) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; parent.add(o); return o; };

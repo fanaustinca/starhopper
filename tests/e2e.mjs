@@ -47,6 +47,8 @@ const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error' && !/fonts\.(googleapis|gstatic)/.test(m.text())) consoleErrors.push(m.text()); });
 page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message));
 
+// the planet panel slides in; wait until it's settled before clicking inside it
+const panelOpen = () => page.waitForFunction(() => { const p = document.getElementById('planet-panel'); return p.classList.contains('open') && getComputedStyle(p).transform === 'none' && getComputedStyle(p).opacity === '1'; }, null, { timeout: 15000 });
 async function boot(query = 'test&fresh') {
   await page.goto(BASE + '?' + query, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.waitForFunction(() => window.SH && window.SH.ready, null, { timeout: 120000 });
@@ -209,13 +211,50 @@ await test('pause with Escape, resume with Escape', async () => {
   assert((await S(() => SH.state())).mode === 'playing');
 });
 
-await test('level select: only unlocked levels can be launched', async () => {
+await test('star map: drag to orbit, click a planet in 3D to open its levels; only unlocked levels launch', async () => {
   await S(() => { SH.game.mode = 'menu'; SH.openSelect(); });
   assert(await page.isVisible('#select'));
+  assert((await page.$$('.map-label')).length === 17, '17 bodies labelled');
+  for (let i = 0; i < 20; i++) await S(() => { SH.game.map.update(0.05); });
+  await S(() => SH.game.map.render());
+  await shot(page, '04-star-map.png');
+  // drag rotates the view
+  const yaw0 = await S(() => SH.game.map.viewGoal.yaw);
+  await page.mouse.move(400, 500); await page.mouse.down(); await page.mouse.move(600, 520, { steps: 6 }); await page.mouse.up();
+  assert(Math.abs((await S(() => SH.game.map.viewGoal.yaw)) - yaw0) > 0.3, 'drag orbits the camera');
+  assert(!(await S(() => SH.game.panelOpen)), 'a drag is not a click');
+  // click the Sun itself in the 3D view
+  // a spot on the Sun's disc that no planet label is covering (labels orbit past it)
+  const at = await S(() => {
+    const m = SH.game.map; m.update(0.016);
+    const b = m.bodies.find((q) => q.wi === 0), c = m.worldPos(b);
+    const p = (v) => ({ x: (v.x * 0.5 + 0.5) * innerWidth, y: (-v.y * 0.5 + 0.5) * innerHeight });
+    const ctr = p(c.clone().project(m.camera)), edge = p(c.clone().add(m.camera.up.clone().multiplyScalar(b.layout.size)).project(m.camera));
+    const r = Math.hypot(edge.x - ctr.x, edge.y - ctr.y) * 0.6;
+    for (let k = 0; k < 24; k++) {
+      const a = k * 0.9, rr = (k % 3) / 2 * r, pt = { x: ctr.x + Math.cos(a) * rr, y: ctr.y + Math.sin(a) * rr };
+      const el = document.elementFromPoint(pt.x, pt.y);
+      if (el && !el.closest('button')) return pt;
+    }
+    return ctr;
+  });
+  await page.mouse.click(at.x, at.y);
+  assert(await S(() => SH.game.panelOpen && SH.game.selectWorld === 0), 'clicking the Sun opens its panel');
+  await panelOpen();
   const locked = await page.$('.lvl[data-level="3"]');
   assert(await locked.evaluate((e) => e.classList.contains('locked')), 'level 3 locked');
   await locked.click({ force: true });
   assert((await S(() => SH.state())).mode === 'menu', 'locked level did not start');
+  await page.keyboard.press('Escape');
+  assert(!(await S(() => SH.game.panelOpen)), 'Escape closes the panel');
+  // labels work too (they fly with the planets, so click the element itself), and a locked planet shows a locked panel
+  await page.$eval('.map-label[data-world="3"]', (el) => el.click());
+  assert(await S(() => SH.game.selectWorld === 3 && SH.game.panelOpen), 'label opens Earth');
+  await panelOpen();
+  assert(await page.$eval('#panel-play', (b) => b.disabled), 'Earth locked: play disabled');
+  await S(() => SH.selectPlanet(0));
+  await panelOpen();
+  await shot(page, '04b-planet-panel.png');
   await page.click('.lvl[data-level="2"]');
   await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 2);
 });
@@ -243,15 +282,21 @@ await test('finishing a world plays the ship cutscene and lands on the next plan
   assert((await page.textContent('#hud-world')).includes('Mercury'));
 });
 
-await test('level select features THE END: locked card until 480 is cleared, then it launches level 481', async () => {
+await test('star map features THE END: the black hole stays locked until 480 is cleared, then launches level 481', async () => {
   await boot('test&fresh&unlock=40');
   await S(() => SH.openSelect());
-  assert((await page.textContent('#end-card')).includes('Clear all 16 worlds'), 'locked card shown');
-  await page.click('#end-card');
+  await page.click('#map-systems [data-sys="void"]');
+  assert(await S(() => SH.game.selectWorld === 16 && SH.game.panelOpen), 'The End pill opens the black hole');
+  await panelOpen();
+  assert((await page.textContent('#level-grid')).includes('Clear all 16 worlds'), 'locked card shown');
+  assert(await page.$eval('#panel-play', (b) => b.disabled), 'play disabled while locked');
+  await page.click('.lvl-end', { force: true });
   assert((await S(() => SH.state())).mode !== 'playing', 'locked card does not start the level');
   await boot('test&fresh&unlock=481');
   await S(() => SH.openSelect());
-  await page.click('#end-card');
+  await page.click('#map-systems [data-sys="void"]');
+  await panelOpen();
+  await page.click('#panel-play');
   await page.waitForFunction(() => SH.state().mode === 'playing' && SH.state().level === 481);
 });
 
@@ -425,6 +470,37 @@ await test('robot shop: buy and equip a skin with cells; skin persists', async (
   st = await S(() => SH.state());
   assert(st.skin === 'ninja', 'skin persisted');
   assert(await S(() => SH.game.renderer.robot.skin.id === 'ninja'), 'robot wears it');
+});
+
+await test('robot shop: hats, companions and the other categories buy, equip, preview and persist', async () => {
+  await S(() => { dev.cells(2000); SH.game.mode = 'menu'; SH.game.show('menu'); });
+  await page.click('#btn-shop');
+  assert((await page.$$('.shop-tab')).length === 7, '7 shop categories');
+  await page.click('.shop-tab[data-cat="hat"]');
+  await page.click('.skin[data-item="halo"]');
+  assert(await S(() => SH.game.renderer.robot.hatId === 'halo'), 'hat previewed before buying');
+  await page.click('#btn-shop-action');
+  await page.click('.shop-tab[data-cat="pet"]');
+  await page.click('.skin[data-item="ufo"]');
+  await page.click('#btn-shop-action');
+  let st = await S(() => SH.state());
+  assert(st.equip.hat === 'halo' && st.equip.pet === 'ufo', 'bought + equipped: ' + JSON.stringify(st.equip));
+  assert(st.owned.hat.includes('halo') && st.owned.pet.includes('ufo'));
+  await page.click('.shop-tab[data-cat="dance"]');
+  await page.click('.skin[data-item="breakdance"]');
+  await page.waitForTimeout(200);
+  await shot(page, '08b-shop-dance.png');
+  // previewing an unbought dance does not equip it once you leave
+  await page.click('#shop [data-back]');
+  assert(await S(() => SH.game.renderer.robot.danceId === 'none'), 'preview reverts on exit');
+  await boot('test');
+  st = await S(() => SH.state());
+  assert(st.equip.hat === 'halo' && st.equip.pet === 'ufo', 'cosmetics persisted');
+  assert(await S(() => SH.game.renderer.robot.hatId === 'halo' && SH.game.renderer.pet.visible), 'robot wears the hat, the UFO follows');
+  await S(() => SH.startLevel(1));
+  await S(() => SH.manual(true));
+  await S(() => SH.step(60, { right: true, jump: true, jumpPressed: true }));
+  assert(await S(() => SH.game.renderer.pet.position.distanceTo(SH.game.renderer.robot.root.position) < 4), 'companion follows in a level');
 });
 
 await test('no lag spikes: level warm-up compiles every shader up front, even through a chase', async () => {

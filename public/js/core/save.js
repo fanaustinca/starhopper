@@ -1,10 +1,11 @@
 // Progress persistence (localStorage, guarded so private mode still works).
 import { TOTAL_LEVELS } from './config.js';
+import { defaultCosmetics, normalizeCosmetics } from './shop.js';
 
 const KEY = 'starhopper.save.v2';
 
 export function defaultSave() {
-  return { unlocked: 1, best: {}, totalCells: 0, seenWorlds: [0], wallet: 0, skins: ['classic'], skin: 'classic', shardIds: {}, introSeen: false, settings: { quality: 'high', sound: true, music: true } };
+  return { unlocked: 1, best: {}, totalCells: 0, seenWorlds: [0], wallet: 0, skins: ['classic'], skin: 'classic', shardIds: {}, introSeen: false, settings: { quality: 'high', sound: true, music: true }, ...defaultCosmetics() };
 }
 
 export function loadSave(storage = globalThis.localStorage) {
@@ -13,6 +14,7 @@ export function loadSave(storage = globalThis.localStorage) {
     if (!raw) return defaultSave();
     const s = { ...defaultSave(), ...JSON.parse(raw) };
     s.unlocked = Math.max(1, Math.min(TOTAL_LEVELS, s.unlocked | 0));
+    normalizeCosmetics(s);            // older saves get the new shop slots
     return s;
   } catch {
     return defaultSave();

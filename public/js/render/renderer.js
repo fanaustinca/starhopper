@@ -14,6 +14,10 @@ import { mat, makeMoverMesh, rockGeo } from './vehicles.js';
 import { buildBackdrop, gearMesh } from './decor.js';
 import { glowTexture, stripeTexture, windowTexture } from './textures.js';
 import { tickShaders, releaseShader, chaserMaterial } from './shaders.js';
+import { tickPlanets } from './planets.js';
+import { makePet, animatePet } from './cosmetics.js';
+import { itemById } from '../core/shop.js';
+import { makeMothership } from './vehicles.js';
 import { phaseOf } from '../core/sim.js';
 
 const CHASER_COLORS = {
@@ -102,6 +106,26 @@ export class Renderer {
     window.addEventListener('resize', () => this.resize());
   }
 
+  // shop cosmetics: hat + dance on the robot, a companion, a trail, a jump burst
+  setCosmetics(equip = {}) {
+    this.equip = { ...equip };
+    this.robot.setHat(equip.hat || 'none');
+    this.robot.setDance(equip.dance || 'none');
+    if (this.pet) this.scene.remove(this.pet);
+    this.pet = makePet(equip.pet || 'none');
+    this.pet.userData.placed = false;
+    this.scene.add(this.pet);
+    this.trailCfg = itemById('trail', equip.trail || 'none');
+    this.jumpFx = itemById('jump', equip.jump || 'none');
+    if (this.shipPreview) { this.scene.remove(this.shipPreview); this.shipPreview = null; }
+  }
+  jumpBurst(p) {
+    const j = this.jumpFx;
+    if (!j || j.id === 'none') return false;
+    this.fx.burst({ confetti: 'confettiS', stars: 'stars', hearts: 'hearts', ring: 'ring', notes: 'notes', lightning: 'lightning' }[j.id], p.x, p.y + 0.4, j.color ?? 0xffffff);
+    return true;
+  }
+
   setQuality(q) {
     this.quality = q;
     this.basePR = q === 'low' ? 1 : Math.min(window.devicePixelRatio || 1, q === 'high' ? 2 : 1.5);
@@ -181,6 +205,18 @@ export class Renderer {
 
     this.backdrop = buildBackdrop(level);
     G.add(this.backdrop.group);
+    // the backdrop variant re-lights the scene (dusk, night, storms, furnaces...)
+    const VL = this.backdrop.variant.light;
+    if (VL) {
+      if (VL.fog != null) this.scene.fog.color.setHex(VL.fog);
+      if (VL.fogDensity != null) { this.scene.fog.density = VL.fogDensity; this.baseFog = VL.fogDensity; }
+      if (VL.light != null) { this.hemi.color.setHex(VL.light); this.sun.color.setHex(VL.light); }
+      if (VL.sunI != null) this.sun.intensity = VL.sunI;
+      if (VL.hemiI != null) this.hemi.intensity = VL.hemiI;
+      if (VL.under) { this.under.color.setHex(VL.under[0]); this.under.intensity = VL.under[1]; }
+    }
+    this.scene.environmentIntensity = VL && VL.env != null ? VL.env : 0.28;
+    this.variantName = this.backdrop.variant.name;
     this.weather.set(W.id, { redSpot: level.redSpot });
 
     this.solidMeshes = level.solids.map((s) => this.makeSolid(s, W, level));
@@ -859,8 +895,8 @@ export class Renderer {
     const p = sim.player;
     for (const e of events) {
       switch (e.type) {
-        case 'jump': this.robot.trigger('jump'); this.fx.burst('dust', p.x, p.y); break;
-        case 'doublejump': this.robot.trigger('doublejump'); this.fx.burst('ring', p.x, p.y); break;
+        case 'jump': this.robot.trigger('jump'); if (!this.jumpBurst(p)) this.fx.burst('dust', p.x, p.y); break;
+        case 'doublejump': this.robot.trigger('doublejump'); if (!this.jumpBurst(p)) this.fx.burst('ring', p.x, p.y); break;
         case 'land': this.robot.trigger('land'); this.fx.burst('dust', p.x, p.y); break;
         case 'shard': {
           const m = this.pickupMeshes.get(e.id);
@@ -921,6 +957,7 @@ export class Renderer {
     // solids
     this.time = (this.time || 0) + dt;
     tickShaders(this.time);
+    tickPlanets(this.time);
     for (let i = 0; i < this.solidMeshes.length; i++) {
       const sm = this.solidMeshes[i], col = sim.colliders[i];
       const u = sm.userData;
@@ -1139,8 +1176,41 @@ export class Renderer {
 
     // hero
     this.robot.root.position.set(p.x, p.y, 0);
-    this.robot.update(p, dt, t, { invuln: sim.invuln, win: sim.complete, showcase: this.showcase });
+    const demo = this.showcase ? this.showcaseDemo : null;
+    this.robot.update(p, dt, t, { invuln: sim.invuln, win: sim.complete || demo === 'dance', showcase: this.showcase });
     if (p.barrel) this.robot.root.visible = false;
+    // shop previews: demo jumps for jump FX, a hovering mini mothership for ship paint
+    if (demo === 'jump' || demo === 'trail') {
+      this.demoT = (this.demoT || 0) + dt;
+      if (this.demoT > 1.4) { this.demoT = 0; this.robot.trigger('jump'); if (demo === 'jump' && !this.jumpBurst(p)) this.fx.burst('dust', p.x, p.y); }
+    }
+    if (demo === 'ship') {
+      if (!this.shipPreview || this.shipPreview.userData.livery !== (this.equipPreview || 'none')) {
+        if (this.shipPreview) this.scene.remove(this.shipPreview);
+        this.shipPreview = makeMothership(itemById('ship', this.equipPreview || 'none'));
+        this.shipPreview.userData.livery = this.equipPreview || 'none';
+        const size = new THREE.Box3().setFromObject(this.shipPreview).getSize(new THREE.Vector3());
+        this.shipPreview.scale.setScalar(1.7 / Math.max(size.x, size.y, size.z));
+        this.scene.add(this.shipPreview);
+      }
+      this.shipPreview.visible = true;
+      this.shipPreview.position.set(p.x - 0.55, p.y + 2.05 + Math.sin(t * 1.5) * 0.08, -0.3);
+      this.shipPreview.rotation.y = t * 0.5;
+    } else if (this.shipPreview) this.shipPreview.visible = false;
+    // trail + companion
+    const moving = Math.abs(p.vx) > 1.5 || !p.onGround || (this.showcase && demo === 'trail');
+    if (moving && !p.barrel && this.robot.root.visible) this.fx.trail(this.trailCfg, this.showcase ? p.x + Math.sin(t * 2.4) * 1.15 : p.x - p.facing * 0.25, this.showcase ? p.y + 0.95 + Math.cos(t * 2.4) * 0.85 : p.y + 0.55, dt, t);
+    if (this.pet && this.pet.visible) {
+      const tx = this.showcase ? p.x - 1.15 : p.x - p.facing * 1.0, ty = p.y + (this.showcase ? 1.45 : 1.75) + Math.sin(t * 2.2) * 0.15, tz = this.showcase ? 0.9 : 0.7;
+      if (!this.pet.userData.placed) { this.pet.position.set(tx, ty, tz); this.pet.userData.placed = true; }
+      const k = Math.min(1, dt * 4);
+      this.pet.position.x += (tx - this.pet.position.x) * k;
+      this.pet.position.y += (ty - this.pet.position.y) * k;
+      this.pet.position.z += (tz - this.pet.position.z) * k;
+      this.pet.rotation.y += ((p.facing > 0 ? 0.5 : Math.PI - 0.5) - this.pet.rotation.y) * k;
+      this.pet.rotation.z = -(tx - this.pet.position.x) * 0.15;
+      animatePet(this.pet, t, dt);
+    }
     this.heroLight.position.set(p.x + 1, p.y + 2.5, 3);
     // blob shadow on whatever is below
     let below = L.floor.y;

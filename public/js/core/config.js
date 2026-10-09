@@ -212,6 +212,14 @@ export const WORLDS = [
 // 16 worlds × 30, plus the single bonus level inside the black hole (481)
 export const TOTAL_LEVELS = (WORLDS.length - 1) * LEVELS_PER_WORLD + 1;   // 16 worlds × 30 + THE END = 481
 export const BONUS_WORLD = WORLDS.length - 1;
+
+// The two star systems on the star map (plus the black hole drifting between them).
+export const SYSTEMS = [
+  { id: 'sol', name: 'Sol System', star: 'The Sun', blurb: 'Home: the Sun, eight planets and the Asteroid Belt.', worlds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] },
+  { id: 'vesper', name: 'Vesper System', star: 'Vesper', blurb: 'A violet star far beyond Neptune, circled by six strange alien worlds.', worlds: [10, 11, 12, 13, 14, 15] },
+  { id: 'void', name: 'The Void', star: null, blurb: 'Between the stars, something is swallowing the light.', worlds: [16] },
+];
+export function systemOf(wi) { return SYSTEMS.find((s) => s.worlds.includes(wi)) || SYSTEMS[0]; }
 export const levelsInWorld = (wi) => (WORLDS[wi].bonus ? 1 : LEVELS_PER_WORLD);
 export const lastLevelOfWorld = (wi) => Math.min(TOTAL_LEVELS, wi * LEVELS_PER_WORLD + levelsInWorld(wi));
 export const RED_SPOT_FROM = 25;        // Jupiter levels 25-30 are inside the Great Red Spot

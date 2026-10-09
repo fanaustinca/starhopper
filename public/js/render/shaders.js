@@ -75,6 +75,10 @@ export function skyMaterial(o) {
     nebA: { value: new THREE.Color(o.nebA ?? 0x4020a0) }, nebB: { value: new THREE.Color(o.nebB ?? 0xff4080) }, neb: { value: o.neb ?? 0 },
     clouds: { value: o.clouds ?? 0 }, cloudColor: { value: new THREE.Color(o.cloudColor ?? 0xffffff) }, cloudScale: { value: o.cloudScale ?? 1.2 },
     corona: { value: o.corona ?? 0 }, aurora: { value: o.aurora ?? 0 },
+    rays: { value: o.rays ?? 0 }, rayColor: { value: new THREE.Color(o.rayColor ?? o.sunColor ?? 0xfff2d0) }, rainbow: { value: o.rainbow ?? 0 },
+    ringArc: { value: o.ringArc ?? 0 }, ringColor: { value: new THREE.Color(o.ringColor ?? 0xe8d4a0) }, ringTilt: { value: o.ringTilt ?? 0.18 },
+    vortex: { value: o.vortex ?? 0 }, vortexDir: { value: new THREE.Vector3(...(o.vortexDir || [0.2, 0.4, -1])).normalize() }, vortexCol: { value: new THREE.Color(o.vortexCol ?? 0x100820) }, vortexSize: { value: o.vortexSize ?? 0.45 },
+    flash: { value: 0 }, flashColor: { value: new THREE.Color(o.flashColor ?? 0xd8e4ff) },
   });
   return new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false, uniforms: u,
@@ -83,6 +87,7 @@ export function skyMaterial(o) {
       ${NOISE}
       uniform float t; uniform vec3 top, horizon, ground, sunDir, sunColor, nebA, nebB, cloudColor;
       uniform float sunSize, sunHalo, stars, neb, clouds, cloudScale, corona, aurora;
+      uniform float rays, rainbow, ringArc, ringTilt, vortex, vortexSize, flash; uniform vec3 rayColor, ringColor, vortexDir, vortexCol, flashColor;
       varying vec3 vP;
       void main(){
         vec3 d = normalize(vP);
@@ -108,6 +113,31 @@ export function skyMaterial(o) {
         float sd = max(dot(d, sunDir), 0.0);
         float disk = smoothstep(cos(sunSize), cos(sunSize*0.85), sd);
         col += sunColor * (disk * 5.0 + sunHalo * (pow(sd, 400.0)*1.2 + pow(sd, 24.0)*0.35 + pow(sd, 4.0)*0.12));
+        // god rays fanning out of the sun (rainbow-tinted on prism worlds)
+        if (rays > 0.0) {
+          vec3 sd3 = d - sunDir * dot(d, sunDir);
+          float ra = atan(dot(sd3, normalize(cross(sunDir, vec3(0.0, 1.0, 0.0)))), dot(sd3, vec3(0.0, 1.0, 0.0)));
+          float fan = pow(0.5 + 0.5 * sin(ra * 14.0 + t * 0.15 + sin(ra * 5.0 + t * 0.1) * 2.0), 6.0);
+          float fall = pow(sd, 3.0) * smoothstep(-0.1, 0.3, h);
+          vec3 rc = rainbow > 0.0 ? 0.5 + 0.5 * cos(6.2831 * (ra * 0.6 + vec3(0.0, 0.33, 0.67) + t * 0.02)) : rayColor;
+          col += rc * fan * fall * rays * 0.9;
+        }
+        // a planetary ring seen edge-on from inside its own plane: a bright band across the sky
+        if (ringArc > 0.0) {
+          float y = h - ringTilt * d.x;
+          float band = smoothstep(0.05, 0.0, abs(y - 0.12)) * (0.6 + 0.4 * sin(d.x * 140.0 + d.z * 90.0)) + smoothstep(0.012, 0.0, abs(y - 0.165)) * 0.8;
+          col += ringColor * band * ringArc * smoothstep(-0.05, 0.1, h);
+        }
+        // a giant storm / sunspot vortex hanging in the sky
+        if (vortex > 0.0) {
+          float vd = acos(clamp(dot(d, vortexDir), -1.0, 1.0)) / vortexSize;
+          vec3 vx = normalize(cross(vortexDir, vec3(0.0, 1.0, 0.0))), vy = cross(vx, vortexDir);
+          float va = atan(dot(d, vy), dot(d, vx));
+          float swirl = fbm(vec3(cos(va + vd * 4.0 - t * 0.08), sin(va + vd * 4.0 - t * 0.08), vd * 2.0));
+          float core = smoothstep(1.0, 0.0, vd + swirl * 0.25);
+          col = mix(col, vortexCol, core * vortex * 0.9);
+          col += mix(horizon, vec3(1.0), 0.3) * smoothstep(0.25, 0.0, abs(vd + swirl * 0.2 - 0.85)) * 0.35 * vortex;
+        }
         // corona streamers (when you're standing ON a star)
         if (corona > 0.0) {
           float ang = atan(d.x, d.z);
@@ -130,20 +160,21 @@ export function skyMaterial(o) {
           vec3 cc = cloudColor * (0.75 + 0.35*c) + sunColor * pow(sd, 6.0) * 0.4;
           col = mix(col, cc, cov * clouds);
         }
+        col += flashColor * flash * (0.35 + 0.65 * smoothstep(-0.1, 0.4, h));
         gl_FragColor = vec4(col, 1.0);
       }`,
   });
 }
 
 // ---------------------------------------------------------------- photosphere
-export function sunSurfaceMaterial() {
-  const u = timed(THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { t: { value: 0 } }]));
+export function sunSurfaceMaterial(o = {}) {
+  const u = timed(THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { t: { value: 0 }, tint: { value: new THREE.Color(o.tint ?? 0xffffff) }, tintMix: { value: o.tintMix ?? 0 }, spots: { value: o.spots ?? 0 } }]));
   return new THREE.ShaderMaterial({
     fog: true, uniforms: u, vertexShader: worldVert,
     fragmentShader: /* glsl */`
       ${FOG_F}
       ${NOISE}
-      uniform float t; varying vec3 vW; varying vec3 vView;
+      uniform float t, tintMix, spots; uniform vec3 tint; varying vec3 vW; varying vec3 vView;
       void main(){
         vec2 p = vW.xz;
         float dist = length(vView);
@@ -152,8 +183,8 @@ export function sunSurfaceMaterial() {
         float gran = 1.0 - smoothstep(0.0, 0.85, w.x);           // bright cell centres
         float lane = smoothstep(0.0, 0.18, w.y - w.x);           // dark intergranular lanes
         float big = fbm3(vec3(p*0.012, t*0.02));
-        float spot = smoothstep(0.42, 0.62, fbm3(vec3(p*0.004 + 11.0, t*0.004)));
-        float pen = smoothstep(0.3, 0.45, fbm3(vec3(p*0.004 + 11.0, t*0.004)));
+        float spot = smoothstep(0.42 - spots, 0.62 - spots, fbm3(vec3(p*0.004 + 11.0, t*0.004)));
+        float pen = smoothstep(0.3 - spots, 0.45 - spots, fbm3(vec3(p*0.004 + 11.0, t*0.004)));
         vec3 hot = vec3(1.0, 0.68, 0.26), mid = vec3(0.9, 0.3, 0.03), cool = vec3(0.35, 0.05, 0.0);
         vec3 c = mix(mid, hot, gran) * mix(0.5, 1.0, lane);
         c *= 0.8 + 0.4 * big;
@@ -163,6 +194,7 @@ export function sunSurfaceMaterial() {
         c = mix(c, vec3(0.95, 0.42, 0.07) * (0.8 + 0.35*big), smoothstep(35.0, 170.0, dist));
         // faculae flicker
         c += vec3(1.0, 0.85, 0.5) * pow(gran, 6.0) * 0.25 * (0.5 + 0.5*sin(t*2.0 + w.x*20.0));
+        c = mix(c, dot(c, vec3(0.45, 0.45, 0.1)) * tint * 1.6, tintMix);
         gl_FragColor = vec4(c * 1.35, 1.0);
         #include <fog_fragment>
       }`,

@@ -1,0 +1,40 @@
+// Renders every world's 3D planet into a contact sheet (tools/shots/planets.png) for review.
+import { chromium } from 'playwright';
+import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const here = path.dirname(fileURLToPath(import.meta.url));
+const root = path.join(here, '..', 'public');
+const srv = http.createServer((q, r) => { const u = decodeURIComponent(q.url.split('?')[0]); const f = path.join(root, u === '/' ? 'index.html' : u); if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) { r.writeHead(404); r.end(); return; } r.writeHead(200, { 'Content-Type': { '.js': 'text/javascript', '.html': 'text/html', '.css': 'text/css' }[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(r); });
+await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+const b = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--use-gl=angle', '--use-angle=swiftshader', '--ignore-gpu-blocklist'] });
+const p = await (await b.newContext({ viewport: { width: 1600, height: 900 } })).newPage();
+const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => { if (m.type() === 'error' && !/fonts/.test(m.text())) errs.push(m.text()); });
+await p.goto(`http://127.0.0.1:${srv.address().port}/?test`); await p.waitForFunction(() => window.SH && SH.ready, null, { timeout: 120000 });
+const t0 = Date.now();
+await p.evaluate(async (time) => {
+  const THREE = await import('three');
+  const { makePlanet, tickPlanets } = await import('./js/render/planets.js');
+  const { WORLDS } = await import('./js/core/config.js');
+  document.body.innerHTML = '';
+  const r = new THREE.WebGLRenderer({ antialias: true }); r.setSize(1600, 900); r.toneMapping = THREE.ACESFilmicToneMapping; r.outputColorSpace = THREE.SRGBColorSpace;
+  document.body.appendChild(r.domElement);
+  const scene = new THREE.Scene(); scene.background = new THREE.Color(0x02030a);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.15));
+  const sun = new THREE.DirectionalLight(0xffffff, 3); sun.position.set(-1, 0.6, 1); scene.add(sun);
+  const cam = new THREE.OrthographicCamera(-8, 8, 4.5, -4.5, 0.1, 100); cam.position.set(0, 0, 20);
+  WORLDS.forEach((w, i) => {
+    const pl = makePlanet(w, { segs: 72 });
+    const col = i % 6, row = Math.floor(i / 6);
+    pl.position.set(-6.6 + col * 2.65, 3 - row * 3, 0);
+    pl.scale.setScalar(w.planet.rings ? 0.55 : 0.95);
+    pl.rotation.x = 0.35;
+    scene.add(pl);
+    pl.userData.update && pl.userData.update(time, cam);
+  });
+  tickPlanets(time);
+  r.render(scene, cam);
+}, 20);
+console.log('built+rendered in', Date.now() - t0, 'ms');
+await p.screenshot({ path: path.join(here, 'shots', 'planets.png') });
+console.log('errors:', errs);
+await b.close(); srv.close();

@@ -3,6 +3,7 @@
 // elbows and knees, ovoid boots — animated procedurally. Supports skins.
 import * as THREE from 'three';
 import { skinById } from '../core/skins.js';
+import { makeHat } from './cosmetics.js';
 
 function lathe(profile, segs = 40) {
   const curve = new THREE.SplineCurve(profile.map(([x, y]) => new THREE.Vector2(x, y)));
@@ -36,6 +37,7 @@ export class Robot {
     this.body = new THREE.Group();
     this.root.add(this.body);
     this.phase = 0; this.flip = 0; this.blinkT = 2; this.turn = 0.9; this.squash = 0; this.jetT = 0;
+    this.hatId = 'none'; this.danceId = 'none'; this.hat = null;
     this.setSkin(skinId);
   }
 
@@ -45,7 +47,18 @@ export class Robot {
     // clear old parts
     while (this.body.children.length) this.body.remove(this.body.children[0]);
     this.build(skin);
+    this.setHat(this.hatId);
   }
+
+  // shop hats sit on the helmet; they replace the skin's own head accessory (ears, crown...)
+  setHat(id = 'none') {
+    this.hatId = id;
+    if (this.hat) this.head.remove(this.hat);
+    this.hat = makeHat(id);
+    this.head.add(this.hat);
+    for (const o of this.headAcc || []) o.visible = id === 'none';
+  }
+  setDance(id = 'none') { this.danceId = id; }
 
   build(S) {
     const bodyMat = new THREE.MeshPhysicalMaterial({
@@ -160,6 +173,7 @@ export class Robot {
 
     // ---- accessories ----
     this.scarfTail = null;
+    const headBefore = this.head.children.length;
     if (S.acc === 'antenna') {
       mesh(this.head, new THREE.CylinderGeometry(0.012, 0.012, 0.22, 8), jointMat, 0, 0.78, 0);
       mesh(this.head, new THREE.SphereGeometry(0.045, 16, 12), accentMat, 0, 0.9, 0);
@@ -196,6 +210,7 @@ export class Robot {
         mesh(this.torso, new THREE.CircleGeometry(0.04, 16), accentMat, s * 0.09, 0.019, -0.27).rotation.x = Math.PI / 2;
       }
     }
+    this.headAcc = this.head.children.slice(headBefore);
   }
 
   // Air tricks: every jump picks a random move. First jumps get lighter
@@ -237,6 +252,7 @@ export class Robot {
     let bodyY = 0.43, lean = 0, headTilt = 0, headNod = 0;
     let armL = 0, armR = 0, spread = 0.12, elL = -0.25, elR = -0.25;
     let legL = 0, legR = 0, knL = 0, knR = 0;
+    let rx = 0, ry = 0, rz = 0;
 
     switch (st) {
       case 'idle': case 'showcase':
@@ -273,14 +289,41 @@ export class Robot {
       case 'wall':
         armL = -1.6; armR = -2.2; elL = elR = -0.5; legL = -0.5; knL = 0.9; legR = 0.2; knR = 0.4; lean = -0.15; spread = 0.35;
         break;
-      case 'win':
-        armL = -2.8 + Math.sin(t * 10) * 0.4; armR = -0.3; elL = -0.3; spread = 0.5;
-        bodyY = 0.43 + Math.abs(Math.sin(t * 5)) * 0.12; knL = knR = Math.abs(Math.sin(t * 5)) * 0.4;
+      case 'win': {
+        // victory dance (bought in the shop)
+        const d = this.danceId, k = Math.sin(t * 5);
+        if (d === 'spin') { armL = armR = -1.4; spread = 1.4; elL = elR = 0; ry = t * 7; knL = knR = 0.2; }
+        else if (d === 'robot') {
+          const step = Math.floor(t * 3) % 4;
+          armL = [-1.57, -0.3, -1.57, 0][step]; armR = [-0.3, -1.57, 0, -1.57][step]; elL = elR = -1.57; spread = 0.25;
+          headTilt = [0.25, 0, -0.25, 0][step]; knL = step % 2 ? 0.4 : 0; knR = step % 2 ? 0 : 0.4;
+        } else if (d === 'floss') {
+          const f = Math.sin(t * 9);
+          armL = -0.35; armR = -0.35; elL = elR = 0; spread = 0.15;
+          this.arms[0].position.z = f * 0.18; this.arms[1].position.z = f * 0.18;
+          ry = Math.sin(t * 9 + Math.PI / 2) * 0.25; knL = knR = 0.25;
+          this.arms[0].rotation.y = f * 0.6; this.arms[1].rotation.y = f * 0.6;
+        } else if (d === 'backflip') {
+          const u = (t * 1.2) % 1;
+          legL = legR = -1.4 * Math.sin(u * Math.PI); knL = knR = 2.0 * Math.sin(u * Math.PI); armL = armR = -0.8; elL = elR = -1.4;
+          rx = -u * Math.PI * 2; bodyY = 0.43 + Math.sin(u * Math.PI) * 0.9;
+        } else if (d === 'moonwalk') {
+          const m = Math.sin(t * 4);
+          legL = m * 0.35; legR = -m * 0.35; knL = Math.max(0, m) * 0.9; knR = Math.max(0, -m) * 0.9;
+          armL = -m * 0.5; armR = m * 0.5; elL = elR = -0.9; lean = -0.12; ry = -Math.PI / 2 * 0.8; headNod = 0.1;
+        } else if (d === 'breakdance') {
+          rz = Math.PI / 2 * 0.85; ry = t * 8; bodyY = 0.62;
+          legL = Math.sin(t * 16) * 1.2; legR = -legL; knL = knR = 0.2; armL = -3.0; armR = -0.4; spread = 0.6;
+        } else {
+          armL = -2.8 + Math.sin(t * 10) * 0.4; armR = -0.3; elL = -0.3; spread = 0.5;
+          bodyY = 0.43 + Math.abs(k) * 0.12; knL = knR = Math.abs(k) * 0.4;
+        }
         break;
+      }
     }
 
     // ---- air trick overrides pose + adds a body rotation ----
-    let rx = 0, ry = 0, rz = 0;
+    if (st !== 'win') { this.arms[0].position.z = 0; this.arms[1].position.z = 0; this.arms[0].rotation.y = 0; this.arms[1].rotation.y = 0; }
     const airborne = st === 'jump' || st === 'flip' || st === 'fall';
     if (this.trick && !airborne && st !== 'showcase') this.trick = null;
     if (this.trick) {
@@ -334,12 +377,17 @@ export class Robot {
     const flat = grounded ? 1 : 0.55;
     this.ankles[0].rotation.x = -(legL + knL + (grounded ? leanNow : 0)) * flat;
     this.ankles[1].rotation.x = -(legR + knR + (grounded ? leanNow : 0)) * flat;
-    if (grounded && !this.trick) {
+    const airDance = st === 'win' && (this.danceId === 'backflip' || this.danceId === 'breakdance');
+    if (grounded && !this.trick && !airDance) {
       // plant the lowest foot exactly on the floor (hip 0.02, thigh 0.16, shin 0.17, foot 0.113 below the ankle)
       const footY = (h, k) => 0.02 - 0.16 * Math.cos(h + leanNow) - 0.17 * Math.cos(h + k + leanNow) - 0.113;
       const lowest = Math.min(footY(legL, knL), footY(legR, knR));
       const sy = this.body.scale.y;
       this.body.position.y = -lowest * sy + (st === 'win' ? Math.abs(Math.sin(t * 5)) * 0.12 : 0) + (st === 'idle' || st === 'showcase' ? Math.sin(t * 2.4) * 0.006 : 0);
+    }
+    if (this.hat) {
+      if (this.hat.userData.spin) this.hat.userData.spin.rotation.y = t * (12 + Math.min(20, speed * 3));
+      if (this.hat.userData.bob) this.hat.userData.bob.position.y = 0.86 + Math.sin(t * 2.5) * 0.03;
     }
     if (this.scarfTail) this.scarfTail.rotation.x = 0.6 + Math.min(1.2, speed * 0.12) + Math.sin(t * 14) * 0.12;
 

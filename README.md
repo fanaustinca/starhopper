@@ -26,6 +26,26 @@ A 2.5D robot platformer for the browser, built with Three.js. You play a small g
 
 Every jump plays a random air trick: flips, cartwheels, corkscrews, star jumps and more.
 
+### The star map
+
+Level select is a draggable **3D model of two star systems**:
+- **Sol:** the Sun, the eight planets and the Asteroid Belt.
+- **Vesper:** a violet star far beyond Neptune, circled by the six alien worlds (Prismara, Mechanus, Bio-Lumina, Chronos, Aerolis, Velocitar).
+- **The black hole** (THE END) drifts between the two systems.
+
+Planets orbit their stars. Drag to orbit the camera, scroll or pinch to zoom, and click a planet (or its label) to fly to it. Its panel then slides in with progress, a Play button and its 30 levels. The ←/→ keys step between planets and Esc closes the panel.
+
+Planets are **real 3D models** (`render/planets.js`), not textures wrapped on a sphere:
+- **Rocky worlds:** cube-spheres displaced by noise, with craters (bowls, rims, ejecta rays), canyons, volcanoes, plates and terraces, coloured per vertex by height, slope and latitude.
+- **Gas giants:** a lit shader with flowing, differentially rotating bands and storms such as the Great Red Spot and the Great Dark Spot.
+- **Extras:** cloud shells, atmosphere glow, ring systems, crystal spires, a gear ring, a clock dial, a neon grid and floating sky islands.
+
+The same models appear in the ship cutscenes and hang in the levels' skies.
+
+### Three looks per world
+
+Each world has **three backdrop variants**, used for levels 1–10, 11–20 and 21–30. A variant changes the sky, the lighting, the floor palette and adds animated set pieces. For example the Sun has Photosphere, Coronal Storm and Sunspot Abyss; Earth has Daylight, Golden Hour and City Nights; Mars has Red Canyons, Blue Sunset and Global Dust Storm. Other set pieces include Io, Titan, Triton and Miranda rising, volcano eruptions, cloud cities, comets, a grand orrery, a clockwork eclipse, glowing leviathans, a hyperloop and an outrun sunset. The HUD shows the variant's name.
+
 When you first press Play, a multi-deck mothership flies in to the Sun, lands, lowers its ramp, and the robot walks out. When you finish a world, the robot boards the ship, it lifts off, banks through space to the next planet and lands there.
 
 ### Hand-written levels
@@ -52,7 +72,7 @@ Every level hides **3 Star Shards**.
 
 What the solver does not check: enemy, turret and hazard timing, and the chase/tide pacing. Those were designed by hand.
 
-**Bug sweeps.** `node tools/sweep.mjs [world]` runs every level under chaotic scripted input and checks for NaNs, kill-plane escapes and runaway velocities. It also checks that every checkpoint is on solid ground and that standing still there for 4 s is safe. `node tools/rendersweep.mjs` loads, plays and renders every level and every cutscene in headless Chromium and reports any JS error.
+**Bug sweeps.** `node tools/sweep.mjs [world]` runs every level under chaotic scripted input and checks for NaNs, kill-plane escapes and runaway velocities. It also checks that every checkpoint is on solid ground and that standing still there for 4 s is safe. `node tools/rendersweep.mjs` loads, plays and renders every level and every cutscene, opens every planet on the star map and previews every shop item, all in headless Chromium, and reports any JS error. For visual review, `tools/planetshots.mjs`, `tools/bgshots.mjs [world]` and `tools/uishots.mjs` write contact sheets of the planets, the backdrop variants and every screen at desktop and phone sizes to `tools/shots/`.
 
 ```bash
 node tools/validate.mjs <world|level…>   # solve levels, warn about unreachable shards
@@ -61,11 +81,20 @@ node tools/preview.mjs world <world>      # side-view map PNGs in tools/previews
 
 ### Robot Shop
 
-Cells you collect are banked when you finish a level, and each new Star Shard adds 50. You spend them in the shop on 13 skins, some with accessories: Midnight, Ninja (scarf), Royal (crown), Space Ranger (backpack), Kitty Bot, Gold Chrome, Galaxy and more.
+Cells you collect are banked when you finish a level, and each new Star Shard adds 50. The shop has seven categories, and everything previews live on the robot before you buy:
+- **Skins:** 13, some with accessories.
+- **Hats:** 10, for example the propeller cap, wizard hat, halo and astro dome.
+- **Trails:** 7, for example rocket fire, rainbow, 8-bit pixels and stardust.
+- **Jump FX:** 6, for example confetti, hearts, music notes and lightning.
+- **Companions:** 6, for example an orb drone, a mini UFO, a cat bot and a glow jelly. Companions follow you through every level.
+- **Victory dances:** 6, for example the Robot, the floss, backflips, the moonwalk and breakdance.
+- **Ship paint:** 6 liveries for the mothership in the cutscenes.
+
+The catalogue is in `core/shop.js`.
 
 ### Dev console
 
-Open DevTools (F12) and type `dev.help()`. Useful commands include `dev.unlockAll()`, `dev.skipAll()`, `dev.level(n)`, `dev.world(w)`, `dev.win()`, `dev.cells(n)`, `dev.allSkins()`, `dev.intro()` and `dev.fly(w)`.
+Open DevTools (F12) and type `dev.help()`. Useful commands include `dev.unlockAll()`, `dev.skipAll()`, `dev.level(n)`, `dev.world(w)`, `dev.win()`, `dev.cells(n)`, `dev.allSkins()` (owns everything in the shop), `dev.intro()` and `dev.fly(w)`.
 
 ## Controls
 
@@ -109,14 +138,19 @@ public/js/
     config.js    physics constants + the 16 world definitions + the bonus
     physics.js   player controller, swept AABB collision, jump envelope
     sim.js       LevelSim: movers, vehicles, hazards, pickups, goal (fixed 120 Hz step)
-    save.js / input.js / audio.js
+    shop.js      shop catalogue (hats, trails, jump FX, companions, dances, ship paint)
+    save.js / input.js / audio.js / skins.js
   render/      Three.js
     renderer.js  level meshes, camera follow, lights/shadows, bloom
     shaders.js   GLSL: skies, solar granulation, plasma, lava/water/acid, cloud seas
     terrain.js   procedural heightfield landscapes + billboard clouds
     robot.js     procedurally animated hero
     vehicles.js  bus/taxi/truck/boat/plane/rover/asteroid/ship meshes
-    decor.js     skies, planets, hazard floors, landmarks and scenery
+    decor.js     skies, hazard floors, landmarks and scenery
+    variants.js  the three backdrop looks per world and their animated set pieces
+    planets.js   procedural 3D planets, moons, stars and the black hole
+    starmap.js   the 3D star-map level select
+    cosmetics.js hats and companions
     cutscene.js  between-world ship flight
     fx.js        particles + weather
   main.js      state machine, UI, main loop, window.SH test API

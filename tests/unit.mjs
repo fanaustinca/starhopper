@@ -10,6 +10,9 @@ import { solveLevel } from '../tools/solver.mjs';
 import { buildLevel } from '../public/js/levels/build.js';
 import fs from 'node:fs';
 import { LevelSim } from '../public/js/core/sim.js';
+import { CATEGORIES, ITEMS, buyOrEquip, normalizeCosmetics } from '../public/js/core/shop.js';
+import { loadSave, defaultSave } from '../public/js/core/save.js';
+import { SYSTEMS, systemOf } from '../public/js/core/config.js';
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -150,6 +153,44 @@ test('rides a moving platform', () => {
   }
   assert.ok(Math.abs(p.x - (1.5 + 3.6)) < 0.05, 'carried to ' + p.x);
   assert.ok(p.onGround);
+});
+
+console.log('\nShop & star map');
+test('shop catalogue: 7 categories, each with a free default and unique, priced items', () => {
+  assert.equal(CATEGORIES.length, 7);
+  for (const c of CATEGORIES.filter((q) => q.id !== 'skin')) {
+    const list = ITEMS[c.id];
+    assert.ok(list.length >= 6, c.id + ' has items');
+    assert.equal(list[0].id, 'none'); assert.equal(list[0].price, 0);
+    assert.equal(new Set(list.map((i) => i.id)).size, list.length, c.id + ' ids unique');
+    for (const i of list.slice(1)) assert.ok(i.price > 0 && i.name, `${c.id}.${i.id} priced`);
+  }
+});
+test('buying and equipping cosmetics spends cells once; old saves gain the new slots', () => {
+  const s = { ...defaultSave(), wallet: 500 };
+  assert.equal(buyOrEquip(s, 'hat', 'halo'), 'bought');
+  assert.equal(s.wallet, 0); assert.equal(s.equip.hat, 'halo');
+  assert.equal(buyOrEquip(s, 'hat', 'wizard'), 'poor');
+  assert.equal(s.equip.hat, 'halo');
+  assert.equal(buyOrEquip(s, 'hat', 'none'), 'equipped');
+  assert.equal(buyOrEquip(s, 'hat', 'halo'), 'equipped');
+  assert.equal(s.wallet, 0, 're-equipping is free');
+  // a v2 save from before the shop expansion
+  const store = { getItem: () => JSON.stringify({ unlocked: 50, wallet: 10, skins: ['classic', 'ninja'], skin: 'ninja' }), setItem() {} };
+  const old = loadSave(store);
+  assert.equal(old.skin, 'ninja');
+  for (const c of Object.keys(ITEMS)) { assert.deepEqual(old.owned[c], ['none']); assert.equal(old.equip[c], 'none'); }
+  // equipped-but-not-owned (tampered) falls back to the default
+  const bad = normalizeCosmetics({ owned: { hat: ['none'] }, equip: { hat: 'halo' } });
+  assert.equal(bad.equip.hat, 'none');
+});
+test('star map: Sol has the Sun + 9 bodies, Vesper the 6 alien worlds, the black hole sits alone', () => {
+  assert.equal(SYSTEMS.length, 3);
+  assert.deepEqual(SYSTEMS.map((q) => q.worlds.length), [10, 6, 1]);
+  const all = SYSTEMS.flatMap((q) => q.worlds).sort((a, b) => a - b);
+  assert.deepEqual(all, WORLDS.map((_, i) => i), 'every world in exactly one system');
+  for (const wi of SYSTEMS[1].worlds) assert.ok(WORLDS[wi].alien, WORLDS[wi].id + ' is alien');
+  assert.equal(systemOf(16).id, 'void');
 });
 
 console.log('\nCampaign structure');

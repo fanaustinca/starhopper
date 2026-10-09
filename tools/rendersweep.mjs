@@ -1,6 +1,7 @@
 // Browser render sweep: boots the real game in headless Chromium and, for every
 // level, starts it, plays a few seconds, renders from the start, middle and goal,
-// then flies every between-world cutscene. Reports any page/console error.
+// then flies every between-world cutscene, opens every planet on the star map and
+// previews every shop item. Reports any page/console error.
 //   node tools/rendersweep.mjs [from] [to]
 import { chromium } from 'playwright';
 import http from 'node:http';
@@ -59,6 +60,40 @@ if (from === 1 && to === TOTAL_LEVELS) for (let wi = 0; wi < WORLDS.length - 1; 
     }, lastLevelOfWorld(wi));
   } catch (e) { errs.push('threw: ' + e.message.split('\n')[0]); }
   if (errs.length) bad.push(`cutscene ${WORLDS[wi].id}→${WORLDS[wi + 1].id}: ${[...new Set(errs)].slice(0, 3).join(' | ')}`);
+}
+// the star map: open every planet's panel and render it; then every shop item's preview
+if ((from === 1 && to === TOTAL_LEVELS) || process.env.SWEEP_UI) {
+  errs = [];
+  try {
+    await page.evaluate(() => {
+      SH.game.renderer.setQuality('high');
+      SH.openSelect();
+      for (let wi = 0; wi < 17; wi++) { SH.selectPlanet(wi); for (let i = 0; i < 10; i++) SH.game.map.update(0.05); SH.game.map.render(); if (!SH.game.panelOpen || SH.game.selectWorld !== wi) throw new Error('panel for world ' + wi); }
+      for (const sys of ['sol', 'vesper', 'void']) { SH.game.closePanel(false); SH.game.map.focusSystem(sys); for (let i = 0; i < 10; i++) SH.game.map.update(0.05); SH.game.map.render(); }
+      SH.game.map.drag(300, 80); SH.game.map.zoom(3); SH.game.map.zoom(0.1); SH.game.map.update(0.1); SH.game.map.render();
+    });
+  } catch (e) { errs.push('threw: ' + e.message.split('\n')[0]); }
+  if (errs.length) bad.push(`star map: ${[...new Set(errs)].slice(0, 3).join(' | ')}`);
+  errs = [];
+  try {
+    const n = await page.evaluate(() => {
+      const g = SH.game; let k = 0;
+      g.openShop();
+      for (const cat of ['skin', 'hat', 'trail', 'jump', 'pet', 'dance', 'ship']) {
+        g.shopCat = cat;
+        g.renderShop();
+        for (const el of [...document.querySelectorAll('#skin-grid .skin')]) {
+          g.shopSel = el.dataset.skin || el.dataset.item; g.renderShop();
+          for (let i = 0; i < 20; i++) { SH.step(1); g.renderer.update(g.sim, 1 / 30); }
+          g.renderer.render(); k++;
+        }
+      }
+      g.back();
+      return k;
+    });
+    console.log(`  shop: ${n} items previewed`);
+  } catch (e) { errs.push('threw: ' + e.message.split('\n')[0]); }
+  if (errs.length) bad.push(`shop: ${[...new Set(errs)].slice(0, 3).join(' | ')}`);
 }
 await browser.close(); srv.close();
 console.log(`${to - from + 1} levels rendered in ${((Date.now() - t0) / 1000).toFixed(0)}s`);

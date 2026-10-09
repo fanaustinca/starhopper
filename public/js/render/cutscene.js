@@ -9,13 +9,14 @@
 // Kinds: 'intro' (cruise to the Sun + arrive), 'transfer' (depart → cruise →
 // arrive), 'finale' (depart → cruise to a galaxy).
 import * as THREE from 'three';
-import { WORLDS, LEVELS_PER_WORLD, lastLevelOfWorld } from '../core/config.js';
+import { WORLDS, LEVELS_PER_WORLD, lastLevelOfWorld, systemOf } from '../core/config.js';
 import { getLevel } from '../levels/index.js';
 import { Robot } from './robot.js';
 import { makeMothership, SHIP_LEG_DROP, mat } from './vehicles.js';
 import { planetTexture, ringTexture, glowTexture } from './textures.js';
 import { buildBackdrop } from './decor.js';
 import { tickShaders, plasmaMaterial, starMaterial, accretionMaterial } from './shaders.js';
+import { makePlanet, tickPlanets } from './planets.js';
 import { makeRng } from '../core/rng.js';
 
 const ease = (x) => (x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x));
@@ -26,22 +27,12 @@ const RAMP_OPEN = 2.03;   // radians: the ramp tip rests on the pad
 
 function planet(world, radius, seed) {
   if (world.planet.blackhole) return blackHole(radius);
+  // real 3D planet: displaced terrain, craters, clouds, atmosphere, rings
   const g = new THREE.Group();
-  const m = world.planet.emissive ? starMaterial() : new THREE.MeshStandardMaterial({ map: planetTexture(world, seed), roughness: 0.85 });
-  const s = new THREE.Mesh(new THREE.SphereGeometry(radius, 96, 64), m);
-  g.add(s);
-  g.userData.sphere = s;
-  if (world.planet.rings) {
-    const geo = new THREE.RingGeometry(radius * 1.35, radius * 2.3, 160, 1);
-    const pos = geo.attributes.position, uv = geo.attributes.uv;
-    for (let i = 0; i < pos.count; i++) uv.setXY(i, (Math.hypot(pos.getX(i), pos.getY(i)) - radius * 1.35) / (radius * 0.95), 0.5);
-    const ring = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: ringTexture(world.planet.color), side: THREE.DoubleSide, transparent: true, depthWrite: false }));
-    ring.rotation.x = Math.PI / 2 - 0.3;
-    g.add(ring);
-  }
-  const atm = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTexture(world.planet.emissive ? 0xffa030 : world.sky[1]), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: world.planet.emissive ? 1 : 0.5 }));
-  atm.scale.setScalar(radius * (world.planet.emissive ? 4.2 : 2.5));
-  g.add(atm);
+  const p = makePlanet(world, { segs: 112, seed });
+  p.scale.setScalar(radius);
+  g.add(p);
+  g.userData.planet = p;
   return g;
 }
 
@@ -77,8 +68,9 @@ export class Cutscene {
     this.toIdx = toIdx;
     this.done = false;
     this.robot = new Robot(opts.skin || 'classic');
+    if (opts.hat) this.robot.setHat(opts.hat);
     this.fake = { x: 0, y: 0, vx: 0, vy: 0, facing: 1, state: 'idle' };
-    this.ship = makeMothership();
+    this.ship = makeMothership(opts.livery || {});
     this.ship.userData.inner.rotation.y = -Math.PI / 2;    // nose → +z so lookAt() aims it
     if (this.kind === 'intro') this.shots = [['cruise', 0, CRUISE + 0.6], ['arrive', CRUISE + 0.6, CRUISE + 0.6 + ARRIVE]];
     else if (this.kind === 'transfer') this.shots = [['depart', 0, DEPART], ['cruise', DEPART, DEPART + CRUISE], ['arrive', DEPART + CRUISE, DEPART + CRUISE + ARRIVE]];
@@ -216,9 +208,14 @@ export class Cutscene {
     const k = this.t - a;
     if (this.kind === 'intro' && shot === 'cruise' && k < 2.8) return { big: 'STARHOPPER', small: 'NOW APPROACHING · THE SUN' };
     if (shot === 'depart' && k < 1.8) return { big: this.from.name.toUpperCase(), small: 'WORLD COMPLETE' };
-    if (shot === 'cruise' && this.to && this.kind !== 'intro' && k > 0.6) return { big: this.to.name.toUpperCase(), small: this.to.bonus ? 'NO TURNING BACK' : 'NEXT STOP' };
+    if (shot === 'cruise' && this.to && this.kind !== 'intro' && k > 0.6) {
+      // crossing between star systems gets its own billing
+      const sysA = systemOf(WORLDS.indexOf(this.from)), sysB = systemOf(this.toIdx);
+      if (sysA.id !== sysB.id && !this.to.bonus && k < 2.6) return { big: sysB.name.toUpperCase(), small: 'HYPERSPACE JUMP' };
+      return { big: this.to.name.toUpperCase(), small: this.to.bonus ? 'NO TURNING BACK' : sysA.id !== sysB.id ? `NEXT STOP · ${sysB.name.toUpperCase()}` : 'NEXT STOP' };
+    }
     if (shot === 'cruise' && !this.to && k > 2.2) return { big: 'THE END', small: 'YOU ESCAPED THE BLACK HOLE · ALL 481 LEVELS' };
-    if (shot === 'arrive' && k > 3.8) return this.to.bonus ? { big: 'THE END', small: 'BONUS LEVEL · INSIDE THE BLACK HOLE' } : { big: this.to.name.toUpperCase(), small: `WORLD ${this.toIdx + 1}` };
+    if (shot === 'arrive' && k > 3.8) return this.to.bonus ? { big: 'THE END', small: 'BONUS LEVEL · INSIDE THE BLACK HOLE' } : { big: this.to.name.toUpperCase(), small: `WORLD ${this.toIdx + 1} · ${systemOf(this.toIdx).name.toUpperCase()}` };
     return null;
   }
 
@@ -309,8 +306,13 @@ export class Cutscene {
     ship.position.copy(pos);
     orient(ship, tan, THREE.MathUtils.clamp(-turn * 18, -0.6, 0.6));
     this.flames(1.3, 0);
-    if (this.pA && this.pA.userData.sphere) this.pA.userData.sphere.rotation.y = this.t * 0.01;
-    if (this.pB.userData && this.pB.userData.sphere) this.pB.userData.sphere.rotation.y = this.t * 0.02; else this.pB.rotation.y = this.t * 0.05;
+    tickPlanets(this.t + 50);
+    for (const P of [this.pA, this.pB]) {
+      if (!P) continue;
+      if (P.userData.planet) P.userData.planet.userData.update(this.t + 50, this.camera);
+      else if (P.userData.sphere) P.userData.sphere.rotation.y = this.t * 0.02;
+      else P.rotation.y = this.t * 0.05;
+    }
     const back = tan.clone().multiplyScalar(-58 + k * 4);
     const side = new THREE.Vector3().crossVectors(tan, UP).normalize().multiplyScalar(30 - k * 6);
     // lock to the ship's frame (a lagging camera would fall kilometres behind at cruise speed)
