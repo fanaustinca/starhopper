@@ -152,7 +152,10 @@ kbd { display: inline-block; min-width: 26px; padding: 3px 7px; margin: 0 2px; b
 .shard.pop { animation: pop 0.4s ease; }
 .lvl .stars { display: flex; gap: 2px; }
 .lvl .stars .shard { width: 9px; height: 9px; }
-.wallet-pill { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: rgba(58,255,192,0.15); color: #7affd8; font-size: 13px; }
+.wallet-pill { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: rgba(255,200,80,0.15); color: #ffd98a; font-size: 13px; }
+/* Bolts: the shop currency (a golden hex nut) */
+.bolt-icon { display: inline-block; width: 16px; height: 16px; flex: none; vertical-align: -2px; background: radial-gradient(circle at 50% 50%, transparent 0 26%, #fff3c0 28%, #ffc23a 55%, #b8780e 100%); clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%); filter: drop-shadow(0 0 3px rgba(255,190,60,0.7)); }
+.bolt-icon.small { width: 11px; height: 11px; vertical-align: -1px; margin-right: 3px; }
 .wallet { display: flex; align-items: center; gap: 6px; font-size: 18px; color: var(--text); }
 #shop { justify-content: flex-end; padding-right: max(16px, 4vw); }
 .shop-panel { width: min(560px, 100%); display: flex; flex-direction: column; }

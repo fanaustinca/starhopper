@@ -11,7 +11,7 @@ import { buildLevel } from '../public/js/levels/build.js';
 import fs from 'node:fs';
 import { LevelSim } from '../public/js/core/sim.js';
 import { CATEGORIES, ITEMS, buyOrEquip, normalizeCosmetics } from '../public/js/core/shop.js';
-import { loadSave, defaultSave } from '../public/js/core/save.js';
+import { loadSave, defaultSave, recordCompletion, BOLTS } from '../public/js/core/save.js';
 import { SYSTEMS, systemOf } from '../public/js/core/config.js';
 
 let passed = 0, failed = 0;
@@ -166,7 +166,16 @@ test('shop catalogue: 7 categories, each with a free default and unique, priced 
     for (const i of list.slice(1)) assert.ok(i.price > 0 && i.name, `${c.id}.${i.id} priced`);
   }
 });
-test('buying and equipping cosmetics spends cells once; old saves gain the new slots', () => {
+test('bolts payout: base + cells + score, first-clear and new-shard bonuses only once', () => {
+  const s = defaultSave();
+  const r = { score: 2000, cells: 10, total: 12, time: 30, shardIds: ['a'] };
+  const e1 = recordCompletion(s, 5, r).earned;
+  assert.equal(e1, BOLTS.base + 10 * BOLTS.perCell + 5 + BOLTS.firstClear + BOLTS.perShard);
+  const e2 = recordCompletion(s, 5, r).earned;
+  assert.equal(e2, BOLTS.base + 10 * BOLTS.perCell + 5, 'replays pay without the one-time bonuses');
+  assert.equal(s.wallet, e1 + e2);
+});
+test('buying and equipping cosmetics spends bolts once; old saves gain the new slots', () => {
   const s = { ...defaultSave(), wallet: 500 };
   assert.equal(buyOrEquip(s, 'hat', 'halo'), 'bought');
   assert.equal(s.wallet, 0); assert.equal(s.equip.hat, 'halo');

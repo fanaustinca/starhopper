@@ -435,27 +435,32 @@ await test('wall jump in-browser: slide down a wall, kick off it', async () => {
   assert(res.skip || (res.slid && res.vx < -3 && res.vy > 8), 'wall jump: ' + JSON.stringify(res));
 });
 
-await test('star shards: collecting one pays the shard bonus on completion', async () => {
+await test('bolts: every finish pays (replays too); first clears and new shards pay a bonus once', async () => {
   await boot('test&fresh&unlock=5');
-  await S(() => SH.startLevel(3));
-  const res = await S(() => {
+  const run = (grabShard) => S(async (grabShard) => {
+    await SH.startLevel(3);
     SH.manual(true);
     const sim = SH.game.sim;
-    const k = sim.L.pickups.find((p) => p.type === 'shard');
-    SH.teleport(k.x, k.y - 0.8);
-    SH.step(2);
-    const shards = sim.shards;
-    const before = SH.state().wallet;
+    if (grabShard) { const k = sim.L.pickups.find((p) => p.type === 'shard'); SH.teleport(k.x, k.y - 0.8); SH.step(2); }
+    const shards = sim.shards, before = SH.state().wallet;
     SH.completeLevel();
-    return { shards, before, after: SH.state().wallet, cells: sim.cells };
-  });
-  assert(res.shards === 1, 'picked up a shard');
-  assert(res.after - res.before === res.cells + 50, `wallet ${res.before} → ${res.after} (cells ${res.cells})`);
+    return { shards, before, after: SH.state().wallet, cells: SH.game.lastResult.cells, score: SH.game.lastResult.score };
+  }, grabShard);
+  const B = { base: 20, perCell: 2, scoreDiv: 400, firstClear: 40, perShard: 30 };
+  const first = await run(true);
+  assert(first.shards === 1, 'picked up a shard');
+  assert(first.after - first.before === B.base + first.cells * B.perCell + Math.floor(first.score / B.scoreDiv) + B.firstClear + B.perShard, `first clear paid ${first.after - first.before}`);
   assert((await page.textContent('#c-shards')).startsWith('1/3'));
+  assert((await page.textContent('#c-earned')).includes('+' + (first.after - first.before)), 'complete screen shows the bolts');
+  // a replay with the same shard: no first-clear or shard bonus, but it still pays
+  const again = await run(true);
+  const paid = again.after - again.before;
+  assert(paid === B.base + again.cells * B.perCell + Math.floor(again.score / B.scoreDiv), `replay paid ${paid}`);
+  assert(paid >= B.base, 'replays always pay');
 });
 
-await test('robot shop: buy and equip a skin with cells; skin persists', async () => {
-  await S(() => { dev.cells(1000); SH.game.mode = 'menu'; SH.game.show('menu'); });
+await test('robot shop: buy and equip a skin with bolts; skin persists', async () => {
+  await S(() => { dev.bolts(1000); SH.game.mode = 'menu'; SH.game.show('menu'); });
   await page.click('#btn-shop');
   assert(await page.isVisible('#shop'), 'shop open');
   await page.click('.skin[data-skin="ninja"]');
@@ -473,7 +478,7 @@ await test('robot shop: buy and equip a skin with cells; skin persists', async (
 });
 
 await test('robot shop: hats, companions and the other categories buy, equip, preview and persist', async () => {
-  await S(() => { dev.cells(2000); SH.game.mode = 'menu'; SH.game.show('menu'); });
+  await S(() => { dev.bolts(2000); SH.game.mode = 'menu'; SH.game.show('menu'); });
   await page.click('#btn-shop');
   assert((await page.$$('.shop-tab')).length === 7, '7 shop categories');
   await page.click('.shop-tab[data-cat="hat"]');

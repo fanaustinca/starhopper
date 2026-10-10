@@ -25,9 +25,15 @@ export function writeSave(save, storage = globalThis.localStorage) {
   try { storage && storage.setItem(KEY, JSON.stringify(save)); } catch { /* storage unavailable */ }
 }
 
-export const SHARD_BONUS = 50;
+// Bolts: the shop currency. Every finish pays out (replays too), so the supply never runs dry;
+// a first clear and each new Star Shard pay a one-time bonus on top.
+export const BOLTS = { base: 20, perCell: 2, scoreDiv: 400, firstClear: 40, perShard: 30 };
+export const SHARD_BONUS = BOLTS.perShard;
+export function boltsFor(result, firstClear, newShards) {
+  return BOLTS.base + (result.cells | 0) * BOLTS.perCell + Math.floor(Math.max(0, result.score | 0) / BOLTS.scoreDiv) + (firstClear ? BOLTS.firstClear : 0) + newShards * BOLTS.perShard;
+}
 
-// Record a finished level; returns { newBest, unlockedNext, earned, newShards }.
+// Record a finished level; returns { newBest, unlockedNext, earned (bolts), newShards }.
 export function recordCompletion(save, level, result) {
   const prev = save.best[level];
   // shards are remembered individually so each pays out only once
@@ -35,7 +41,7 @@ export function recordCompletion(save, level, result) {
   let newShards = 0;
   for (const id of result.shardIds || []) if (!known.has(id)) { known.add(id); newShards++; }
   save.shardIds[level] = [...known];
-  const earned = result.cells + newShards * SHARD_BONUS;
+  const earned = boltsFor(result, !prev, newShards);
   save.wallet = (save.wallet || 0) + earned;
   const newBest = !prev || result.score > prev.score;
   if (newBest) save.best[level] = { score: result.score, cells: Math.max(result.cells, prev ? prev.cells || 0 : 0), total: result.total, time: +result.time.toFixed(2) };

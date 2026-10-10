@@ -2,7 +2,7 @@
 import { WORLDS, LEVELS_PER_WORLD, TOTAL_LEVELS, PHYS, MAX_HEALTH, worldIndexOf, subLevelOf, locationOf, levelsInWorld, lastLevelOfWorld, BONUS_WORLD, systemOf } from './core/config.js';
 import { getLevel as generateLevel } from './levels/index.js';
 import { LevelSim } from './core/sim.js';
-import { loadSave, writeSave, recordCompletion, defaultSave, totalScore, totalShards, SHARD_BONUS } from './core/save.js';
+import { loadSave, writeSave, recordCompletion, defaultSave, totalScore, totalShards, SHARD_BONUS, BOLTS } from './core/save.js';
 import { SKINS, skinById } from './core/skins.js';
 import { CATEGORIES, ITEMS, itemById, buyOrEquip, normalizeCosmetics } from './core/shop.js';
 import { Input } from './core/input.js';
@@ -133,7 +133,7 @@ class Game {
     const done = Object.keys(s.best).length;
     $('btn-play').textContent = s.unlocked > 1 ? `Continue · Level ${s.unlocked}` : 'Play';
     $('menu-progress').innerHTML = `<b>${done}</b> / ${TOTAL_LEVELS} levels cleared · <b>${totalShards(s)}</b> / ${TOTAL_LEVELS * 3} star shards · <b>${totalScore(s).toLocaleString()}</b> total score`;
-    $('menu-wallet').textContent = (s.wallet || 0).toLocaleString();
+    $('menu-wallet').innerHTML = `<span class="bolt-icon small"></span>${(s.wallet || 0).toLocaleString()}`;
   }
 
   refreshSettings() {
@@ -390,7 +390,7 @@ class Game {
       tabs.appendChild(b);
     }
     const cat = this.shopCat, C = CATEGORIES.find((c) => c.id === cat);
-    $('shop-hint').textContent = `${C.blurb} Cells are banked when you finish a level; each new Star Shard pays a 50-cell bonus.`;
+    $('shop-hint').textContent = `${C.blurb} Earn Bolts by finishing levels: every run pays, replays included, plus a bonus for first clears and new Star Shards.`;
     const list = cat === 'skin' ? SKINS : ITEMS[cat];
     const owns = (id) => (cat === 'skin' ? s.skins.includes(id) : s.owned[cat].includes(id));
     const equipped = cat === 'skin' ? s.skin : s.equip[cat];
@@ -401,7 +401,7 @@ class Game {
       const b = document.createElement('button');
       b.className = 'skin' + (it.id === this.shopSel ? ' sel' : '') + (!owned && it.price > (s.wallet || 0) ? ' locked' : '');
       if (cat === 'skin') b.dataset.skin = it.id; else b.dataset.item = it.id;
-      const status = equipped === it.id ? '<span class="pr eq">Equipped</span>' : owned ? '<span class="pr owned">Owned</span>' : `<span class="pr">◆ ${it.price.toLocaleString()}</span>`;
+      const status = equipped === it.id ? '<span class="pr eq">Equipped</span>' : owned ? '<span class="pr owned">Owned</span>' : `<span class="pr"><span class="bolt-icon small"></span>${it.price.toLocaleString()}</span>`;
       b.innerHTML = `${this.shopSwatch(cat, it)}<div class="nm">${it.name}</div>${status}`;
       b.addEventListener('click', () => { this.audio.play('ui'); this.shopSel = it.id; this.renderShop(); });
       grid.appendChild(b);
@@ -409,7 +409,7 @@ class Game {
     const sel = cat === 'skin' ? skinById(this.shopSel) : itemById(cat, this.shopSel);
     const owned = owns(sel.id);
     $('shop-name').textContent = sel.name;
-    $('shop-price').textContent = owned ? (equipped === sel.id ? 'Currently equipped' : 'Owned') : `${sel.price.toLocaleString()} cells`;
+    $('shop-price').textContent = owned ? (equipped === sel.id ? 'Currently equipped' : 'Owned') : `${sel.price.toLocaleString()} bolts`;
     const btn = $('btn-shop-action');
     btn.textContent = equipped === sel.id ? 'Equipped' : owned ? 'Equip' : (s.wallet || 0) >= sel.price ? `Buy · ${sel.price.toLocaleString()}` : `Need ${(sel.price - (s.wallet || 0)).toLocaleString()} more`;
     btn.disabled = equipped === sel.id || (!owned && (s.wallet || 0) < sel.price);
@@ -501,6 +501,8 @@ class Game {
     const sim = this.sim;
     const shardIds = sim.L.pickups.filter((k) => k.type === 'shard' && sim.collected.has(k.id)).map((k) => k.id);
     const result = { score: Math.max(0, sim.score()), cells: sim.cells, total: sim.L.totalCells, time: sim.t, shardIds };
+    const firstClear = !this.save.best[this.levelNum];
+    this.lastResult = result;
     const { newBest, earned, newShards } = recordCompletion(this.save, this.levelNum, result);
     if (!this.save.seenWorlds.includes(worldIndexOf(Math.min(TOTAL_LEVELS, this.levelNum + 1)))) this.save.seenWorlds.push(worldIndexOf(Math.min(TOTAL_LEVELS, this.levelNum + 1)));
     writeSave(this.save);
@@ -516,7 +518,8 @@ class Game {
     $('c-best').textContent = this.save.best[n].score.toLocaleString();
     $('c-newbest').classList.toggle('hidden', !newBest);
     $('c-shards').textContent = `${(this.save.shardIds[n] || []).length}/3`;
-    $('c-earned').textContent = `+${earned}` + (newShards ? ` (${newShards}★)` : '');
+    $('c-earned').innerHTML = `<span class="bolt-icon"></span>+${earned}`;
+    $('c-earned').title = `${BOLTS.base} for finishing + ${result.cells * BOLTS.perCell} for cells + ${Math.floor(result.score / BOLTS.scoreDiv)} for score${firstClear ? ` + ${BOLTS.firstClear} first clear` : ''}${newShards ? ` + ${newShards * BOLTS.perShard} for new shards` : ''}`;
     $('btn-next').textContent = n === TOTAL_LEVELS ? 'Finale' : worldDone ? (worldIndexOf(n + 1) === BONUS_WORLD ? 'Enter the Black Hole 🕳️' : `Fly to ${WORLDS[worldIndexOf(n + 1)].short} 🚀`) : 'Next Level';
     this.show('complete');
     this.updateHUD(true);
@@ -602,7 +605,7 @@ class Game {
     if (e.type === 'checkpoint') this.toast('CHECKPOINT');
     if (e.type === 'fail') this.toast('TRY AGAIN — HEALTH RESTORED');
     if (e.type === 'heart') this.toast('+1 HEALTH');
-    if (e.type === 'shard') this.toast(`STAR SHARD ${this.sim.shards}/3 · +${SHARD_BONUS} CELLS`);
+    if (e.type === 'shard') { const known = (this.save.shardIds[this.levelNum] || []).includes(e.id); this.toast(`STAR SHARD ${this.sim.shards}/3${known ? ' · FOUND BEFORE' : ` · +${SHARD_BONUS} BOLTS ON FINISH`}`); }
   }
 
   tick(dt) {
@@ -754,7 +757,7 @@ window.dev = {
       '  dev.level(n)           start level n right now',
       '  dev.world(w)           start the first level of world w (1-16; 17 = THE END)',
       '  dev.win()              finish the current level instantly',
-      '  dev.cells(n = 5000)    add cells to your wallet for the shop',
+      '  dev.bolts(n = 5000)    add Bolts to spend in the shop (dev.cells works too)',
       '  dev.allSkins()         own everything in the shop',
       '  dev.intro()            replay the opening cutscene',
       '  dev.fly(w)             play the ship cutscene from world w to w+1',
@@ -776,7 +779,8 @@ window.dev = {
     if (game.mode !== 'playing') return 'not in a level';
     const g = game.sim.L.goal; game.sim.teleport(g.x, g.y); return 'level complete';
   },
-  cells(n = 5000) { game.save.wallet = (game.save.wallet || 0) + n; writeSave(game.save); game.refreshMenu(); if (game.screen === 'shop') game.renderShop(); return `wallet: ${game.save.wallet}`; },
+  bolts(n = 5000) { game.save.wallet = (game.save.wallet || 0) + n; writeSave(game.save); game.refreshMenu(); if (game.screen === 'shop') game.renderShop(); return `bolts: ${game.save.wallet}`; },
+  cells(n = 5000) { return window.dev.bolts(n); },
   allSkins() { game.save.skins = SKINS.map((k) => k.id); for (const c of Object.keys(ITEMS)) game.save.owned[c] = ITEMS[c].map((i) => i.id); writeSave(game.save); if (game.screen === 'shop') game.renderShop(); return 'everything in the shop owned'; },
   intro() { game.playCutscene(null, 0); return 'rolling intro'; },
   fly(w = 1) { game.playCutscene(w - 1, w < WORLDS.length ? w : null); return 'rolling cutscene'; },

@@ -81,7 +81,7 @@ node tools/preview.mjs world <world>      # side-view map PNGs in tools/previews
 
 ### Robot Shop
 
-Cells you collect are banked when you finish a level, and each new Star Shard adds 50. The shop has seven categories, and everything previews live on the robot before you buy:
+The shop currency is **Bolts**. Every finish pays 20 plus 2 per energy cell plus a little for score, and that includes replays, so the supply is unlimited. A first clear adds 40 and each new Star Shard adds 30, once each. The shop has seven categories, and everything previews live on the robot before you buy:
 - **Skins:** 13, some with accessories.
 - **Hats:** 10, for example the propeller cap, wizard hat, halo and astro dome.
 - **Trails:** 7, for example rocket fire, rainbow, 8-bit pixels and stardust.
@@ -94,7 +94,7 @@ The catalogue is in `core/shop.js`.
 
 ### Dev console
 
-Open DevTools (F12) and type `dev.help()`. Useful commands include `dev.unlockAll()`, `dev.skipAll()`, `dev.level(n)`, `dev.world(w)`, `dev.win()`, `dev.cells(n)`, `dev.allSkins()` (owns everything in the shop), `dev.intro()` and `dev.fly(w)`.
+Open DevTools (F12) and type `dev.help()`. Useful commands include `dev.unlockAll()`, `dev.skipAll()`, `dev.level(n)`, `dev.world(w)`, `dev.win()`, `dev.bolts(n)`, `dev.allSkins()` (owns everything in the shop), `dev.intro()` and `dev.fly(w)`.
 
 ## Controls
 

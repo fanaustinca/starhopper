@@ -1,4 +1,4 @@
-// The Robot Shop catalogue: everything you can spend energy cells on besides
+// The Robot Shop catalogue: everything you can spend Bolts on besides
 // skins (see skins.js). Pure data, so it runs (and is tested) in Node.
 // Every category has a free default item (price 0) that everyone owns.
 export const CATEGORIES = [
