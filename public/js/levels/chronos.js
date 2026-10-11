@@ -262,25 +262,26 @@ export default [
 
   // 9 ── one warp-pad, one long track: when time reverses it drags you back through the hazards you just dodged
   L('Eon Express', 'ride', (b) => {
+    // the clockwork express runs to a steady timetable: hop the spark it carries you through,
+    // step off at the platform, then beat a sweeping minute hand and a grandfather pendulum
     b.start(-6, 0, 12);
-    b.loop([[9, 0], [28, 0], [38, 7], [56, 7], [64, 2], [80, 2]], { loop: false, speed: 3.5, w: 3.2, warp: true });
-    b.hazard('spark', 19.5, 0.3, 0.8, 1.3);                 // jump the spark as the pad carries you through
-    b.hazard('spark', 44, 9.7, 4, 0.5);                     // ...and don't jump under this one
-    b.beam('lightning', 60, 2, { P: 3.2, on: 0.8 });
-    b.thin(31, 10.5, 3); b.shard(32.5, 12.3);
-    b.thin(60, -1, 3); b.shard(61.5, 0.8);
-    b.cells(12, 1.4, 26, 1.4, 4); b.cells(40, 8.4, 54, 8.4, 4); b.cells(66, 3.4, 78, 3.4, 3);
-    b.plat(84, 2, 6);
-    b.checkpoint(87, 2);
-    b.loop([[95, 2], [95, 14], [110, 14], [110, 6], [122, 6]], { loop: false, speed: 3.5, w: 3, warp: true });
-    b.enemy('flyer', 102, 17, { ax: 3, ay: 0.6, T: 3 });
-    b.shard(102.5, 18.3);
-    b.rect(126, 0, 1.4, 6.5); b.turret(126.7, 7.2, -1, { P: 2.2 });
-    b.cells(96.4, 5, 96.4, 12, 3); b.cells(112, 7.4, 120, 7.4, 3);
-    b.plat(129, 6, 8);
-    b.wrecker(48, 17, 5, { amp: 40, T: 3.2 });
-    b.wrecker(72, 12, 6, { amp: 40, T: 3, phase: 0.5 });
-    b.goal(134, 6);
+    b.loop([[9, 0], [30, 0], [38, 6], [54, 6]], { loop: false, speed: 5, w: 3.4 });
+    b.hazard('spark', 21, 0.3, 0.8, 1.2);                   // low spark on the line: jump it as you pass
+    b.thin(32, 6.5, 3); b.shard(33.5, 8.2);                 // jump off the climbing pad to grab it
+    b.cells(12, 1.4, 28, 1.4, 5); b.cells(40, 7.4, 52, 7.4, 4);
+    b.plat(58, 6, 5);
+    b.checkpoint(60, 6);
+    b.plat(65, 6, 14);
+    b.sweeper(72, 6.6, 3.4, { omega: 70 });                 // a minute hand sweeping the floor: hop it
+    b.cells(66, 7.4, 78, 7.4, 4);
+    b.pendulum(86, 16, 8, { amp: 32, T: 3.8 });
+    b.plat(92, 8, 4);
+    b.thin(88, 12, 3); b.shard(89.5, 13.7);
+    b.slide(98, 8, 110, 12, { T: 3.2, w: 3 });
+    b.plat(114, 12, 9);
+    b.goal(120, 12);
+    b.shard(104, 15.5);
+    b.arc(92, 8, 114, 12, 6, 3);
   }),
 
   // 10 ── the Time Rift opens: sand that crumbles behind you, springs, a chimney sprint, no waiting
@@ -479,27 +480,27 @@ export default [
 
   // 17 ── the grandfather works: wrecking pendulums sweep the factory floor, a clock hand blocks the aisle, then ride pendulum bobs up to the gear loft
   L('Grandfather Works', 'machine', (b) => {
+    // inside a grandfather clock: a pendulum blade over the floor, gear wheels to climb, escapement
+    // pendulums to ride, and a minute hand sweeping the top shelf
     b.start(-6, 0, 12);
-    b.plat(8, 0, 28);
-    b.wrecker(15, 9, 6.6, { amp: 50, T: 3.2 });
-    b.wrecker(24, 9, 6.6, { amp: 50, T: 3.2, phase: 0.5 });
-    b.sweeper(32, 4.4, 3.4, { omega: 55, both: true });     // a minute hand across the aisle: cross while it lies flat
-    b.cells(10, 1.4, 34, 1.4, 6);
-    b.thin(39, -3, 3); b.shard(40.5, -1.2);
-    b.pendulum(42, 11, 8, { amp: 40, T: 4.4 });
-    b.plat(48, 2, 8);
-    b.checkpoint(51, 2);
-    b.pendulum(61, 15, 9, { amp: 38, T: 4.6, phase: 0.3 });
-    b.plat(68, 7, 4);
-    b.pendulum(78, 20, 10, { amp: 40, T: 4.8 });
-    b.plat(84, 11, 14);
-    b.wrecker(90, 20, 7, { amp: 50, T: 3.4 });
-    b.thin(86, 17, 4); b.shard(88, 18.8);
-    b.sweeper(97, 15.2, 3.2, { omega: -60, both: true });
-    b.pendulum(108, 24, 10, { amp: 40, T: 4.4, phase: 0.5 });
-    b.plat(113, 14, 10);
-    b.goal(119, 14);
-    b.cells(60, 6, 64, 6, 3); b.cells(80, 12.5, 96, 12.5, 4); b.shard(70, 11.2);
+    b.plat(8, 0, 12);
+    b.wrecker(14, 8, 6, { amp: 45, T: 3.4 });               // one pendulum blade, plenty of floor to time it
+    b.cells(9, 1.4, 19, 1.4, 4);
+    b.ferris(26, 5, 4, { n: 4, omega: 0.7 });               // a turning gear wheel up to the first shelf
+    b.plat(33, 7, 5);
+    b.checkpoint(35, 7);
+    b.pendulum(42, 16, 8, { amp: 34, T: 4 });                // ride the escapement across
+    b.plat(48, 9, 4);
+    b.thin(38, 11.5, 3); b.shard(39.5, 13.2);
+    b.ferris(57, 12, 4.5, { n: 5, omega: -0.6 });            // the counter-wheel turns the other way
+    b.plat(64, 15, 14);
+    b.sweeper(71, 15.6, 3.2, { omega: 60 });                 // the minute hand: hop it as it passes
+    b.cells(65, 16.4, 77, 16.4, 4);
+    b.pendulum(86, 24, 9, { amp: 32, T: 4.2, phase: 0.4 });
+    b.plat(92, 16, 10);
+    b.goal(98, 16);
+    b.shard(57, 18.5); b.shard(86, 13.5);
+    b.cells(24, 9, 28, 9, 2); b.cells(55, 16, 59, 16, 2);
   }),
 
   // 18 ── moments drift past like a river: ride ring-chunks along stacked time-streams of different speeds and hop between lanes
@@ -582,27 +583,23 @@ export default [
   }),
   // 21 ── a cascade of short, fast warp pads: each one turns back on you, so jump to the next before it rewinds
   L('Rewind Rapids', 'ride', (b) => {
+    // time runs backwards here: every belt flows the wrong way, so sprint upstream between steady rides
     b.start(-6, 0, 12);
-    b.slide(10, 0, 20, 0, { T: 2.4, w: 2.6, warp: true });
-    b.slide(24, 1, 34, 1, { T: 2.2, w: 2.6, warp: true, phase: 0.5 });
-    b.thin(27.5, 5, 3); b.shard(29, 6.8);
-    b.slide(38, 2, 38, 8, { T: 2, w: 2.6, warp: true });
-    b.cells(10, 1.4, 20, 1.4, 3); b.cells(24, 2.4, 34, 2.4, 3); b.cells(38, 4, 38, 8, 2);
-    b.plat(42, 8, 4);
-    b.checkpoint(44, 8);
-    b.slide(50, 8, 62, 6, { T: 2.4, w: 2.6, warp: true });
-    b.beam('lightning', 57, 6.5, { P: 3, on: 0.7 });
-    b.thin(55, 1.5, 3); b.shard(56.5, 3.3);
-    b.slide(66, 6, 78, 8, { T: 2, w: 2.6, warp: true, phase: 0.25 });
-    b.beam('lightning', 72, 7.5, { P: 2.6, on: 0.7, off: 1.3 });
-    b.enemy('flyer', 74, 12, { ax: 3, ay: 0.8, T: 2.4 });
-    b.slide(82, 8, 82, 14, { T: 2.2, w: 2.6, warp: true });
-    b.shard(82, 18.6);
-    b.cells(50, 9.4, 62, 7.4, 4); b.cells(66, 7.4, 78, 9.4, 4);
-    b.plat(86, 14, 8);
-    b.sweeper(44, 14, 3.8, { omega: 50 });
-    b.pendulum(82, 24, 8, { amp: 25, T: 4 });
-    b.goal(91, 14);
+    b.conveyor(8, 0, 14, -4);
+    b.slide(26, 1, 36, 1, { T: 2.4, w: 2.8 });
+    b.plat(40, 3, 4);
+    b.conveyor(46, 3, 12, -5);
+    b.enemy('walker', 49, 3, { range: 6, speed: 1.4 });     // stomp it or hop it against the flow
+    b.plat(60, 5, 4);
+    b.checkpoint(62, 5);
+    b.slide(67, 5, 67, 12, { T: 2.2, w: 2.6 });             // a steady lift
+    b.conveyor(71, 12, 12, -5);
+    b.thin(75, 15.5, 3); b.shard(76.5, 17.2);
+    b.slide(87, 12, 97, 14, { T: 2.4, w: 2.6 });
+    b.plat(101, 14, 9);
+    b.goal(106, 14);
+    b.shard(31, 5.5); b.shard(54, 7.5);
+    b.cells(9, 1.4, 21, 1.4, 4); b.cells(27, 2.4, 35, 2.4, 3); b.cells(47, 4.4, 57, 4.4, 4); b.cells(72, 13.4, 82, 13.4, 4); b.cells(88, 13.4, 96, 15.4, 3);
   }),
 
   // 22 ── ancient geysers erupt on a timer; inside the light-gravity bands their plumes throw you twice as high

@@ -596,21 +596,25 @@ export default [
   }),
 
   // 385 ── a storm of drifting leaves, each tracing its own loop: box, diamond, tall oval; read the paths and hop between them
-  L('Leafstorm', 'ride', (b) => {
-    b.start(-6, 4, 12);
-    b.loop([[10, 4], [20, 4], [20, 10], [10, 10]], { speed: 3, w: 3 });
-    b.loop([[27, 10], [33, 4], [39, 10], [33, 16]], { speed: 3.2, w: 3 });
-    b.shard(33, 10);                                       // in the eye of the diamond
-    b.plat(44, 9, 5);
-    b.checkpoint(46, 9);
-    b.loop([[53, 3], [53, 17], [58, 17], [58, 3]], { speed: 3.4, w: 3 });
-    b.loop([[64, 17], [78, 17]], { speed: 3, loop: false, w: 3 });
-    b.loop([[84, 17], [92, 9], [84, 1]], { speed: 3, loop: false, w: 3 });
-    b.thin(64, 21, 3); b.shard(65.5, 22.5);
-    b.plat(96, 9, 10);
-    b.goal(102, 9);
-    b.cells(15, 11.5, 15, 11.5, 1); b.cells(48, 10.5, 48, 10.5, 1); b.cells(55.5, 6, 55.5, 15, 3); b.cells(66, 18.5, 76, 18.5, 4);
-    b.plat(-14, 6, 3); b.shard(-12.5, 8);
+  L('Leafstorm', 'swing', (b) => {
+    // a gale tears through the canopy: swing the vines, ride a lifting leaf, zip down the silk, bounce out
+    b.start(-6, 6, 12);
+    b.plat(-14, 8, 3); b.shard(-12.5, 10);
+    b.vine(11, 14, 6); b.vine(19.5, 14.5, 6);
+    b.plat(25, 8, 3);
+    b.floater(31, 8, 3, { rise: 7, speed: 2.6 });          // a big leaf lifts you into the canopy
+    b.plat(36, 15, 4);
+    b.checkpoint(38, 15);
+    b.zip(40, 19, 61, 12, { speed: 7 });                   // spider silk down through the storm
+    b.thin(48, 19, 3); b.shard(49.5, 20.6);                // hop off the silk near the top for this one
+    b.plat(60, 10, 4);
+    b.vine(70, 17, 6); b.vine(78.5, 17.5, 6);
+    b.plat(84, 10, 3);
+    b.mushroom(90, 4, 9);                                  // drop to the glowing cap below and ride it up
+    b.shard(90.5, 6.5);
+    b.plat(93, 16, 10);
+    b.goal(99, 16);
+    b.arc(4, 6, 25, 8, 6, 3); b.cells(31.5, 10, 31.5, 14, 2); b.cells(42, 18, 58, 13, 5); b.arc(63, 10, 84, 10, 6, 3);
   }),
 
   // 386 ── one fallen giant, three passes: run right through the hollow, press the glowroot, come back left on the upper deck, then out a knot-hole and along the bark
